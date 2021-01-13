@@ -1,0 +1,22 @@
+config:
+  target: 'https://worldmapcovid19.com'
+  phases:
+    - duration: 30
+      arrivalRate: 10
+  defaults:
+    headers:
+      x-my-service-auth: '987401838271002188298567'
+scenarios:
+  - name: "A Curious User"
+    weight: 100
+    engine: "socketio"
+    flow:
+      - emit: 
+          channel: "getCountryCodes"
+      - emit:
+          channel: "loadCountryData"
+          data: "us"
+      - emit:
+          channel: "loadLatestData"
+          data: "{ alpha2: us, country: usa }"
+      

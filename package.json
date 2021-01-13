@@ -1,0 +1,18 @@
+{
+  "name": "worldmapcovid19",
+  "version": "1.0.0",
+  "description": "an interactive map of covid-19 data",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "Amino Belyamani",
+  "license": "ISC",
+  "dependencies": {
+    "cron": "^1.8.2",
+    "express": "^4.17.1",
+    "nodemon": "^2.0.6",
+    "socket.io": "^3.0.4"
+  }
+}

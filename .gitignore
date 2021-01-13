@@ -1,0 +1,27 @@
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+# IGNORE DIRECTORIES #
+_work/
+node_modules/
+public/images/
+public/css/fonts/
+public/css/backup/
+public/js/backup/
+# ASSET FILES #
+*.json
+!package.json
+!package-lock.json
+*.png
+*.ico
+*.jpg
+*.jpeg
+*.gif
+*.webmanifest
+*.xml
