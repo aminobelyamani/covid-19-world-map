@@ -154,7 +154,7 @@ function parseFetchData() {
     console.log("parsed fetch data...")
     return parsed;
 }
-/* function getVaccineData() {
+function getVaccineData() {
     const records = [];
     latestData.forEach(row => {
         if (row.data1.hasOwnProperty('total_vaccinations')) {
@@ -165,7 +165,7 @@ function parseFetchData() {
     });
     //console.log(records.length);
     return records;
-} */
+}
 //getVaccineData();
 
 //CLIENT SERVER FUNCTIONS
@@ -230,10 +230,10 @@ io.sockets.on('connection', (socket) => {
         const newPayload = { latest: data, country: 'world' };
         socket.emit('getLatestWorldData', newPayload);
     });
-   /*  socket.on('getVaccineData', () => {
+    socket.on('getVaccineData', () => {
         const payload = getVaccineData();
         socket.emit('getVaccineData', payload);
-    }); */
+    });
     socket.on('getFetchFromServer', () => {
         socket.emit('getFetchFromServer', fetchData);
     });
