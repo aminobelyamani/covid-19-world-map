@@ -128,13 +128,13 @@ function getLatestData() {
                     count--;
                 }
             }
-            if(count === 0){
+            if (count === 0) {
                 dataList.push({ country: country.alpha2, data1: countryData[count], data2: false });
             }
-            else if(count > 0){
+            else if (count > 0) {
                 dataList.push({ country: country.alpha2, data1: countryData[count], data2: countryData[count - 1] });
-            }        
-        }    
+            }
+        }
     });
     console.log("latest data compiled...")
     return dataList;
@@ -157,16 +157,13 @@ function parseFetchData() {
 function getVaccineData() {
     const records = [];
     latestData.forEach(row => {
-        if (row.data1.hasOwnProperty('total_vaccinations')) {
-            const payload = {country: row.country, data: row.data1.total_vaccinations};
-            records.push(payload);
-            //console.log(row.country);
-        }
+        const totalVacc = (row.data1.hasOwnProperty('total_vaccinations')) ? row.data1.total_vaccinations : 0;
+        const newVacc = (row.data1.hasOwnProperty('new_vaccinations')) ? row.data1.new_vaccinations : 0;
+        const payload = { country: row.country, total_vaccinations: totalVacc, new_vaccinations: newVacc };
+        records.push(payload);
     });
-    //console.log(records.length);
     return records;
 }
-//getVaccineData();
 
 //CLIENT SERVER FUNCTIONS
 function getWorldData(alpha2) {
@@ -194,7 +191,7 @@ function getWorldData(alpha2) {
     }
 }
 function loadCountryData(country) {
-    if (parsedFull.length === 0) {return false;}
+    if (parsedFull.length === 0) { return false; }
     else {
         const alpha2 = countryCodes.find(record => record.alpha2.toLowerCase() === country.toLowerCase()).alpha3.toUpperCase();
         if (alpha2) {

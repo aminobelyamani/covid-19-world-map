@@ -6,6 +6,7 @@ var pathCountries = [];
 var countryCodes = [];
 const dataSVG = [];
 var dataAPI = [];
+var dataVacc = [];
 const countriesList = [];
 var globalRangeList = [];
 var prop = "casesPerMil";
@@ -55,7 +56,7 @@ var popup = _('popup');
 var is_touch_device;
 let socket;
 var chartOn = false;
-function onPageLoad(socket) {
+function onPageLoad() {
     _('overlay').style.display = "none";
     sideBar.style.visibility = "visible";
     currentData.innerText = currentTitle;
@@ -72,12 +73,11 @@ function onPageLoad(socket) {
     }
     openLegend();
     addPopupListeners();
-    socket.emit('getCountryCodes');
-    socketListeners(socket);
     switchToggle.checked = false;//for pop state if left page while true
 }
 function onDOMLoaded() {
     socket = io();
+    socketListeners(socket);
     parseSVG();
     pathStrokeHandler();
     fetch('https://api.apify.com/v2/key-value-stores/SmuuI0oebnTWjRTUh/records/LATEST?disableRedirect=true')
@@ -88,26 +88,28 @@ function onDOMLoaded() {
         })
         .then(data => {
             if (data) {
-                getData(data.regionData);
+                dataAPI = data.regionData;
+                socket.emit('getCountryCodes');
+                socket.emit('getVaccineData');
                 timeStamp.innerText = `Updated at ${formatTime()} EST`;
-                onPageLoad(socket);
+                onPageLoad();
             }
             else {
                 //displayFetchError();
                 socket.emit('getFetchFromServer');
-                socket.on('getFetchFromServer', data => {
-                    getData(data.regionData);
-                    timeStamp.innerText = `Updated at ${formatTime()} EST`;
-                });
-                onPageLoad(socket);
+                onPageLoad();
             }
         });
-
     setInterval(() => {
         fetchAPI();
     }, 300000);
 }
 function socketListeners(socket) {
+    socket.on('getFetchFromServer', data => {
+        dataAPI = data.regionData;
+        getData(dataAPI);
+        timeStamp.innerText = `Updated at ${formatTime()} EST`;
+    });
     socket.on('getCountryCodes', data => {
         countryCodes = data;
     });
@@ -157,6 +159,11 @@ function socketListeners(socket) {
             }
         }
     });
+    socket.on('getVaccineData', data => {
+        console.log(data);
+        dataVacc = data;
+        getData(dataAPI);
+    });
 }
 function parseSVG() {
     pathCountries = document.querySelectorAll('path');
@@ -177,7 +184,8 @@ function fetchAPI() {
         })
         .then(data => {
             if (data) {
-                getData(data.regionData);
+                dataAPI = data.regionData;
+                getData(dataAPI);
                 timeStamp.innerText = `Updated at ${formatTime()} EST`;
             }
             else {
@@ -192,12 +200,14 @@ function displayFetchError() {
 }
 //DATA MANIP
 function getData(data) {
-    dataAPI = data;
     countriesList.length = 0;//reinitialize array
     dataSVG.forEach(item => {
         const index = data.findIndex(data => data.country === item.country);
         if (index != -1) {
             data[index].alpha2 = item.id;
+            const vaccIndex = dataVacc.findIndex(row => row.country === item.id);
+            data[index].totalVaccinations = (vaccIndex != -1) ? dataVacc[vaccIndex].total_vaccinations : 0;
+            data[index].newVaccinations = (vaccIndex != -1) ? dataVacc[vaccIndex].new_vaccinations : 0;
             countriesList.push(data[index]);
         }
     });
@@ -1493,7 +1503,7 @@ for (let i = 0; i < buttons.length; i++) {
             statsWrapper.removeEventListener('scroll', onStatsScroll);
             if (countriesList.length != 0) {//wait for countriesList to fill with data
                 prop = this.dataset.prop;
-                currentTitle = (prop === 'percDeaths' && window.innerWidth <= 768) ? 'CFR' : this.innerText;
+                currentTitle = this.innerText;
                 if (this.dataset.category === 'cases') {
                     const casesBtns = document.querySelectorAll('.cases-btns');
                     for (let k = 0; k < casesBtns.length; k++) {
