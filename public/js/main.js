@@ -33,17 +33,21 @@ var keyBtn = _('keyBtn');
 var keys = _('keys');
 var closeKeys = _('closeKeys');
 var keyTitle = _('keyTitle');
-var blues = _('blues');
-var reds = _('reds');
+var legendColors = _('legendColors');
 var toggle = _('toggleSideBar');
 var closeDash = _('closeDash');
 var sideBar = _('sideBar');
 var timeStamp = _('timeStamp');
-//var switchToggle = _('switchToggle');
-//var switchSpan = _('switch');
+const switchToggle = _('switchSVG');
+var switchG = _('switchG');
+var switchCircle = _('switchCircle');
 var optionsDiv = _('optionsDiv');
 var dropDown = _('dropDown');
 var dropDownTitle = _('dropDownTitle');
+var casesMenu = _('casesMenu');
+var testsMenu = _('testsMenu');
+var deathsMenu = _('deathsMenu');
+var vaccMenu = _('vaccMenu');
 var statsWrapper = _('statsWrapper');
 var searchWrapper = _('searchWrapper');
 var searchIcon = _('searchIcon');
@@ -297,30 +301,17 @@ function worldData(data) {
     socket.emit('getLatestWorldData', alpha2);
 }
 function buttonsHandler(property) {
-    const caseBtns = document.querySelectorAll('.cases-btns');
-    const deathBtns = document.querySelectorAll('.deaths-btns');
-    for (let i = 0; i < caseBtns.length; i++) {
-        if (caseBtns[i].dataset.prop === property) {
-            caseBtns[i].style.backgroundColor = "#08aae3";
-            caseBtns[i].style.color = colorLDM;
-            blues.classList.remove('no-display');
-            reds.classList.add('no-display');
+    const btnsQuery = toggleSwitchCases(switchValue).btns;
+    const btns = document.querySelectorAll(btnsQuery);
+    const catColor = toggleSwitchCases(switchValue).color;
+    for (let i = 0; i < btns.length; i++) {
+        if (btns[i].dataset.prop === property) {
+            btns[i].style.backgroundColor = catColor;
+            btns[i].style.color = '#000';
         }
         else {
-            caseBtns[i].style.backgroundColor = bckColorLDM;
-            caseBtns[i].style.color = colorLDM;
-        }
-    }
-    for (let i = 0; i < deathBtns.length; i++) {
-        if (deathBtns[i].dataset.prop === property) {
-            deathBtns[i].style.backgroundColor = "#f6584c";
-            deathBtns[i].style.color = colorLDM;
-            blues.classList.add('no-display');
-            reds.classList.remove('no-display');
-        }
-        else {
-            deathBtns[i].style.backgroundColor = bckColorLDM;
-            deathBtns[i].style.color = colorLDM;
+            btns[i].style.backgroundColor = bckColorLDM;
+            btns[i].style.color = colorLDM;
         }
     }
     currentData.innerText = dropDownTitle.innerText = keyTitle.innerText = currentTitle;
@@ -371,10 +362,16 @@ function getRangeList(max, min) {
     rangeList.reverse();//for legend colors, light to dark
     return rangeList;
 }
+function changeLegendColors(cat) {
+    const colors = legendColors.querySelectorAll('.color');
+    const color = toggleSwitchCases(cat).colors.reverse();
+    for (let i = 0; i < colors.length - 1; i++) {
+        colors[i].style.backgroundColor = color[i];
+    }
+}
 function makeLegend(rangeList) {
-    const redorblue = (switchValue === 'deaths') ? reds : blues;
     const rangeElems = keys.querySelectorAll('.data-range');
-    const colorElems = redorblue.querySelectorAll('.color');
+    const colorElems = legendColors.querySelectorAll('.color');
     for (let i = 0; i < rangeElems.length; i++) {
         rangeElems[i].classList.add('no-display');
     }
@@ -391,9 +388,8 @@ function makeLegend(rangeList) {
     onLegendResize(rangeList);
 }
 function onLegendResize(rangeList) {
-    const redorblue = (switchValue === 'deaths') ? reds : blues;
     const rangeElems = keys.querySelectorAll('.data-range');
-    const colorElems = redorblue.querySelectorAll('.color');
+    const colorElems = legendColors.querySelectorAll('.color');
     rangeElems[rangeElems.length - 1].innerText = (window.innerWidth <= 768) ? 'No Data' : 'No Reported Data';
     if (rangeList.length === 0) {
         colorElems[colorElems.length - 2].style.borderTopRightRadius = '3px';
@@ -445,19 +441,17 @@ function matchData(data, property, range) {
                     pathCountries[i].style.fill = (switchValue === 'deaths') ? val2color(value, range, true) : val2color(value, range);
                 }
                 else {
-                    pathCountries[i].style.fill = '#ffc82a';//no data
+                    pathCountries[i].style.fill = '#9c9c9c';//no data
                 }
             }
             else {
-                pathCountries[i].style.fill = '#ffc82a';//no data
+                pathCountries[i].style.fill = '#9c9c9c';//no data
             }
         }
     }
 }
 function val2color(value, range, deaths) {
-    const blues = ['#d6f5ff', '#96dcf4', '#54cbf2', '#04abe3', '#038ebc', '#035e79', '#013544'];
-    const reds = ['#ffe9e7', '#fcd2cd', '#ffada6', '#fd8177', '#f6584c', '#bd4137', '#9e251b'];
-    const colors = (deaths) ? reds : blues;
+    const colors = toggleSwitchCases(switchValue).colors;
     let color = '';
     for (let count = 0; count < range.length - 1; count++) {
         if (value === 0) {
@@ -955,8 +949,7 @@ function removeZoomTapListeners() {
 }
 //LEGEND HOVER LISTENERS
 function addLegendListeners() {
-    const colorsWrapper = (switchValue === 'cases') ? blues : reds;
-    const colors = colorsWrapper.querySelectorAll('.color');
+    const colors = legendColors.querySelectorAll('.color');
     const keyRanges = keys.querySelectorAll('.data-range');
     for (let i = 0; i < colors.length; i++) {
         if (!is_touch_device) {
@@ -976,17 +969,14 @@ function addLegendListeners() {
     }
 }
 function removeLegendListeners() {
-    const elems = [blues, reds];
     const keyRanges = keys.querySelectorAll('.data-range');
-    for (let k = 0; k < elems.length; k++) {
-        let colors = elems[k].querySelectorAll('.color');
-        for (let i = 0; i < colors.length; i++) {
-            if (!is_touch_device) {
-                colors[i].removeEventListener('mouseover', onColorOver);
-            }
-            else {
-                colors[i].removeEventListener('touchend', onColorTouch);
-            }
+    const colors = legendColors.querySelectorAll('.color');
+    for (let i = 0; i < colors.length; i++) {
+        if (!is_touch_device) {
+            colors[i].removeEventListener('mouseover', onColorOver);
+        }
+        else {
+            colors[i].removeEventListener('touchend', onColorTouch);
         }
     }
     for (let i = 0; i < keyRanges.length; i++) {
@@ -999,8 +989,7 @@ function removeLegendListeners() {
     }
 }
 function clearLegendHover() {
-    const colorsWrapper = (switchValue === 'cases') ? blues : reds;
-    const colors = colorsWrapper.querySelectorAll('.color');
+    const colors = legendColors.querySelectorAll('.color');
     const keyRanges = keys.querySelectorAll('.data-range');
     for (let i = 0; i < colors.length; i++) {
         colors[i].classList.remove('on-color-hover');
@@ -1031,10 +1020,9 @@ function onColorOver(e) {
     highlightRangeCountries(elem.style.backgroundColor);
 }
 function getLegendTarget(e) {
-    const colors = (switchValue === 'cases') ? blues : reds;
     const parent = e.parentNode;
     const index = Array.prototype.indexOf.call(parent.children, e);
-    return { elem: colors.querySelectorAll('.color')[index], index: index };
+    return { elem: legendColors.querySelectorAll('.color')[index], index: index };
 }
 function highlightRangeCountries(color) {
     for (let i = 0; i < pathCountries.length; i++) {
@@ -1397,93 +1385,97 @@ toggle.addEventListener('mouseup', toggleSideBar, false);
 closeDash.addEventListener('mouseup', closeSideBar, false);
 //SWITCH TOGGLE
 function toggleSwitchCases(cat) {
-    let cx, cy, color;
+    let cx, cy, color, menu, property, title, height, btns, colors;
     switch (cat) {
         case 'cases':
             cx = 10;
             cy = 32;
             color = '#54cbf2';
+            menu = casesMenu;
+            property = 'casesPerMil';
+            title = 'Cases/Million';
+            height = '280px';//40 * 7 (number of menu options)
+            btns = '.cases-btns';
+            colors = ['#d6f5ff', '#96dcf4', '#54cbf2', '#04abe3', '#038ebc', '#035e79', '#013544'];
             break;
         case 'tests':
             cx = 32;
             cy = 10;
             color = '#f4bc68';
+            menu = testsMenu;
+            property = 'totalTests';
+            title = 'Total Tests';
+            height = '160px';
+            btns = '.tests-btns';
+            colors = ['#fbebd1', '#f9d7a4', '#f4bc68', '#f9ad3b', '#ff9700', '#c57603', '#844f01'];
             break;
         case 'deaths':
             cx = 54;
             cy = 32;
             color = '#f6584c';
+            menu = deathsMenu;
+            property = 'deathsPerMil';
+            title = 'Deaths/Million';
+            height = '200px';
+            btns = '.deaths-btns';
+            colors = ['#ffe9e7', '#fcd2cd', '#ffada6', '#fd8177', '#f6584c', '#bd4137', '#9e251b'];
             break;
         case 'vaccines':
             cx = 32;
             cy = 54;
             color = '#4cf6af';
+            menu = vaccMenu;
+            property = 'totalVaccinations';
+            title = 'Total Vaccinations';
+            height = '120px';
+            btns = '.vacc-btns';
+            colors = ['#e2fdf1', '#bafbdf', '#89f9ca', '#4cf6af', '#33a976', '#1f6949', '#0e2f20'];
     }
-    return { cx: cx, cy: cy, color: color };
+    return { cx: cx, cy: cy, color: color, menu: menu, property: property, title: title, height: height, btns: btns, colors: colors };
 }
-const switchToggle = _('switchSVG');
-var switchG = _('switchG');
-var switchCircle = _('switchCircle');
 switchToggle.addEventListener('mouseup', function (e) {
     if (e.target.className.baseVal === 'switch-titles' || e.target.className.baseVal === 'switch-target-circles') {
-        switchCircle.setAttribute('cx', 32);
-        switchCircle.setAttribute('cy', 32);
         const cat = e.target.getAttribute('data-cat');
-        const cx = toggleSwitchCases(cat).cx;
-        const cy = toggleSwitchCases(cat).cy;
-        const color = toggleSwitchCases(cat).color;
-        switchG.setAttribute('fill', color);
-        setTimeout(() => {
-            switchCircle.setAttribute('cx', cx);
-            switchCircle.setAttribute('cy', cy);
-        }, 100);
-        const titles = switchToggle.querySelectorAll('.switch-titles');
-        for (let i = 0; i < titles.length; i++) {
-            titles[i].style.opacity = (titles[i].getAttribute('data-cat') === cat) ? 1 : 0.4;
+        if (switchValue != cat) {
+            switchValue = cat;
+            switchCircle.setAttribute('cx', 32);
+            switchCircle.setAttribute('cy', 32);
+            const color = toggleSwitchCases(cat).color;
+            switchG.setAttribute('fill', color);
+            const cx = toggleSwitchCases(cat).cx;
+            const cy = toggleSwitchCases(cat).cy;
+            setTimeout(() => {
+                switchCircle.setAttribute('cx', cx);
+                switchCircle.setAttribute('cy', cy);
+            }, 100);
+            const titles = switchToggle.querySelectorAll('.switch-titles');
+            for (let i = 0; i < titles.length; i++) {
+                titles[i].style.opacity = (titles[i].getAttribute('data-cat') === cat) ? 1 : 0.4;
+            }
+            const menu = toggleSwitchCases(cat).menu;
+            handleOptionsMenu(menu);
+            currentData.style.backgroundColor = color;
+            prop = toggleSwitchCases(cat).property;
+            currentTitle = toggleSwitchCases(cat).title;
+            changeLegendColors(cat);
+            buttonsHandler(prop);
+            worldData(dataAPI);
+            removeLegendListeners();
+            addLegendListeners();
+            optionsDiv.style.height = "40px";
+            globalHelpTip.style.display = "none";
         }
     }
 });
-/* switchToggle.addEventListener('change', function () {
-    let casesTitle = _('casesTitle');
-    let deathsTitle = _('deathsTitle');
-    let casesMenu = _('casesMenu');
-    let deathsMenu = _('deathsMenu');
-    if (this.checked) {//DEATHS
-        switchSpan.setAttribute('title', 'Toggle Cases');
-        switchValue = "deaths";
-        deathsTitle.style.opacity = "1";
-        casesTitle.style.opacity = "0.4";
-        casesMenu.style.display = "none";
-        deathsMenu.style.display = "block";
-        currentData.style.backgroundColor = "#f6584c";
-        prop = "deathsPerMil";
-        currentTitle = "Deaths/Million";
-        buttonsHandler(prop);
-        worldData(dataAPI);
-        removeLegendListeners();
-        addLegendListeners();
+function handleOptionsMenu(e) {
+    const menus = [casesMenu, testsMenu, deathsMenu, vaccMenu];
+    for (let i = 0; i < menus.length; i++) {
+        menus[i].style.display = (menus[i] === e) ? 'block' : 'none';
     }
-    else {//CASES
-        switchSpan.setAttribute('title', 'Toggle Deaths');
-        switchValue = "cases";
-        deathsTitle.style.opacity = "0.4";
-        casesTitle.style.opacity = "1";
-        casesMenu.style.display = "block";
-        deathsMenu.style.display = "none";
-        currentData.style.backgroundColor = "#68d0f4";
-        prop = "casesPerMil";
-        currentTitle = "Cases/Million";
-        buttonsHandler(prop);
-        worldData(dataAPI);
-        removeLegendListeners();
-        addLegendListeners();
-    }
-    optionsDiv.style.height = "40px";
-    globalHelpTip.style.display = "none";
-}); */
+}
 //DROPDOWN
 function openDropDown() {
-    const height = (switchValue === "cases") ? 400 + "px" : 200 + "px";
+    const height = toggleSwitchCases(switchValue).height;
     const toggle = _('dropDownArrow');
     optionsDiv.style.overflowY = "scroll";
     optionsDiv.style.height = height;
@@ -1539,8 +1531,6 @@ function dropDownSwitch(property) {
     return p;
 }
 //DROPDOWN PROPERTIES
-var casesColor = "#08aae3";
-var deathsColor = "#f6584c";
 var bckColorLDM = "#3d3c3a";
 var colorLDM = "#faebd7";
 const buttons = document.querySelectorAll('button');
@@ -1551,26 +1541,14 @@ for (let i = 0; i < buttons.length; i++) {
             if (countriesList.length != 0) {//wait for countriesList to fill with data
                 prop = this.dataset.prop;
                 currentTitle = this.innerText;
-                if (this.dataset.category === 'cases') {
-                    const casesBtns = document.querySelectorAll('.cases-btns');
-                    for (let k = 0; k < casesBtns.length; k++) {
-                        casesBtns[k].style.backgroundColor = bckColorLDM;
-                        casesBtns[k].style.color = colorLDM;
-                    }
-                    this.style.backgroundColor = casesColor;
-                    blues.classList.remove('no-display');
-                    reds.classList.add('no-display');
+                const btnQuery = toggleSwitchCases(switchValue).btns;
+                const btns = document.querySelectorAll(btnQuery);
+                for (let k = 0; k < btns.length; k++) {
+                    btns[k].style.backgroundColor = bckColorLDM;
+                    btns[k].style.color = colorLDM;
                 }
-                else {
-                    const deathsBtns = document.querySelectorAll('.deaths-btns');
-                    for (let j = 0; j < deathsBtns.length; j++) {
-                        deathsBtns[j].style.backgroundColor = bckColorLDM;
-                        deathsBtns[j].style.color = colorLDM;
-                    }
-                    this.style.backgroundColor = deathsColor;
-                    blues.classList.add('no-display');
-                    reds.classList.remove('no-display');
-                }
+                this.style.backgroundColor = toggleSwitchCases(switchValue).color;
+                this.style.color = "#000";
                 const pText = dropDownSwitch(prop);
                 if (pText != '') {
                     globalHelpTip.style.display = 'block';
@@ -1580,7 +1558,6 @@ for (let i = 0; i < buttons.length; i++) {
                 else {
                     globalHelpTip.style.display = 'none';
                 }
-                this.style.color = "#fff";
                 currentData.innerText = dropDownTitle.innerText = keyTitle.innerText = currentTitle;
                 getMinMax(countriesList, prop, rangeLimit);
                 if (window.innerWidth <= 768) {

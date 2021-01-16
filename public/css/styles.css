@@ -1154,9 +1154,9 @@ header{
 #deathsTitle{
     color:#f6584c;
 }
-.light #switchCircle{
-    /* fill: #fff; */
-}
+/* .light #switchCircle{
+    fill: #fff;
+} */
 /* end switch */
 /* begin dropdown */
 #optionsDiv{
@@ -1216,10 +1216,10 @@ header{
 #dropDownArrow:hover, #dropDownArrow:active, #dropDownArrow:focus, #chartOptionArrow:hover, #chartOptionArrow:active, #chartOptionArrow:focus{
     opacity: 1;
 }
-#deathsMenu{
+#testsMenu, #deathsMenu, #vaccMenu{
     display: none;
 }
-.cases-btns, .deaths-btns, .chart-btns{
+.cases-btns, .deaths-btns, .tests-btns, .vacc-btns, .chart-btns{
     font-family: 'Gill Sans', sans-serif;
     display: block;
     width: 100%;
@@ -1227,7 +1227,7 @@ header{
     outline: none;
     border: none;
     background-color: #3d3c3a;
-    color:#000;
+    color:#faebd7;
     font-size: 1em;
     font-weight: 100;
     text-align: left;
@@ -1243,8 +1243,16 @@ header{
     color:#000!important;
 }
 .cases-btns:active, .cases-btns:focus{
-    background-color:#08aae3!important;
-    color:#fff!important;
+    background-color:#54cbf2!important;
+    color:#000!important;
+}
+.tests-btns:hover{
+    background-color:#f9d7a4!important;
+    color:#000!important;
+}
+.tests-btns:active, .tests-btns:focus{
+    background-color:#f4bc68!important;
+    color:#000!important;
 }
 .deaths-btns:hover{
     background-color:#ff9890!important;
@@ -1252,7 +1260,15 @@ header{
 }
 .deaths-btns:active, .deaths-btns:focus{
     background-color:#f6584c!important;
-    color:#fff!important;
+    color:#000!important;
+}
+.vacc-btns:hover{
+    background-color:#bafbdf!important;
+    color:#000!important;
+}
+.vacc-btns:active, .vacc-btns:focus{
+    background-color:#4cf6af!important;
+    color:#000!important;
 }
 /* end dropdown */
 /* begin world stats */

@@ -129,7 +129,7 @@
         <p id="keyTitle"></p>
         <div class="keys">
             <div class="colors-wrapper">
-                <div id="blues" class="colors flex-column">
+                <div id="legendColors" class="colors flex-column">
                     <div class="color" style="background-color:#013544;"></div>
                     <div class="color" style="background-color:#035e79;"></div>
                     <div class="color" style="background-color:#038ebc;"></div>
@@ -137,9 +137,9 @@
                     <div class="color" style="background-color:#54cbf2;"></div>
                     <div class="color" style="background-color:#96dcf4;"></div>
                     <div class="color" style="background-color:#d6f5ff;"></div>
-                    <div class="color" style="background-color:#ffc82a;"></div>
+                    <div class="color" style="background-color:#9c9c9c;"></div>
                 </div>
-                <div id="reds" class="colors flex-column">
+               <!--  <div id="reds" class="colors flex-column">
                     <div class="color" style="background-color:#9e251b;"></div>
                     <div class="color" style="background-color:#bd4137;"></div>
                     <div class="color" style="background-color:#f6584c;"></div>
@@ -148,7 +148,7 @@
                     <div class="color" style="background-color:#fcd2cd;"></div>
                     <div class="color" style="background-color:#ffe9e7;"></div>
                     <div class="color" style="background-color:#ffc82a;"></div>
-                </div>
+                </div> -->
             </div>
             <div class="key-data flex-column">
                 <div class="data-range">
@@ -218,23 +218,27 @@
                 <span class="flex-span bckg-sprite" id="dropDownArrow"></span> 
             </div>
             <div id="casesMenu">
-                <button type="button" class="cases-btns" data-category="cases" data-prop="totalVaccinations">Total Vaccinations</button>
-                <button type="button" class="cases-btns" data-category="cases" data-prop="newVaccinations">New Vaccinations</button>
                 <button type="button" class="cases-btns" data-category="cases" data-prop="casesPerMil">Cases/Million</button>
                 <button type="button" class="cases-btns" data-category="cases" data-prop="newCases">New Cases</button>
                 <button type="button" class="cases-btns" data-category="cases" data-prop="totalCases">Total Cases</button>
                 <button type="button" class="cases-btns" data-category="cases" data-prop="totalRecovered">Recovered</button>  
                 <button type="button" class="cases-btns" data-category="cases" data-prop="activeCases">Active</button>
                 <button type="button" class="cases-btns" data-category="cases" data-prop="seriousCritical">Critical</button>
-                <button type="button" class="cases-btns" data-category="cases" data-prop="totalTests">Tests</button>
-                <button type="button" class="cases-btns" data-category="cases" data-prop="testsPerMil">Tests/Million</button>
-                <button type="button" class="cases-btns" data-category="cases" data-prop="population">Population</button>
+            </div>
+            <div id="testsMenu">
+                <button type="button" class="tests-btns" data-category="tests" data-prop="totalTests">Total Tests</button>
+                <button type="button" class="tests-btns" data-category="tests" data-prop="testsPerMil">Tests/Million</button>
+                <button type="button" class="tests-btns" data-category="tests" data-prop="population">Population</button>
             </div>
             <div id="deathsMenu">
                 <button type="button" class="deaths-btns" data-category="deaths" data-prop="deathsPerMil">Deaths/Million</button>
                 <button type="button" class="deaths-btns" data-category="deaths" data-prop="newDeaths">New Deaths</button>
                 <button type="button" class="deaths-btns" data-category="deaths" data-prop="totalDeaths">Total Deaths</button>
                 <button type="button" class="deaths-btns" data-category="deaths" data-prop="percDeaths">Case Fatality Rate</button>
+            </div>
+            <div id="vaccMenu">
+                <button type="button" class="vacc-btns" data-category="vaccines" data-prop="totalVaccinations">Total Vaccinations</button>
+                <button type="button" class="vacc-btns" data-category="vaccines" data-prop="newVaccinations">New Vaccinations</button>
             </div>
         </div>
         <div id="statsWrapper">
