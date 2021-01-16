@@ -1097,24 +1097,12 @@ header{
     display: -webkit-box;
     display: -ms-flexbox;
     display: flex;
-    -ms-flex-wrap: wrap;
-    flex-wrap: wrap;
-    min-height: 68px;
     align-items: center;
-    text-align: left;
     padding:0px 12px;
     border-bottom:1px solid #fff;
 }
-header h1{
-    margin:0;
-    font-size: 1.5em;
-    font-weight: 600;
-    line-height: 50px;
-}
 #closeDash{
-    -webkit-box-flex:calc(100% - 155px);
-    -ms-flex:calc(100% - 155px);
-    flex:calc(100% - 155px);
+    -webkit-box-flex:1; -ms-flex:1; flex:1;
     color:#fff;
     text-align: end;
 }
@@ -1135,40 +1123,21 @@ header h1{
     animation: pulse 0.8s ease-in-out 0s infinite alternate;
 }
 .pulse{
-    margin:-10px 6px 10px 0; 
+    margin:0px 6px 0 0; 
     color: #f44336;
 }
 #timeStamp{
-    margin:-10px 0 10px 0;
+    margin:0;
     font-size:14px;
 }
 /* begin switch */
-#switchWrapper{
-    
-}
-.switch-flex{
-    /* display: -webkit-inline-box;
-    display: -ms-inline-flexbox;
-    display: inline-flex;
-    -webkit-box-align: center;
-    -ms-flex-align: center;
-    align-items: center;
-    -webkit-box-pack: justify;
-    -ms-flex-pack: justify;
-    justify-content: space-between; */
-}
 .switch-titles{
-    margin:0;
     font-size: 1.5em;
     font-weight: 100;
     opacity: 0.4;
-    -o-transition: 0.2s ease-in;
-    -moz-transition: 0.2s ease-in;
-    -webkit-transition: 0.2s ease-in;
-    transition: 0.2s ease-in;
     cursor:pointer;
 }
-#switchCircle, #switchG{
+#switchCircle, #switchG, .switch-titles{
     -o-transition: 0.2s ease-in;
     -moz-transition: 0.2s ease-in;
     -webkit-transition: 0.2s ease-in;
@@ -1185,50 +1154,8 @@ header h1{
 #deathsTitle{
     color:#f6584c;
 }
-.switch{
-    position: relative;
-    width:60px;
-    height:30px;
-    display: none;
-}
-.switch-slider{
-    position: absolute;
-    top:0;bottom:0;right:0;left:0;
-    background-color:#54cbf2;
-    border-radius: 50px;
-    -o-transition: .2s;
-    -moz-transition: .2s;
-    -webkit-transition: .2s;
-    transition: .2s;
-    cursor: pointer;
-}
-.switch input{display:none;}
-.switch-slider:before{
-    position: absolute;
-    content: "";
-    width:26px;
-    height:26px;
-    left:2px;
-    bottom:2px;
-    background-color:#1e1e1e;
-    border-radius: 50px;
-    -o-transition: .2s;
-    -moz-transition: .2s;
-    -webkit-transition: .2s;
-    transition: .2s;
-}
-.light .switch-slider:before{
-    background-color: #fff;
-}
-input:checked + .switch-slider{
-    background-color:#f44336;   
-}
-input:checked + .switch-slider:before{
-    -o-transform:translateX(30px);
-    -moz-transform:translateX(30px);
-    -webkit-transform:translateX(30px);
-    -ms-transform:translateX(30px);
-    transform:translateX(30px);
+.light #switchCircle{
+    /* fill: #fff; */
 }
 /* end switch */
 /* begin dropdown */
