@@ -148,6 +148,7 @@ function socketListeners(socket) {
     });
     socket.on('getLatestWorldData', data => {
         if (data.latest) {
+            console.log(data);
             const percObj = getLatestData(data, true);
             const perc = percObj.perc;
             const percDeaths = percObj.percDeaths;
@@ -234,13 +235,27 @@ function calcData(data) {
         }
     });
 }
+function totalOfProp(property){
+    let count = 0;
+    countriesList.forEach(country => {
+        count = count + country[property];
+    });
+    return count;
+}
 function worldData(data) {
     const world = data.find(data => data.country === "World");
+    const totalTests = totalOfProp('totalTests');
+    const totalPop = totalOfProp('population');
+    const totalVacc = totalOfProp('totalVaccinations');
+    world.totalTests = totalTests;
+    world.totalPop = totalPop;
+    world.totalVacc = totalVacc;
     const percRecovered = roundVal((world.totalRecovered / world.totalCases) * 100, 1);
     const percActive = roundVal((world.activeCases / world.totalCases) * 100, 1);
     const percDeaths = roundVal((world.totalDeaths / world.totalCases) * 100, 1);
     const percCritical = roundVal((world.seriousCritical / world.activeCases) * 100, 1);
     let worldStats = _('worldStats');
+    const alpha2 = 'OWID_WRL';
     if (switchValue === "cases") {
         worldStats.innerHTML = `
             <h2 class='global-cases-title'>Global Stats</h2>
@@ -276,6 +291,21 @@ function worldData(data) {
                 </div>
                 ${getPiePerc(percCritical, 'seriousCritical', true)}
             </div>`;
+        socket.emit('getLatestWorldData', alpha2);
+    }
+    else if (switchValue === 'tests'){
+        worldStats.innerHTML = `
+            <h2 class='global-tests-title'>Global Stats</h2>
+            <p class='stats white'>${world.totalTests.commaSplit()}</p>
+            <p class='stats-titles gray'>Total Tests</p>
+            <p class='stats white'>${world.totalPop.commaSplit()}</p>
+            <p class='stats-titles gray'>Population</p>`;
+    }
+    else if (switchValue === 'vaccines'){
+        worldStats.innerHTML = `
+            <h2 class='global-vacc-title'>Global Stats</h2>
+            <p class='stats white'>${world.totalVacc.commaSplit()}</p>
+            <p class='stats-titles gray'>Total Vaccinations</p>`;
     }
     else {
         worldStats.innerHTML = `
@@ -296,9 +326,8 @@ function worldData(data) {
             </div>
             <p class='stats white'>${world.deathsPerMil.commaSplit()}</p>
             <p class='stats-titles gray'>Deaths/Million</p>`;
+        socket.emit('getLatestWorldData', alpha2);
     }
-    const alpha2 = 'OWID_WRL';
-    socket.emit('getLatestWorldData', alpha2);
 }
 function buttonsHandler(property) {
     const btnsQuery = toggleSwitchCases(switchValue).btns;
@@ -522,8 +551,7 @@ function sortList(data, property) {
     return sortedList;
 }
 function showSortedList(data) {
-    let style = "";
-    style = (prop === "totalDeaths" || prop === "newDeaths" || prop === "deathsPerMil" || prop === "percDeaths") ? "color:#f6584c" : "color:#96dcf4";
+    const color = toggleSwitchCases(switchValue).color;
     const worldList = _('worldList');
     let html = "";
     sortList(data).forEach(item => {
@@ -537,7 +565,7 @@ function showSortedList(data) {
             </div> `;
     });
     worldList.innerHTML = `
-        <h2 id='rankTitle' class='global-cases-title' style='${style}'>Global Ranks</h2>
+        <h2 id='rankTitle' class='global-cases-title' style='color:${color};'>Global Ranks</h2>
         <p class='ranks-title gray'>${currentTitle}</p>
         ${html}`;
     const rows = worldList.querySelectorAll('.stats-flex');

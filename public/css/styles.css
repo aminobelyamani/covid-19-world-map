@@ -1309,7 +1309,7 @@ header{
 #worldList h2, #worldList .ranks-title{
     padding:0 12px;
 }
-.global-cases-title, .global-deaths-title{
+.global-cases-title, .global-deaths-title, .global-tests-title, .global-vacc-title{
     margin:0;
     text-transform: uppercase;
     font-weight: 100;
@@ -1317,8 +1317,14 @@ header{
 .global-cases-title{
     color:#68d1f4;
 }
+.global-tests-title{
+    color:#f4bc68;
+}
 .global-deaths-title{
     color:#f6584c;
+}
+.global-vacc-title{
+    color:#4cf6af;
 }
 .stats{
     margin:15px 0 0 0;
