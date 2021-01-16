@@ -1144,7 +1144,10 @@ header h1{
 }
 /* begin switch */
 #switchWrapper{
-    display: -webkit-inline-box;
+    
+}
+.switch-flex{
+    /* display: -webkit-inline-box;
     display: -ms-inline-flexbox;
     display: inline-flex;
     -webkit-box-align: center;
@@ -1152,8 +1155,7 @@ header h1{
     align-items: center;
     -webkit-box-pack: justify;
     -ms-flex-pack: justify;
-    justify-content: space-between;
-    margin:20px 12px;
+    justify-content: space-between; */
 }
 .switch-titles{
     margin:0;
@@ -1164,6 +1166,17 @@ header h1{
     -moz-transition: 0.2s ease-in;
     -webkit-transition: 0.2s ease-in;
     transition: 0.2s ease-in;
+    cursor:pointer;
+}
+#switchCircle, #switchG{
+    -o-transition: 0.2s ease-in;
+    -moz-transition: 0.2s ease-in;
+    -webkit-transition: 0.2s ease-in;
+    transition: 0.2s ease-in;
+}
+.switch-target-circles{
+    opacity: 0;
+    cursor: pointer;
 }
 #casesTitle{
     color:#68d0f4;
@@ -1176,6 +1189,7 @@ header h1{
     position: relative;
     width:60px;
     height:30px;
+    display: none;
 }
 .switch-slider{
     position: absolute;

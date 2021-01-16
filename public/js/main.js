@@ -39,8 +39,8 @@ var toggle = _('toggleSideBar');
 var closeDash = _('closeDash');
 var sideBar = _('sideBar');
 var timeStamp = _('timeStamp');
-var switchToggle = _('switchToggle');
-var switchSpan = _('switch');
+//var switchToggle = _('switchToggle');
+//var switchSpan = _('switch');
 var optionsDiv = _('optionsDiv');
 var dropDown = _('dropDown');
 var dropDownTitle = _('dropDownTitle');
@@ -73,7 +73,7 @@ function onPageLoad() {
     }
     openLegend();
     addPopupListeners();
-    switchToggle.checked = false;//for pop state if left page while true
+    //switchToggle.checked = false;//for pop state if left page while true
 }
 function onDOMLoaded() {
     socket = io();
@@ -1396,7 +1396,54 @@ function toggleSideBar() {
 toggle.addEventListener('mouseup', toggleSideBar, false);
 closeDash.addEventListener('mouseup', closeSideBar, false);
 //SWITCH TOGGLE
-switchToggle.addEventListener('change', function () {
+function toggleSwitchCases(cat) {
+    let cx, cy, color;
+    switch (cat) {
+        case 'cases':
+            cx = 10;
+            cy = 32;
+            color = '#54cbf2';
+            break;
+        case 'tests':
+            cx = 32;
+            cy = 10;
+            color = '#f4bc68';
+            break;
+        case 'deaths':
+            cx = 54;
+            cy = 32;
+            color = '#f6584c';
+            break;
+        case 'vaccines':
+            cx = 32;
+            cy = 54;
+            color = '#4cf6af';
+    }
+    return { cx: cx, cy: cy, color: color };
+}
+const switchToggle = _('switchSVG');
+var switchG = _('switchG');
+var switchCircle = _('switchCircle');
+switchToggle.addEventListener('mouseup', function (e) {
+    if (e.target.className.baseVal === 'switch-titles' || e.target.className.baseVal === 'switch-target-circles') {
+        switchCircle.setAttribute('cx', 32);
+        switchCircle.setAttribute('cy', 32);
+        const cat = e.target.getAttribute('data-cat');
+        const cx = toggleSwitchCases(cat).cx;
+        const cy = toggleSwitchCases(cat).cy;
+        const color = toggleSwitchCases(cat).color;
+        switchG.setAttribute('fill', color);
+        setTimeout(() => {
+            switchCircle.setAttribute('cx', cx);
+            switchCircle.setAttribute('cy', cy);
+        }, 100);
+        const titles = switchToggle.querySelectorAll('.switch-titles');
+        for (let i = 0; i < titles.length; i++) {
+            titles[i].style.opacity = (titles[i].getAttribute('data-cat') === cat) ? 1 : 0.4;
+        }
+    }
+});
+/* switchToggle.addEventListener('change', function () {
     let casesTitle = _('casesTitle');
     let deathsTitle = _('deathsTitle');
     let casesMenu = _('casesMenu');
@@ -1433,7 +1480,7 @@ switchToggle.addEventListener('change', function () {
     }
     optionsDiv.style.height = "40px";
     globalHelpTip.style.display = "none";
-});
+}); */
 //DROPDOWN
 function openDropDown() {
     const height = (switchValue === "cases") ? 400 + "px" : 200 + "px";

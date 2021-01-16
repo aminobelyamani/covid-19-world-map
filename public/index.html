@@ -193,12 +193,25 @@
             <p id="timeStamp" class="yellow"></p>
         </header>
         <div id="switchWrapper">
-            <p id="casesTitle" class="switch-titles">CASES</p>
-            <label class="switch">
-                <input id="switchToggle" type="checkbox">
-                <span id="switch" class="switch-slider" title="Toggle Deaths"></span>
-            </label>
-            <p id="deathsTitle" class="switch-titles">DEATHS</p>
+            <svg id="switchSVG" width="300" height="148" xmlns="http://www.w3.org/2000/svg">
+                <g id="switchG" fill="#68d0f4" width="64" height="64" transform="matrix(1, 0, 0, 1, 118, 42)">
+                    <rect stroke-linejoin="round" stroke-linecap="round" y="22" x="0" width="64" rx="10" height="20"/>
+                    <rect stroke-linejoin="round" stroke-linecap="round" y="22" x="0" width="64" rx="10" height="20" transform="rotate(90 32,32)"/>
+                    <circle id="switchCircle" r='8' cx='10' cy='32' fill='#1e1e1e'></circle>
+                    <circle class="switch-target-circles" r='8' cx='10' cy='32' fill='#000' data-cat="cases"><title>Toggle Cases</title></circle>
+                    <circle class="switch-target-circles" r='8' cx='32' cy='10' fill='#000' data-cat="tests"><title>Toggle Tests</title></circle>
+                    <circle class="switch-target-circles" r='8' cx='54' cy='32' fill='#000' data-cat="deaths"><title>Toggle Deaths</title></circle>
+                    <circle class="switch-target-circles" r='8' cx='32' cy='54' fill='#000' data-cat="vaccines"><title>Toggle Vaccines</title></circle>
+                </g>
+                <text id="casesTitle" class="switch-titles" x="12" y="77" dominant-baseline="middle" text-anchor="start" fill="#68d0f4" data-cat="cases">CASES
+                    <title>Toggle Cases</title></text>
+                <text id="testsTitle" class="switch-titles" x="150" y="12" dominant-baseline="hanging" text-anchor="middle" fill="#f4bc68" data-cat="tests">TESTS
+                    <title>Toggle Tests</title></text>
+                <text id="deathsTitle" class="switch-titles" x="288" y="77" dominant-baseline="middle" text-anchor="end" fill="#f6584c" data-cat="deaths">DEATHS
+                    <title>Toggle Deaths</title></text>
+                <text id="vaccTitle" class="switch-titles" x="150" y="136" dominant-baseline="auto" text-anchor="middle" fill="#4cf6af" data-cat="vaccines">VACCINES
+                    <title>Toggle Vaccines</title></text>   
+            </svg>
         </div>
         <div id="optionsDiv" class="ease-out">
             <div id="dropDown">
