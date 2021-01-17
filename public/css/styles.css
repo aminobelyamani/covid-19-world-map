@@ -1131,13 +1131,17 @@ header{
     font-size:14px;
 }
 /* begin switch */
+#switchWrapper{
+    width:100%;
+    height:148px;
+}
 .switch-titles{
     font-size: 1.5em;
     font-weight: 100;
     opacity: 0.4;
     cursor:pointer;
 }
-#switchCircle, #switchG, .switch-titles{
+#switchCircle, .switch-rect, .switch-titles{
     -o-transition: 0.2s ease-in;
     -moz-transition: 0.2s ease-in;
     -webkit-transition: 0.2s ease-in;
@@ -1148,11 +1152,7 @@ header{
     cursor: pointer;
 }
 #casesTitle{
-    color:#68d0f4;
     opacity: 1;
-}
-#deathsTitle{
-    color:#f6584c;
 }
 /* .light #switchCircle{
     fill: #fff;

@@ -288,6 +288,7 @@ function onResize() {
     }
     pathStrokeHandler();
     onLegendResize(globalRangeList);
+    onToggleSVGResize();
 }
 onResize();
 window.addEventListener("resize", onResize, false);

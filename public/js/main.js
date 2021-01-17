@@ -38,6 +38,7 @@ var toggle = _('toggleSideBar');
 var closeDash = _('closeDash');
 var sideBar = _('sideBar');
 var timeStamp = _('timeStamp');
+var switchWrapper = _('switchWrapper');
 const switchToggle = _('switchSVG');
 var switchG = _('switchG');
 var switchCircle = _('switchCircle');
@@ -1412,6 +1413,19 @@ function toggleSideBar() {
 toggle.addEventListener('mouseup', toggleSideBar, false);
 closeDash.addEventListener('mouseup', closeSideBar, false);
 //SWITCH TOGGLE
+function onToggleSVGResize(){
+    let testsTitle = _('testsTitle');
+    let deathsTitle = _('deathsTitle');
+    let vaccTittle = _('vaccTitle');
+    const width = switchWrapper.offsetWidth;
+    const posX = (window.innerWidth <= 768) ? (width - 64) / 2 : 118;
+    const matrix = `matrix(1, 0, 0, 1, ${posX}, 42)`;
+    switchG.setAttributeNS(null, 'transform', matrix);
+    const x = width / 2;
+    testsTitle.setAttribute('x', x);
+    deathsTitle.setAttribute('x', width - 12);
+    vaccTittle.setAttribute('x', x);
+}
 function toggleSwitchCases(cat) {
     let cx, cy, color, menu, property, title, height, btns, colors;
     switch (cat) {
@@ -1466,16 +1480,24 @@ switchToggle.addEventListener('mouseup', function (e) {
         const cat = e.target.getAttribute('data-cat');
         if (switchValue != cat) {
             switchValue = cat;
-            switchCircle.setAttribute('cx', 32);
-            switchCircle.setAttribute('cy', 32);
             const color = toggleSwitchCases(cat).color;
             switchG.setAttribute('fill', color);
             const cx = toggleSwitchCases(cat).cx;
             const cy = toggleSwitchCases(cat).cy;
-            setTimeout(() => {
+            const x = parseInt(switchCircle.getAttribute('cx'));
+            const y = parseInt(switchCircle.getAttribute('cy'));
+            switchCircle.setAttribute('cx', 32);
+            switchCircle.setAttribute('cy', 32);
+            if(x === cx || y === cy){
                 switchCircle.setAttribute('cx', cx);
                 switchCircle.setAttribute('cy', cy);
-            }, 100);
+            }
+            else{
+                setTimeout(() => {
+                    switchCircle.setAttribute('cx', cx);
+                    switchCircle.setAttribute('cy', cy);
+                }, 200);
+            }
             const titles = switchToggle.querySelectorAll('.switch-titles');
             for (let i = 0; i < titles.length; i++) {
                 titles[i].style.opacity = (titles[i].getAttribute('data-cat') === cat) ? 1 : 0.4;
