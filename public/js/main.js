@@ -149,7 +149,7 @@ function socketListeners(socket) {
     });
     socket.on('getLatestWorldData', data => {
         if (data.latest) {
-            console.log(data);
+            //console.log(data);
             const percObj = getLatestData(data, true);
             const perc = percObj.perc;
             const percDeaths = percObj.percDeaths;
@@ -166,7 +166,7 @@ function socketListeners(socket) {
         }
     });
     socket.on('getVaccineData', data => {
-        console.log(data);
+        //console.log(data);
         dataVacc = data;
         getData(dataAPI);
     });
@@ -1404,7 +1404,6 @@ function toggleSideBar() {
         toggle.style.opacity = 1;
     }
     else {
-        statsWrapper.addEventListener('scroll', onStatsScroll, false);
         sideBar.className = '';
         toggle.style.opacity = 0;
         popup.style.display = "none";
@@ -1512,7 +1511,10 @@ switchToggle.addEventListener('mouseup', function (e) {
             worldData(dataAPI);
             removeLegendListeners();
             addLegendListeners();
-            optionsDiv.style.height = "40px";
+            const height = toggleSwitchCases(cat).height;
+            if(optionsDiv.offsetHeight > 40){
+                optionsDiv.style.height = height;
+            }
             globalHelpTip.style.display = "none";
         }
     }
@@ -1541,10 +1543,12 @@ function closeDropDown() {
 }
 dropDown.addEventListener('click', (e) => {
     if (optionsDiv.style.height === "40px" || optionsDiv.style.height === "") {
-        openDropDown();
+        statsWrapper.removeEventListener('scroll', onStatsScroll);
+        openDropDown();    
     }
     else {
-        closeDropDown();
+        statsWrapper.addEventListener('scroll', onStatsScroll, false);
+        closeDropDown();    
     }
     sideBar.className = '';
 });
@@ -1587,7 +1591,6 @@ const buttons = document.querySelectorAll('button');
 for (let i = 0; i < buttons.length; i++) {
     if (buttons[i].dataset.prop) {
         buttons[i].addEventListener('mouseup', function (e) {
-            statsWrapper.removeEventListener('scroll', onStatsScroll);
             if (countriesList.length != 0) {//wait for countriesList to fill with data
                 prop = this.dataset.prop;
                 currentTitle = this.innerText;
@@ -1627,16 +1630,12 @@ function onStatsScroll(e) {
         }
         else {
             if (this.scrollTop > 500) {
-                sideBar.className = 'transform-y-140';
-                sideBar.style.height = window.innerHeight + 140 + "px";
+                sideBar.className = 'transform-y-178';
+                sideBar.style.height = window.innerHeight + 178 + "px";//30(header) + 148(switchWrapper)
             }
             else {
-                sideBar.className = 'transform-y-70';
-                sideBar.style.height = window.innerHeight + 70 + "px";
-            }
-            if (optionsDiv.style.height === "200px" || optionsDiv.style.height === "400px") {//avoid trailing scroll interference
-                sideBar.className = '';
-                sideBar.style.height = "100%";
+                sideBar.className = 'transform-y-30';
+                sideBar.style.height = window.innerHeight + 30 + "px";
             }
         }
     }
