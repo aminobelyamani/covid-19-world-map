@@ -419,6 +419,21 @@ body{
 }
 /* end search */
 /* end header */
+#globalInstructions{
+    display: none;
+    position: absolute;
+    top:50px;
+    width:100%;
+    color:#faebd7;
+    text-align: center;
+    background-color:#000;
+    opacity: 0.5;
+    font-size: 0.8em;
+    z-index: 2;
+}
+#globalInstructions p{
+    margin:5px 2px;
+}
 /* begin country popup */
 #closePopup{
     width:20px;
@@ -1647,6 +1662,9 @@ svg{
     #closeSearch{
         display: none;
     }
+    #globalInstructions{
+        top:91px;
+    }
     #countryWrapper{
         -ms-flex-wrap: wrap;flex-wrap: wrap;
     }
@@ -1758,7 +1776,7 @@ svg{
         padding:15px 0;
     }
     #toggleSideBar, #centerBtn, #keyBtn, #toggleDark{
-        background-color: transparent!important;
+        background-color: unset!important;
         top:53.5px;
         box-shadow: 0px 0px 2px 0px black;
     }
@@ -1876,7 +1894,7 @@ svg{
     }
     #globalHelpTip{
         position: absolute;
-        top:50px;
+        top:70px;
         left:unset;
         right:10px;
         margin-top:0px;

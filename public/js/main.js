@@ -24,6 +24,7 @@ var hamburger = _('hamburger');
 var mapDiv = _('mapDiv');
 var worldMap = _('worldMap');
 var about = _('about');
+var globalInstructions = _('globalInstructions');
 var currentDataWrapper = _('currentDataWrapper');
 var globalHelpTip = _('globalHelpTip');
 var currentData = _('currentData');
@@ -78,7 +79,15 @@ function onPageLoad() {
     }
     openLegend();
     addPopupListeners();
-    //switchToggle.checked = false;//for pop state if left page while true
+    showGlInstructions();
+}
+function showGlInstructions() {
+    if (is_touch_device) {
+        globalInstructions.classList.remove('transform-y-220');
+        const p = globalInstructions.querySelector('p');
+        globalInstructions.style.display = "block";
+        p.innerText = 'Tap country for info, press and hold for full country profile.';
+    }
 }
 function onDOMLoaded() {
     socket = io();
@@ -236,7 +245,7 @@ function calcData(data) {
         }
     });
 }
-function totalOfProp(property){
+function totalOfProp(property) {
     let count = 0;
     countriesList.forEach(country => {
         count = count + country[property];
@@ -294,7 +303,7 @@ function worldData(data) {
             </div>`;
         socket.emit('getLatestWorldData', alpha2);
     }
-    else if (switchValue === 'tests'){
+    else if (switchValue === 'tests') {
         worldStats.innerHTML = `
             <h2 class='global-tests-title'>Global Stats</h2>
             <p class='stats white'>${world.totalTests.commaSplit()}</p>
@@ -302,7 +311,7 @@ function worldData(data) {
             <p class='stats white'>${world.totalPop.commaSplit()}</p>
             <p class='stats-titles gray'>Population</p>`;
     }
-    else if (switchValue === 'vaccines'){
+    else if (switchValue === 'vaccines') {
         worldStats.innerHTML = `
             <h2 class='global-vacc-title'>Global Stats</h2>
             <p class='stats white'>${world.totalVacc.commaSplit()}</p>
@@ -1251,15 +1260,25 @@ function onPinchZoom(e) {
     setCTM(zoomEl.getScreenCTM().multiply(matrix));
     const currentMat = zoomEl.transform.baseVal.getItem(0).matrix;
     if ((currentMat.a - initialScale) < 0.1) {
-        addHeader();
+        if (window.innerWidth <= 768) {
+            addHeader();
+        }
+        globalInstructions.classList.remove('transform-y-220');
+        globalHelpTip.style.top = (globalInstructions.classList.length > 1) ? "50px" : "70px";
     }
     else {
-        removeHeader();
+        if (window.innerWidth <= 768) {
+            removeHeader();
+        }
+        globalInstructions.classList.add('transform-y-220');
     }
 }
 function onTapZoom(e) {
     if (e.tapCount === 2 && !countryAnim) {
-        removeHeader();
+        if (window.innerWidth <= 768) {
+            removeHeader();
+        }
+        globalInstructions.classList.add('transform-y-220');
         tapP = getTouchPoint(e);
         maxScale = zoomEl.transform.baseVal.getItem(0).matrix.a * 2;
         maxScale = (maxScale > maxZoom) ? maxZoom : maxScale;
@@ -1351,11 +1370,13 @@ function touchEvents() {
 }
 //DOM MANIP
 function addRemoveHeader() {
-    if (header.classList.length === 1) {
-        removeHeader();
-    }
-    else {
-        addHeader();
+    if (window.innerWidth <= 768) {
+        if (header.classList.length === 1) {
+            removeHeader();
+        }
+        else {
+            addHeader();
+        }
     }
 }
 function addHeader() {
@@ -1369,6 +1390,7 @@ function removeHeader() {
     elements.forEach(e => {
         e.classList.add('transform-y-50');
     });
+    globalHelpTip.style.top = "50px";
     if (mobileNav.classList.length === 0) {
         mobileNav.classList.add('transform-y-220');
         hamburger.classList.toggle('change');
@@ -1378,10 +1400,6 @@ function removeHeader() {
     }
 }
 function removeHover() {
-    keyBtn.classList.add('no-hover');
-    centerBtn.classList.add('no-hover');
-    toggle.classList.add('no-hover');
-    toggleDark.classList.add('no-hover');
     closeKeys.classList.add('no-hover');
     closeDash.classList.add('white');
 }
@@ -1412,7 +1430,7 @@ function toggleSideBar() {
 toggle.addEventListener('mouseup', toggleSideBar, false);
 closeDash.addEventListener('mouseup', closeSideBar, false);
 //SWITCH TOGGLE
-function onToggleSVGResize(){
+function onToggleSVGResize() {
     let testsTitle = _('testsTitle');
     let deathsTitle = _('deathsTitle');
     let vaccTittle = _('vaccTitle');
@@ -1487,11 +1505,11 @@ switchToggle.addEventListener('mouseup', function (e) {
             const y = parseInt(switchCircle.getAttribute('cy'));
             switchCircle.setAttribute('cx', 32);
             switchCircle.setAttribute('cy', 32);
-            if(x === cx || y === cy){
+            if (x === cx || y === cy) {
                 switchCircle.setAttribute('cx', cx);
                 switchCircle.setAttribute('cy', cy);
             }
-            else{
+            else {
                 setTimeout(() => {
                     switchCircle.setAttribute('cx', cx);
                     switchCircle.setAttribute('cy', cy);
@@ -1512,10 +1530,10 @@ switchToggle.addEventListener('mouseup', function (e) {
             removeLegendListeners();
             addLegendListeners();
             const height = toggleSwitchCases(cat).height;
-            if(optionsDiv.offsetHeight > 40){
+            if (optionsDiv.offsetHeight > 40) {
                 optionsDiv.style.height = height;
             }
-            globalHelpTip.style.display = "none";
+            globalHelpTipHandler();
         }
     }
 });
@@ -1544,11 +1562,11 @@ function closeDropDown() {
 dropDown.addEventListener('click', (e) => {
     if (optionsDiv.style.height === "40px" || optionsDiv.style.height === "") {
         statsWrapper.removeEventListener('scroll', onStatsScroll);
-        openDropDown();    
+        openDropDown();
     }
     else {
         statsWrapper.addEventListener('scroll', onStatsScroll, false);
-        closeDropDown();    
+        closeDropDown();
     }
     sideBar.className = '';
 });
@@ -1584,6 +1602,20 @@ function dropDownSwitch(property) {
     }
     return p;
 }
+function globalHelpTipHandler(){
+    const pText = dropDownSwitch(prop);
+    if (pText != '') {
+        globalHelpTip.style.display = 'block';
+        const p = globalHelpTip.querySelector('p');
+        p.innerText = pText;
+    }
+    else {
+        globalHelpTip.style.display = 'none';
+    }
+    if(is_touch_device && window.innerWidth <= 768){
+        globalHelpTip.style.top = (globalInstructions.classList.length > 1) ? "50px" : "70px";
+    }
+}
 //DROPDOWN PROPERTIES
 var bckColorLDM = "#3d3c3a";
 var colorLDM = "#faebd7";
@@ -1602,15 +1634,7 @@ for (let i = 0; i < buttons.length; i++) {
                 }
                 this.style.backgroundColor = toggleSwitchCases(switchValue).color;
                 this.style.color = "#000";
-                const pText = dropDownSwitch(prop);
-                if (pText != '') {
-                    globalHelpTip.style.display = 'block';
-                    const p = globalHelpTip.querySelector('p');
-                    p.innerText = pText;
-                }
-                else {
-                    globalHelpTip.style.display = 'none';
-                }
+                globalHelpTipHandler();
                 currentData.innerText = dropDownTitle.innerText = keyTitle.innerText = currentTitle;
                 getMinMax(countriesList, prop, rangeLimit);
                 if (window.innerWidth <= 768) {
@@ -1742,6 +1766,7 @@ function clearPage() {
     centerBtn.style.display = "none";
     keyBtn.style.display = "none";
     keys.style.display = "none";
+    globalInstructions.style.display = "none";
     if (about.style.display === "block") {
         changeNavColor();
         about.style.display = "none";
@@ -1758,6 +1783,13 @@ function showPage() {
     centerBtn.style.display = "block";
     keyBtn.style.display = "block";
     keys.style.display = "block";
+    if (is_touch_device) {
+        if(window.innerWidth <= 768){
+            globalHelpTip.style.top = (globalInstructions.classList.length > 1) ? "50px" : "70px";
+        }
+        globalInstructions.style.display = "block";
+    }
+    onToggleSVGResize();
 }
 //CLEAR COUNTRY POPUP
 function clearPopup() {

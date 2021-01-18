@@ -278,17 +278,20 @@ function onResize() {
     const matrix = `matrix(${initialScale}, 0, 0, ${initialScale}, ${posX}, ${posY})`;
     zoomEl.setAttributeNS(null, 'transform', matrix);
     if (window.innerWidth > 768) {
-        addHeader();
         sideBar.className = '';
         toggle.style.opacity = 0;
         resultsTransform();
+        globalHelpTip.style.top = "unset";
     }
     else {
+        globalHelpTip.style.top = (is_touch_device) ? "70px" : "50px";
         onCloseSearch();
     }
+    addHeader();
     pathStrokeHandler();
     onLegendResize(globalRangeList);
     onToggleSVGResize();
+    showGlInstructions();
 }
 onResize();
 window.addEventListener("resize", onResize, false);
