@@ -578,18 +578,17 @@ function showSortedList(data) {
         <h2 id='rankTitle' class='global-cases-title' style='color:${color};'>Global Ranks</h2>
         <p class='ranks-title gray'>${currentTitle}</p>
         ${html}`;
-    const rows = worldList.querySelectorAll('.stats-flex');
-    for (let i = 0; i < rows.length; i++) {
-        rows[i].addEventListener('mouseup', function (e) {
-            let country = this.dataset.country;
-            clearPage();
-            clearHighlights();
-            const path = dataSVG.find(path => path.path.getAttribute('data-name') === country);
-            zoomToCountryNoAnim(path.path);
-        });
-    }
 }
 //EVENT LISTENERS
+worldList.addEventListener('mouseup', function(e) {
+    if(e.target.parentNode.className === 'stats-flex'){
+        let country = e.target.parentNode.dataset.country;
+        clearPage();
+        clearHighlights();
+        const path = dataSVG.find(path => path.path.getAttribute('data-name') === country);
+        zoomToCountryNoAnim(path.path);
+    }
+});
 //POPUP
 function addPopupListeners(country) {
     countryAnim = false;
@@ -1462,8 +1461,8 @@ function toggleSwitchCases(cat) {
             cy = 10;
             color = '#f4bc68';
             menu = testsMenu;
-            property = 'totalTests';
-            title = 'Total Tests';
+            property = 'testsPerMil';
+            title = 'Tests/Million';
             height = '160px';
             btns = '.tests-btns';
             colors = ['#fbebd1', '#f9d7a4', '#f4bc68', '#f9ad3b', '#ff9700', '#c57603', '#844f01'];
