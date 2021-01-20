@@ -80,6 +80,7 @@ function onPageLoad() {
     openLegend();
     addPopupListeners();
     showGlInstructions();
+    globalHelpTipHandler();
 }
 function showGlInstructions() {
     if (is_touch_device) {
@@ -175,7 +176,7 @@ function socketListeners(socket) {
         }
     });
     socket.on('getVaccineData', data => {
-        //console.log(data);
+        console.log(data);
         dataVacc = data;
         getData(dataAPI);
     });
@@ -221,8 +222,9 @@ function getData(data) {
         if (index != -1) {
             data[index].alpha2 = item.id;
             const vaccIndex = dataVacc.findIndex(row => row.country === item.id);
-            data[index].totalVaccinations = (vaccIndex != -1) ? dataVacc[vaccIndex].total_vaccinations : 0;
-            data[index].newVaccinations = (vaccIndex != -1) ? dataVacc[vaccIndex].new_vaccinations : 0;
+            data[index].totalVaccinations = (vaccIndex != -1) ? dataVacc[vaccIndex].totalVaccinations : 0;
+            data[index].peopleVaccinated = (vaccIndex != -1) ? dataVacc[vaccIndex].peopleVaccinated : 0;
+            data[index].peopleFullyVaccinated = (vaccIndex != -1) ? dataVacc[vaccIndex].peopleFullyVaccinated : 0;
             countriesList.push(data[index]);
         }
     });
@@ -237,12 +239,18 @@ function calcData(data) {
         propList.forEach((value, index) => {
             percVar[index] = (item[value] != null) ? roundVal((item[value] / item.totalCases) * 100, 1) : null;
         });
+        const newCases = (item.newCases / item.population) * 100;
+        const newDeaths = (item.newDeaths / item.population) * 100;
+        const percVacc = (item.peopleVaccinated / item.population) * 100;
+        const percFullyVacc = (item.peopleFullyVaccinated / item.population) * 100;
+        item.newCasesPerMil = roundVal(newCases * 10000, 2);
+        item.newDeathsPerMil = roundVal(newDeaths * 10000, 2);
         item.percDeaths = percVar[0];
         item.percRecovered = percVar[1];
         item.percActive = percVar[2];
-        if (item.activeCases != null) {
-            item.percCritical = roundVal((item.seriousCritical / item.activeCases) * 100, 1);
-        }
+        item.percCritical = (item.activeCases != null && item.activeCases != 0) ? roundVal((item.seriousCritical / item.activeCases) * 100, 1) : 0;
+        item.percVacc = roundVal(percVacc, 2);
+        item.percFullyVacc = roundVal(percFullyVacc, 2);
     });
 }
 function totalOfProp(property) {
@@ -254,6 +262,7 @@ function totalOfProp(property) {
 }
 function worldData(data) {
     const world = data.find(data => data.country === "World");
+    //console.log(world);
     const totalTests = totalOfProp('totalTests');
     const totalPop = totalOfProp('population');
     const totalVacc = totalOfProp('totalVaccinations');
@@ -278,7 +287,7 @@ function worldData(data) {
                     <p class='stats white'>${world.newCases.commaSplit()}</p>
                     <p class='stats-titles gray'>New Cases</p>
                 </div>
-                <div class='flex-stat' style='width:60px; height:70px;margin:0;'></div>
+                <div class='flex-stat' style='width:60px; height:70px;margin:0;' title='Percent Daily Change'></div>
             </div>
             <div class='worldStats-flex'>
                 <div>
@@ -332,7 +341,7 @@ function worldData(data) {
                     <p class='stats white'>${world.newDeaths.commaSplit()}</p>
                     <p class='stats-titles gray'>New Deaths</p>
                 </div>
-                <div class='flex-stat' style='width:60px; height:70px;margin:0;'></div>
+                <div class='flex-stat' style='width:60px; height:70px;margin:0;' title='Percent Daily Change'></div>
             </div>
             <p class='stats white'>${world.deathsPerMil.commaSplit()}</p>
             <p class='stats-titles gray'>Deaths/Million</p>`;
@@ -353,7 +362,8 @@ function buttonsHandler(property) {
             btns[i].style.color = colorLDM;
         }
     }
-    currentData.innerText = dropDownTitle.innerText = keyTitle.innerText = currentTitle;
+    currentData.innerText = dropDownTitle.innerText = currentTitle;
+    keyTitle.innerText = rawTotalSwitch(property).title;
     getMinMax(countriesList, property);
 }
 function getMinMax(data, property) {
@@ -362,7 +372,7 @@ function getMinMax(data, property) {
     var min = (Math.min.apply(null, list.filter(Boolean)) > 1) ? 1 : Math.min.apply(null, list.filter(Boolean));
     const minDecimal = min.countDecimals();
     min = (min < 1) ? 1 / Math.pow(10, minDecimal) : min;
-    globalRangeList = getRangeList(max, min);
+    globalRangeList = (property === 'percRecovered' || property === 'percActive' || property === 'percCritical' || property === 'percVacc' || property === 'percFullyVacc') ? getPercRangeList(max, min) : globalRangeList = getRangeList(max, min);
     makeLegend(globalRangeList);
     matchData(countriesList, property, globalRangeList);
     showSortedList(countriesList);
@@ -373,6 +383,17 @@ function mapData(data, property) {
         return item[property];
     });
     return list.sort((a, b) => (a < b) ? 1 : -1);//sort by descending;
+}
+function getPercRangeList(max, min) {
+    const rangeList = [];
+    const factor = (min < 1) ? 5 : 6;
+    max = (Math.floor(max / factor) >= 1) ? Math.floor(max / factor) : 1;
+    let item = min;
+    for (let i = 0; i < rangeLimit; i++) {
+        rangeList.push(item);
+        item = (item < 1) ? 1 : (item === 1 && max >= 2) ? item + (max - 1) : item + max;
+    }
+    return rangeList;
 }
 function getRangeList(max, min) {
     const rangeList = [];
@@ -442,7 +463,7 @@ function onLegendResize(rangeList) {
     for (let count = 0; count < rangeList.length; count++) {
         const index = rangeElems.length - (3 + count);
         const decCount = rangeList[count].countDecimals();
-        const rangeMin = (rangeList[count] <= 1) ? 0 : (prop === 'percDeaths') ? 0.1 : 1;
+        const rangeMin = (rangeList[count] <= 1) ? 0 : (prop === 'percRecovered' || prop === 'percActive' || prop === 'percCritical' || prop === 'percDeaths' || prop === 'percVacc' || prop === 'percFullyVacc') ? 0.1 : 1;
         const rangeMax = (rangeList[count] < 1 && rangeList[count + 1] === 1) ? 1 / Math.pow(10, decCount) : 0;
         rangeElems[index].classList.remove('no-display');
         colorElems[index].classList.remove('no-display');
@@ -574,14 +595,15 @@ function showSortedList(data) {
                 <p class='inline-stat'>${item[prop].commaSplit()}</p>
             </div> `;
     });
+    const title = rawTotalSwitch(prop).title;
     worldList.innerHTML = `
         <h2 id='rankTitle' class='global-cases-title' style='color:${color};'>Global Ranks</h2>
-        <p class='ranks-title gray'>${currentTitle}</p>
+        <p class='ranks-title gray'>${title}</p>
         ${html}`;
 }
 //EVENT LISTENERS
-worldList.addEventListener('mouseup', function(e) {
-    if(e.target.parentNode.className === 'stats-flex'){
+worldList.addEventListener('mouseup', function (e) {
+    if (e.target.parentNode.className === 'stats-flex') {
         let country = e.target.parentNode.dataset.country;
         clearPage();
         clearHighlights();
@@ -642,28 +664,85 @@ function pathHover(e) {
         getPopupInfo(country);
     }
 }
+function rawTotalSwitch(property) {
+    let totalProp, title;
+    switch (property) {
+        case 'casesPerMil':
+            totalProp = 'totalCases';
+            title = 'Cases/Million';
+            break;
+        case 'newCasesPerMil':
+            totalProp = 'newCases';
+            title = 'New Cases/Million';
+            break;
+        case 'percRecovered':
+            totalProp = 'totalRecovered';
+            title = '% Recovered';
+            break;
+        case 'percActive':
+            totalProp = 'activeCases';
+            title = '% Active';
+            break;
+        case 'percCritical':
+            totalProp = 'seriousCritical';
+            title = '% Critical';
+            break;
+        case 'deathsPerMil':
+            totalProp = 'totalDeaths';
+            title = 'Deaths/Million';
+            break;
+        case 'newDeathsPerMil':
+            totalProp = 'newDeaths';
+            title = 'New Deaths/Million';
+            break;
+        case 'percDeaths':
+            totalProp = 'totalDeaths';
+            title = 'Case Fatality Rate';
+            break;
+        case 'testsPerMil':
+            totalProp = 'totalTests';
+            title = 'Tests/Million';
+            break;
+        case 'totalTests':
+            totalProp = 'totalTests';
+            title = 'Total Tests';
+            break;
+        case 'population':
+            totalProp = 'population';
+            title = 'population';
+            break;
+        case 'totalVaccinations':
+            totalProp = 'totalVaccinations';
+            title = 'Total Vaccinations';
+            break;
+        case 'percVacc':
+            totalProp = 'peopleVaccinated';
+            title = '% Vaccinated';
+            break;
+        case 'percFullyVacc':
+            totalProp = 'peopleFullyVaccinated';
+            title = '% Fully Vaccinated';
+    }
+    return { totalProp: totalProp, title: title };
+}
 function getPopupInfo(country) {
     let statText = "";
     let rankText = "";
-    let percText = "";
+    let rawTotalText = "";
     const flagId = dataSVG.find(data => data.country === country);
     const flagUrl = (flagId.id === 'ic') ? `images/ic.png` : `https://flagcdn.com/h40/${flagId.id}.png`;
     const record = sortList(countriesList).find(data => data.country === country);
     if (record) {
         const rank = record.rank;
-        const list = sortList(countriesList);
+        //const list = sortList(countriesList);
         //const rankMax = list[list.length - 1].rankMax;
         const stat = record[prop].commaSplit();
-        if (record.perc >= 0 && record.perc != null) {
-            const perc = record.perc;
-            percText = `<p class='popup-big white'><strong>${perc.commaSplit()}</strong></p><p class='popup-small gray'>% of Pop.</p>`;
-        }
-        if (record.perMill >= 0 && record.perMill != null) {
-            const perc = record.perMill;
-            percText = `<p class='popup-big white'><strong>${perc.commaSplit()}</strong></p><p class='popup-small gray'>Per Million</p>`;
-        }
-        statText = `<p class='popup-big white'><strong>${stat}</strong></p><p class='popup-small gray'>${currentTitle}</p><br>`;
+        const totalProp = rawTotalSwitch(prop).totalProp;
+        const title = rawTotalSwitch(prop).title;
+        const rawTotal = record[totalProp].commaSplit();
+        statText = `<p class='popup-big white'><strong>${stat}</strong></p><p class='popup-small gray'>${title}</p><br>`;
         rankText = `<p class='popup-big white'><strong>${rank}</strong></p><p class='popup-small gray'>Rank</p><br>`;
+        rawTotalText = (prop === 'testsPerMil' || prop === 'totalTests' || prop === 'population' || prop === 'totalVaccinations') ? '' : `<p class='popup-big white'><strong>${rawTotal}</strong></p><p class='popup-small gray'>Raw Total</p>`;
     }
     else {
         statText = "<p class='popup-small yellow'>No Reported Data</p><br>";
@@ -673,7 +752,7 @@ function getPopupInfo(country) {
         <p class='popup country white'>${country}</p><br>
         ${statText}
         ${rankText}
-        ${percText}`;
+        ${rawTotalText}`;
 }
 function pathMove(e) {
     if (mouseMove) {
@@ -865,7 +944,7 @@ function getPiePerc(perc, property, world) {
     const info = (property === 'seriousCritical') ? '% of Active' : (property === 'totalDeaths') ? 'Case Fatality Rate' : '% of Cases';
     const infoDisplay = (world) ? 'none' : 'block';
     let html = `
-    <div class="pie-wrapper" style='${style}'>
+    <div class="pie-wrapper" style='${style}' title='${(world) ? info : ''}'>
         <svg class="circle">
             <circle r="${radius}" cx="50%" cy="50%" stroke="${color1}" fill="none" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-dasharray="${factor}, ${circumference}" stroke-opacity="0.2"></circle>
             <circle r="${radius}" cx="50%" cy="50%" stroke="${color2}" fill="none" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-dasharray="${strokeValue}, 188"></circle>
@@ -1452,7 +1531,7 @@ function toggleSwitchCases(cat) {
             menu = casesMenu;
             property = 'casesPerMil';
             title = 'Cases/Million';
-            height = '280px';//40 * 7 (number of menu options)
+            height = '240px';//40 * 7 (number of menu options)
             btns = '.cases-btns';
             colors = ['#d6f5ff', '#96dcf4', '#54cbf2', '#04abe3', '#038ebc', '#035e79', '#013544'];
             break;
@@ -1474,7 +1553,7 @@ function toggleSwitchCases(cat) {
             menu = deathsMenu;
             property = 'deathsPerMil';
             title = 'Deaths/Million';
-            height = '200px';
+            height = '160px';
             btns = '.deaths-btns';
             colors = ['#ffe9e7', '#fcd2cd', '#ffada6', '#fd8177', '#f6584c', '#bd4137', '#9e251b'];
             break;
@@ -1483,9 +1562,9 @@ function toggleSwitchCases(cat) {
             cy = 54;
             color = '#4cf6af';
             menu = vaccMenu;
-            property = 'totalVaccinations';
-            title = 'Total Vaccinations';
-            height = '120px';
+            property = 'percVacc';
+            title = 'Vaccinated';
+            height = '160px';
             btns = '.vacc-btns';
             colors = ['#e2fdf1', '#bafbdf', '#89f9ca', '#4cf6af', '#33a976', '#1f6949', '#0e2f20'];
     }
@@ -1572,46 +1651,56 @@ dropDown.addEventListener('click', (e) => {
 function dropDownSwitch(property) {
     let p = '';
     switch (property) {
-        case 'newCases':
-            p = 'Every country reports their daily new cases at different times in the day. The daily data by all reporting countries resets every day after midnight GMT.';
-            break;
-        case 'totalCases':
+        case 'casesPerMil':
             p = 'This is the reported total cumulative count of detected and laboratory cases (and sometimes, depending on the country reporting them and the criteria adopted at the time, also clinical cases). Depending on the country reporting standards, this number can also include presumptive, suspect, or probable cases of detected infection.';
             break;
-        case 'totalRecovered':
-            p = 'This statistic is highly imperfect, because reporting can be missing, incomplete, incorrect, based on different definitions, or dated (or a combination of all of these) for many governments, both at the local and national level, sometimes with differences between states within the same country or counties within the same state. ';
+        case 'newCasesPerMil':
+            p = 'Every country reports their daily new cases at different times in the day. The daily data by all reporting countries resets every day after midnight GMT.';
             break;
-        case 'activeCases':
+        case 'percRecovered':
+            p = 'This is the percent of cases that have recovered from the disease. This statistic is highly imperfect, because reporting can be missing, incomplete, incorrect, based on different definitions, or dated (or a combination of all of these) for many governments, both at the local and national level, sometimes with differences between states within the same country or counties within the same state. ';
+            break;
+        case 'percActive':
             p = 'This figure represents the current number of people detected and confirmed to be infected with the virus. This figure can increase or decrease, and represents an important metric for Public Health and Emergency response authorities when assessing hospitalization needs versus capacity.';
             break;
-        case 'seriousCritical':
-            p = `This statistic is imperfect, for many reasons. When 99% of the cases were in China, the figure pretty much corresponded to the Chinese NHC's reported number of "severe" cases. Today, it represents for the most part the number of patients currently being treated in Intensive Care Unit (ICU), if and when this figure is reported.`;
+        case 'percCritical':
+            p = `This is the percent of current active cases that are in critical condition. This statistic is imperfect, for many reasons. When 99% of the cases were in China, the figure pretty much corresponded to the Chinese NHC's reported number of "severe" cases. Today, it represents for the most part the number of patients currently being treated in Intensive Care Unit (ICU), if and when this figure is reported.`;
             break;
+        case 'testsPerMil':
         case 'totalTests':
             p = `This statistic is imperfect, because some countries report tests performed, while others report the individuals tested.`;
             break;
-        case 'newDeaths':
-            p = 'Every country reports their daily new deaths at different times in the day. The daily data by all reporting countries resets every day after midnight GMT.';
-            break;
-        case 'totalDeaths':
+        case 'deathsPerMil':
             p = 'This is the reported total cumulative count of deaths caused by COVID-19. Due to limited testing, challenges in the attribution of the cause of death, and varying methods of reporting in some countries, this is an imperfect statistic. ';
+            break;
+        case 'newDeathsPerMil':
+            p = 'Every country reports their daily new deaths at different times in the day. The daily data by all reporting countries resets every day after midnight GMT.';
             break;
         case 'percDeaths':
             p = `The Case Fatality rate (CFR) represents the proportion of cases who eventually die from the disease. This statistic for each country is imperfect, since it is based on both the total number of reported cases and deaths, both of which depend on the respective countries' reporting criteria. Globally, the WHO has estimated the coronavirus' CFR at 2%. For comparison, the CFR for SARS was 10%, and for MERS 34%.`;
+            break;
+        case 'percVacc':
+            p = 'This is the percent of population that received at lease one vaccine dose.';
+            break;
+        case 'percFullyVacc':
+            p = 'This is the percent of population that received all doses prescribed by the vaccination protocol.';
+            break;
+        case 'totalVaccinations':
+            p = 'This figure represents the total number of doses administered, it does <strong>NOT</strong> represent the total number of people vaccinated.';
     }
     return p;
 }
-function globalHelpTipHandler(){
+function globalHelpTipHandler() {
     const pText = dropDownSwitch(prop);
     if (pText != '') {
         globalHelpTip.style.display = 'block';
         const p = globalHelpTip.querySelector('p');
-        p.innerText = pText;
+        p.innerHTML = pText;
     }
     else {
         globalHelpTip.style.display = 'none';
     }
-    if(is_touch_device && window.innerWidth <= 768){
+    if (is_touch_device && window.innerWidth <= 768) {
         globalHelpTip.style.top = (globalInstructions.classList.length > 1) ? "50px" : "70px";
     }
 }
@@ -1634,7 +1723,8 @@ for (let i = 0; i < buttons.length; i++) {
                 this.style.backgroundColor = toggleSwitchCases(switchValue).color;
                 this.style.color = "#000";
                 globalHelpTipHandler();
-                currentData.innerText = dropDownTitle.innerText = keyTitle.innerText = currentTitle;
+                currentData.innerText = dropDownTitle.innerText = currentTitle;
+                keyTitle.innerText = rawTotalSwitch(prop).title;
                 getMinMax(countriesList, prop, rangeLimit);
                 if (window.innerWidth <= 768) {
                     closeSideBar();
@@ -1783,7 +1873,7 @@ function showPage() {
     keyBtn.style.display = "block";
     keys.style.display = "block";
     if (is_touch_device) {
-        if(window.innerWidth <= 768){
+        if (window.innerWidth <= 768) {
             globalHelpTip.style.top = (globalInstructions.classList.length > 1) ? "50px" : "70px";
         }
         globalInstructions.style.display = "block";

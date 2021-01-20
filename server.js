@@ -5,6 +5,7 @@ const fs = require('fs');
 const http = require('http');
 const https = require('https');
 const urlParser = require('url');
+const csv = require('csv-parser');
 
 //SERVER START
 const server = http.createServer();
@@ -29,7 +30,7 @@ app.use(express.static(path.join(__dirname, 'public')));//localhost
 const io = require('socket.io')(server);
 
 //DOWNLOAD OWID JSON FILE
-var parsedFull, latestData, fetchData;
+var parsedFull, latestData, fetchData, parsedCsv, vaccineData;
 function downloadFile(url, callback) {
     const filename = (path.extname(url) != '') ? path.basename(url) : path.basename(urlParser.parse(url).pathname) + '.json';
     const downloadReq = https.get(url, res => {
@@ -98,6 +99,7 @@ console.log("parsed country codes...")
 parsedFull = loadFullData();
 latestData = getLatestData();
 fetchData = parseFetchData();
+parsedCsv = parseCsv();
 function loadFullData() {
     const rawData = fs.readFileSync(path.join(__dirname, 'owid-covid-data.json'));
     var parsed;
@@ -154,17 +156,61 @@ function parseFetchData() {
     console.log("parsed fetch data...")
     return parsed;
 }
-function getVaccineData() {
-    const records = [];
-    latestData.forEach(row => {
-        const totalVacc = (row.data1.hasOwnProperty('total_vaccinations')) ? row.data1.total_vaccinations : 0;
-        const newVacc = (row.data1.hasOwnProperty('new_vaccinations')) ? row.data1.new_vaccinations : 0;
-        const payload = { country: row.country, total_vaccinations: totalVacc, new_vaccinations: newVacc };
-        records.push(payload);
+function mapVaccineData(data, prop){
+    const valList = data.map(item => {
+        return item[prop];
     });
-    return records;
+    return valList;
 }
-
+function getVaccineData() {
+    const dataList = [];
+    const propList = ['total_vaccinations', 'people_vaccinated', 'people_fully_vaccinated'];
+    countryCodes.forEach(country => {
+        const list = parsedCsv.filter(row => row.iso_code.toLowerCase() === country.alpha3.toLowerCase());
+        if(list.length > 0){
+            const values = [];
+            propList.forEach(prop => {
+                const mapped = mapVaccineData(list, prop);
+                const max = Math.max.apply(null, mapped);
+                values.push(max);
+            });
+            dataList.push({country: country.alpha2, totalVaccinations: values[0], peopleVaccinated: values[1], peopleFullyVaccinated: values[2] });
+        }
+    });
+    //OWID_WRL
+    const list = parsedCsv.filter(row => row.iso_code === 'OWID_WRL');
+    if(list.length > 0){
+        const values = [];
+        propList.forEach(prop => {
+            const mapped = mapVaccineData(list, prop);
+            const max = Math.max.apply(null, mapped);
+            values.push(max);
+        });
+        dataList.push({country: 'OWID_WRL', totalVaccinations: values[0], peopleVaccinated: values[1], peopleFullyVaccinated: values[2] });
+    }
+    console.log("vaccine data compiled...");
+    return dataList;
+}
+function parseCsv() {
+    const results = [];
+    fs.createReadStream('vaccinations.csv')
+        .pipe(csv())
+        .on('data', (data) => results.push(data))
+        .on('end', () => {
+            console.log("vaccine data parsed...");
+            vaccineData = getVaccineData();
+        });
+    return results;
+}
+/* const url = 'https://covid.ourworldindata.org/data/vaccinations/vaccinations.csv';
+    downloadFile(url, (file) => {
+        if (file) {
+            console.log(`${file} FINISHED DOWNLOADING AT ${new Date()}`);
+        }
+        else {
+            console.log('FILE NOT FOUND');
+        }
+    }); */
 //CLIENT SERVER FUNCTIONS
 function getWorldData(alpha2) {
     if (parsedFull.length === 0) { return false; }
@@ -193,9 +239,9 @@ function getWorldData(alpha2) {
 function loadCountryData(country) {
     if (parsedFull.length === 0) { return false; }
     else {
-        const alpha2 = countryCodes.find(record => record.alpha2.toLowerCase() === country.toLowerCase()).alpha3.toUpperCase();
-        if (alpha2) {
-            const data = (parsedFull[alpha2]) ? parsedFull[alpha2].data : false;
+        const alpha3 = countryCodes.find(record => record.alpha2.toLowerCase() === country.toLowerCase()).alpha3.toUpperCase();
+        if (alpha3) {
+            const data = (parsedFull[alpha3]) ? parsedFull[alpha3].data : false;
             return data;
         }
         else {
@@ -228,8 +274,7 @@ io.sockets.on('connection', (socket) => {
         socket.emit('getLatestWorldData', newPayload);
     });
     socket.on('getVaccineData', () => {
-        const payload = getVaccineData();
-        socket.emit('getVaccineData', payload);
+        socket.emit('getVaccineData', vaccineData);
     });
     socket.on('getFetchFromServer', () => {
         socket.emit('getFetchFromServer', fetchData);

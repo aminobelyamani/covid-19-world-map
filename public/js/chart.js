@@ -50,6 +50,10 @@ function getDataList(data, property) {
 }
 function roundVal(value, precision) {
     const multiplier = Math.pow(10, precision || 0);
+    return Math.ceil(value * multiplier) / multiplier;
+}
+function floorVal(value, precision) {
+    const multiplier = Math.pow(10, precision || 0);
     return Math.floor(value * multiplier) / multiplier;
 }
 function getYList(data) {
@@ -61,7 +65,7 @@ function getYList(data) {
     maxList.sort((a, b) => (a < b) ? 1 : -1);//sort by increasing value
     let max = Math.max.apply(null, maxList);
     let numLength = Math.log(max) * Math.LOG10E + 1 | 0;;
-    max = (numLength > 0) ? roundVal(max, -(numLength - 2)) : 1;
+    max = (numLength > 0) ? floorVal(max, -(numLength - 2)) : 1;
     ratio = max / 5;
     max = (max > 0) ? max : 1;
     numLength = Math.log(ratio) * Math.LOG10E + 1 | 0;
@@ -82,7 +86,7 @@ function getYList(data) {
     let value = 0;
     ratio = (ratio > 0) ? ratio : 1;
     while (value <= max) {
-        let roundedValue = roundVal(value, 1).commaSplit();
+        let roundedValue = floorVal(value, 1).commaSplit();
         yList.push(roundedValue);
         value += ratio;
     }
