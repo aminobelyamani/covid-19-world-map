@@ -269,9 +269,7 @@ function appendHoverG() {
     chartWrapper.appendChild(toolEl);
 }
 function makeChartDiv() {
-    const container = countryPopup.querySelector('.flex-stats-container');
-    const chart = document.createElement('div');
-    chart.setAttribute('id', 'chart');
+    const chart = _('chart');
     let html = `
         <div class='chart-header'>
             <h2>NO DATA</h2>
@@ -303,7 +301,6 @@ function makeChartDiv() {
         </div>
         <svg id='svgChart' width='100%' height='100%'></svg>`;
     chart.innerHTML = html;
-    container.appendChild(chart);
 }
 function updateChartInfo(){
     const chart = _('chart');

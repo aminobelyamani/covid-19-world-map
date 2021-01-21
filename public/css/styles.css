@@ -606,13 +606,25 @@ body{
 #chart{
     position: relative;
     width:calc(99% - 5px);
-    height: 70vh;
-    min-height: 350px;
+    height: 100px;
+    min-height: unset;
     margin:2.5px 0px;
     padding:20px;
     border-radius: 8px;
     background-color:#000;
+    opacity: 1;
+}
+#chartLoader{
+    display: none;
     opacity: 0;
+    position: absolute;
+    top:18px;
+    left:calc(50% - 32px);
+}
+.chart-no-data{
+    text-align: center;
+    margin-top:15px;
+    font-weight: 100;
 }
 .chart-header{
     position: absolute;
