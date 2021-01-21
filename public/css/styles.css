@@ -955,15 +955,15 @@ body{
     right:52px;
     z-index: 8;
 }
-#globalHelpTip{
+#globalHelpTip, #legendHelpTip{
     margin-top:-5px;
     display: none;
 }
-#globalHelpTip p {
+#globalHelpTip p, #legendHelpTip p {
     right:-4px;
     left:unset;
 }
-#globalHelpTip p:before {
+#globalHelpTip p:before, #legendHelpTip p:before {
     right:10px;
     left:unset;
 }
@@ -989,9 +989,14 @@ body{
     background-color:#1d1d1d;
     visibility: hidden;
     color:#faebd7;
-    overflow: hidden;
+    /* overflow: hidden; */
     z-index: 7;
     /* -ms-touch-action:none;touch-action:none; */
+}
+#legendHelpTip{
+    display: block;
+    position: absolute;
+    left:-15px;
 }
 .light #keys{
     background-color: #fff;
@@ -1899,6 +1904,24 @@ svg{
         right:10px;
         margin-top:0px;
     }
+    #legendHelpTip{
+        top:-14px;
+        left:5px;
+    }
+    #legendHelpTip p{
+        right:unset;
+        top:-80px;
+    }
+    #legendHelpTip p:before{ /* The pointer of the tooltip */
+        border-top-color:#faebd7;
+        border-bottom-color: unset;
+        left:10px!important;
+        bottom:-12px;
+        top:unset;
+    }
+    .light #legendHelpTip p::before{
+        border-top-color:#282828;
+    }
     #currentData{
         width:100%;
         text-align: center;
@@ -1922,7 +1945,7 @@ svg{
     .chart-header{
         padding-bottom: 20px;
     }
-    #globalHelpTip p{
+    #globalHelpTip p, #legendHelpTip p{
         width:300px;
     }
     .help-tip p{

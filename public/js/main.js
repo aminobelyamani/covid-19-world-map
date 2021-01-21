@@ -32,6 +32,7 @@ var toggleDark = _('toggleDark');
 var centerBtn = _('centerBtn');
 var keyBtn = _('keyBtn');
 var keys = _('keys');
+var legendHelpTip = _('legendHelpTip');
 var closeKeys = _('closeKeys');
 var keyTitle = _('keyTitle');
 var legendColors = _('legendColors');
@@ -81,6 +82,7 @@ function onPageLoad() {
     addPopupListeners();
     showGlInstructions();
     globalHelpTipHandler();
+    legendHelpTipHandler();
 }
 function showGlInstructions() {
     if (is_touch_device) {
@@ -262,17 +264,22 @@ function totalOfProp(property) {
 }
 function worldData(data) {
     const world = data.find(data => data.country === "World");
-    //console.log(world);
     const totalTests = totalOfProp('totalTests');
     const totalPop = totalOfProp('population');
+    const totalPplVacc = totalOfProp('peopleVaccinated');
+    const totalPplFlVacc = totalOfProp('peopleFullyVaccinated');
     const totalVacc = totalOfProp('totalVaccinations');
     world.totalTests = totalTests;
     world.totalPop = totalPop;
+    world.totalPplVacc = totalPplVacc;
+    world.totalPplFlVacc = totalPplFlVacc;
     world.totalVacc = totalVacc;
     const percRecovered = roundVal((world.totalRecovered / world.totalCases) * 100, 1);
     const percActive = roundVal((world.activeCases / world.totalCases) * 100, 1);
     const percDeaths = roundVal((world.totalDeaths / world.totalCases) * 100, 1);
     const percCritical = roundVal((world.seriousCritical / world.activeCases) * 100, 1);
+    const percPplVacc = roundVal((world.totalPplVacc / world.totalPop) * 100, 1);
+    const percPplFlVacc = roundVal((world.totalPplFlVacc / world.totalPop) * 100, 1);
     let worldStats = _('worldStats');
     const alpha2 = 'OWID_WRL';
     if (switchValue === "cases") {
@@ -323,6 +330,20 @@ function worldData(data) {
     else if (switchValue === 'vaccines') {
         worldStats.innerHTML = `
             <h2 class='global-vacc-title'>Global Stats</h2>
+            <div class='worldStats-flex'>
+                <div>
+                    <p class='stats white'>${world.totalPplVacc.commaSplit()}</p>
+                    <p class='stats-titles gray'>People Vaccinated</p>
+                </div>
+                ${getPiePerc(percPplVacc, 'percVacc', true)}
+            </div>
+            <div class='worldStats-flex'>
+                <div>
+                    <p class='stats white'>${world.totalPplFlVacc.commaSplit()}</p>
+                    <p class='stats-titles gray'>People Fully Vaccinated</p>
+                </div>
+                ${getPiePerc(percPplFlVacc, 'percFullyVacc', true)}
+            </div>
             <p class='stats white'>${world.totalVacc.commaSplit()}</p>
             <p class='stats-titles gray'>Total Vaccinations</p>`;
     }
@@ -779,7 +800,7 @@ function pathMove(e) {
                 (doc && doc.clientTop || body && body.clientTop || 0);
         }
     }
-    if (e.target.parentNode === zoomEl) {
+    if (e.target.parentNode === zoomEl || e.target === popup) {
         popup.style.display = "block";
         const xLimit = e.pageX + popup.offsetWidth + 10;
         const yLimit = e.pageY + popup.offsetHeight;
@@ -939,9 +960,9 @@ function getPiePerc(perc, property, world) {
     const strokeValue = (perc / 100) * factor;
     const strokeWidth = (world) ? 2 : 5;
     const style = (world) ? 'width:60px; height:70px; margin-top:0;' : '';
-    const color1 = (property === 'totalRecovered') ? (mode === 'dark' || world) ? '#f6584C' : '#B13507' : (mode === 'dark' || world) ? '#6dff71' : '#209222';
+    const color1 = (property === 'totalRecovered' || property === 'percVacc' || property === 'percFullyVacc') ? (mode === 'dark' || world) ? '#f6584C' : '#B13507' : (mode === 'dark' || world) ? '#6dff71' : '#209222';
     const color2 = (color1 === '#f6584C' || color1 === '#B13507') ? (mode === 'dark' || world) ? '#6dff71' : '#209222' : (mode === 'dark' || world) ? '#f6584C' : '#B13507';
-    const info = (property === 'seriousCritical') ? '% of Active' : (property === 'totalDeaths') ? 'Case Fatality Rate' : '% of Cases';
+    const info = (property === 'seriousCritical') ? '% of Active' : (property === 'totalDeaths') ? 'Case Fatality Rate' : (property === 'percVacc' || property === 'percFullyVacc') ? '% of Population' : '% of Cases';
     const infoDisplay = (world) ? 'none' : 'block';
     let html = `
     <div class="pie-wrapper" style='${style}' title='${(world) ? info : ''}'>
@@ -1703,6 +1724,11 @@ function globalHelpTipHandler() {
     if (is_touch_device && window.innerWidth <= 768) {
         globalHelpTip.style.top = (globalInstructions.classList.length > 1) ? "50px" : "70px";
     }
+}
+function legendHelpTipHandler(){
+    let text = (is_touch_device) ? 'Tap color to isolate countries in specific range.': 'Hover mouse over color to isolate countries in specific range.';
+    const p = legendHelpTip.querySelector('p');
+    p.innerText = text;
 }
 //DROPDOWN PROPERTIES
 var bckColorLDM = "#3d3c3a";
