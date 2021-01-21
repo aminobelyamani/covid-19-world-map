@@ -646,6 +646,8 @@ body{
 .chart-header h2{
     font-weight: 100;
     width:auto;
+    max-width: calc(100% - 36px);
+    text-align: left;
 }
 /* begin chart info tooltip */
 .help-tip{
@@ -755,10 +757,12 @@ body{
     height: 30px;
     background-color: #282828;
     border-bottom: 1px solid #1d1d1d;
+    color:#fff;
     cursor: pointer;
 }
 .light #chartDropDown{
     background-color: #e6e6e6;
+    color:#000;
 }
 .chart-btns{
     color:#faebd7!important;

@@ -138,7 +138,8 @@ function socketListeners(socket) {
             chart.style.height = '70vh';
             dataHist = data;
             propArr = ['new_cases_smoothed'];
-            propTitle = ['New Cases'];
+            currentProp = 'new_cases_smoothed';
+            propTitle = ['Daily Cases'];
             makeChartDiv();
             makeChart();
             if (chartOn) { removeChartListeners(); }
@@ -184,7 +185,7 @@ function socketListeners(socket) {
         }
     });
     socket.on('getVaccineData', data => {
-        console.log(data);
+        //console.log(data);
         dataVacc = data;
         getData(dataAPI);
     });
@@ -859,7 +860,7 @@ function showCountryPopup(country, alpha2) {
         resultsTransform();
     }, 300);
     const propList = ["newCasesPerMil", "newDeathsPerMil", "percDeaths", "percRecovered", "percActive", "percCritical", "testsPerMil", "percVacc", "percFullyVacc", "totalVaccinations"];
-    const propTitles = ["New Cases", "New Deaths", "Case Fatality Rate", "Recovered", "Active", "Critical", "Tests", "Vaccinated", "Fully Vaccinated", "Vaccinations"];
+    const propTitles = ["Daily New Cases", "Daily New Deaths", "Case Fatality Rate", "Recovered", "Active", "Critical", "Tests", "Vaccinated", "Fully Vaccinated", "Vaccinations"];
     const flagId = dataSVG.find(dataSVG => dataSVG.country === country);
     const wrapperProplist = ['casesPerMil', 'deathsPerMil', 'population'];
     let record, rank = [];

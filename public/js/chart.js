@@ -8,7 +8,8 @@ var ratio = 1,
     xTextPadding = 20,
     xyPlots,
     initialX = 0,
-    dataHist = [];
+    dataHist = [],
+    currentProp;
 
 function makePropList(data) {
     const nullProps = propArr.filter(prop => getMax(data, prop) === 0);
@@ -19,17 +20,17 @@ function makePropList(data) {
     });
     const checkBox = _('testsCheckBox');
     const wrapper = _('testsCheckBoxWrapper');
-    if(propArr.length === 0){
-        checkBox.disabled = true; 
+    if (propArr.length === 0) {
+        checkBox.disabled = true;
         wrapper.style.opacity = '0.5';
     }
-    if(propArr.length > 0 && (propArr[0].includes('cases') || propArr[0].includes('deaths'))){
+    if (propArr.length > 0 && (propArr[0].includes('cases') || propArr[0].includes('deaths'))) {
         const testProp = testsSwitch(propArr[0]).testProp;
-        if (getMax(data, testProp) === 0){
+        if (getMax(data, testProp) === 0) {
             checkBox.disabled = true;
             wrapper.style.opacity = '0.5';
         }
-        else{
+        else {
             checkBox.disabled = false;
             wrapper.style.opacity = '1';
         }
@@ -217,8 +218,8 @@ function plotData(data) {
         }
         xPlot += xIncr;
     }
-    const color = (propArr.length > 0 && propArr[0].includes('cases')) ? (mode === 'dark') ? '#54cbf2' : '#038ebc' : (mode === 'dark') ? '#f44336' : '#B13507';
     const yellow = (mode === 'dark') ? '#ffc82a' : '#967000';
+    const color = propSwitch(currentProp);
     let plotHtml = `
         <rect x='${initialX}' y='${0}' width='${xBound - initialX}' height='${yBound}' fill='#000' opacity='0'></rect>
         <polyline class='polyline' stroke='${color}' points='${points1}'></polyline>
@@ -232,6 +233,23 @@ function getLastNonNull(data, y) {
         index--;
     }
     return data[index][y];
+}
+function propSwitch(property) {
+    let color;
+    switch (property) {
+        case 'new_cases_smoothed':
+            color = (mode === 'dark') ? '#54cbf2' : '#038ebc';
+            break;
+        case 'new_deaths_smoothed':
+            color = (mode === 'dark') ? '#f44336' : '#B13507';
+            break;
+        case 'new_vaccinations_smoothed':
+            color = (mode === 'dark') ? '#4cf6af' : '#209222';
+            break;
+        case 'stringency_index':
+            color = (mode === 'dark') ? '#ffc82a' : '#967000';
+    }
+    return color;
 }
 function makeChartLabels() {
     const chart = _('svgChart');
@@ -249,7 +267,7 @@ function makeChartLabels() {
         }
     }
     const yPlots = [yPlot1, yPlot2];
-    const color = (propArr.length > 0 && propArr[0].includes('cases')) ? (mode === 'dark') ? '#54cbf2' : '#038ebc' : (mode === 'dark') ? '#f44336' : '#B13507';
+    const color = propSwitch(currentProp);
     const yellow = (mode === 'dark') ? '#ffc82a' : '#967000';
     let html = '';
     for (i = 0; i < propArr.length; i++) {
@@ -272,7 +290,7 @@ function makeChartDiv() {
     const chart = _('chart');
     let html = `
         <div class='chart-header'>
-            <h2>NO DATA</h2>
+            <h2>CHART: NO DATA</h2>
             <div class="help-tip">
                 <p>Published by the Oxford Coronavirus Government Response Tracker (OxCGRT), the <strong><em>stringency index</em></strong> measures the severity of the lockdown measures. This metric should not be interpreted as an indication of how appropriate or effective a country’s response was to the pandemic.</p>
             </div>
@@ -285,16 +303,13 @@ function makeChartDiv() {
             </div>
             <div class="chart-options-wrapper" class="ease-out">
                 <div id="chartDropDown">
-                    <span class="flex-span" id="chartOptionTitle">New Cases</span>
+                    <span class="flex-span" id="chartOptionTitle">Daily Cases</span>
                     <span class="flex-span bckg-sprite" id="chartOptionArrow"></span> 
                 </div>
                 <div id="chartMenu">
-                    <button type="button" class="chart-btns" data-chartprop="new_cases_smoothed">New Cases</button>
-                    <button type="button" class="chart-btns" data-chartprop="new_deaths_smoothed">New Deaths</button>
-                    <button type="button" class="chart-btns" data-chartprop="total_cases">Total Cases</button>  
-                    <button type="button" class="chart-btns" data-chartprop="total_deaths">Total Deaths</button>
-                    <button type="button" class="chart-btns" data-chartprop="total_cases_per_million">Cases/Million</button>
-                    <button type="button" class="chart-btns" data-chartprop="total_deaths_per_million">Deaths/Million</button>
+                    <button type="button" class="chart-btns" data-chartprop="new_cases_smoothed">Daily Cases</button>
+                    <button type="button" class="chart-btns" data-chartprop="new_deaths_smoothed">Daily Deaths</button>
+                    <button type="button" class="chart-btns" data-chartprop="new_vaccinations_smoothed">Vaccinations</button>
                     <button type="button" class="chart-btns" data-chartprop="stringency_index">Stringency Index</button>
                 </div>
             </div> 
@@ -302,40 +317,42 @@ function makeChartDiv() {
         <svg id='svgChart' width='100%' height='100%'></svg>`;
     chart.innerHTML = html;
 }
-function updateChartInfo(){
+function updateChartInfo() {
     const chart = _('chart');
     const helpTip = chart.querySelector('.chart-header .help-tip');
     const h2 = chart.querySelector('h2');
     const chartInfo = _('chartInfo');
-    const info =  chartInfo.querySelector('p');
+    const info = chartInfo.querySelector('p');
     let text = '', infoText = '';
     helpTip.style.display = 'none';
     helpTip.style.opacity = 0;
-    if (propTitle.length > 0){
-        for(i = 0; i < propTitle.length; i++){
+    if (propTitle.length > 0) {
+        for (i = 0; i < propTitle.length; i++) {
             text = (i > 0) ? text + ' AND ' : text;
-            text += propTitle[i]; 
+            text += propTitle[i];
         }
-        if(propArr[0].includes('smoothed')){
+        if (propArr[0].includes('smoothed')) {
             infoText = 'Daily data is smoothed out using a 7-day rolling average.';
         }
-        else if(propArr[0].includes('stringency')){
+        else if (propArr[0].includes('stringency')) {
             infoText = 'Scaled to a value from 0 to 100 (100 = strictest).';
             fadeIn(helpTip);
         }
-        else{
+        else {
             infoText = 'Due to limited testing and challenges in the cause of death, confirmed cases and deaths shown below might be lower.';
         }
     }
-    else{
+    else {
         text = 'NO DATA';
     }
     info.innerText = infoText;
-    h2.innerText = text;
+    const color = propSwitch(currentProp);
+    h2.style.color = color;
+    h2.innerText = `CHART: ${text}`;
     const svg = _('svgChart');
     const header = chart.querySelector('.chart-header');
     const menu = document.querySelector('.chart-options-wrapper');
-    headerHeight = (menu.style.height === '240px') ? header.offsetHeight - 210 : header.offsetHeight;//subtract 210(30 less than menu height, 30 is dropdown height) when dropdown menu is open to avoid negative yBound values
+    headerHeight = (menu.style.height === '150px') ? header.offsetHeight - 120 : header.offsetHeight;//subtract 210(30 less than menu height, 30 is dropdown height) when dropdown menu is open to avoid negative yBound values
     svg.setAttribute('style', `height:calc(100% - ${headerHeight}px)`);
     svg.style.top = headerHeight + 'px';
 }
@@ -344,11 +361,12 @@ function onChartOptClick(e) {
     const checkBox = _('testsCheckBox');
     const text = this.innerText;
     const prop = this.dataset.chartprop;
+    currentProp = prop;
     propArr = [], propTitle = [];
     propArr.push(prop);
     propTitle.push(text);
     const wrapper = _('testsCheckBoxWrapper');
-    if (prop === 'stringency_index') {
+    if (prop === 'stringency_index' || prop === 'new_vaccinations_smoothed') {
         checkBox.disabled = true;
         wrapper.style.opacity = '0.5';
     }
@@ -374,17 +392,7 @@ function testsSwitch(property) {
         case 'new_cases_smoothed':
         case 'new_deaths_smoothed':
             testProp = 'new_tests_smoothed';
-            testTitle = 'New Tests';
-            break;
-        case 'total_cases':
-        case 'total_deaths':
-            testProp = 'total_tests';
-            testTitle = 'Total Tests';
-            break;
-        case 'total_cases_per_million':
-        case 'total_deaths_per_million':
-            testProp = 'total_tests_per_thousand';
-            testTitle = 'Tests/Thousand';
+            testTitle = 'Daily Tests';
     }
     return { testProp: testProp, testTitle: testTitle };
 }
@@ -404,22 +412,22 @@ function onChartCheckBox(e) {
     }
     resetChart();
 }
-function onChartDropDown(){
+function onChartDropDown() {
     const menu = document.querySelector('.chart-options-wrapper');
-    if(menu.style.height === '30px' || menu.style.height === ''){
+    if (menu.style.height === '30px' || menu.style.height === '') {
         openChartDropDown();
     }
-    else{
+    else {
         closeChartDropDown();
     }
 }
-function openChartDropDown(){
+function openChartDropDown() {
     const toggle = _('chartOptionArrow');
     const menu = document.querySelector('.chart-options-wrapper');
-    menu.style.height = '240px';
+    menu.style.height = '150px';
     toggle.classList.add('transform-rotate');
 }
-function closeChartDropDown(){
+function closeChartDropDown() {
     const toggle = _('chartOptionArrow');
     const menu = document.querySelector('.chart-options-wrapper');
     menu.style.height = '30px';
@@ -432,7 +440,7 @@ function makeChart() {
     makeXYAxis(dataHist);
     plotData(dataHist);
     makeChartLabels();
-    appendHoverG();  
+    appendHoverG();
 }
 function removeChart() {
     const chartWrapper = _('chart');
@@ -463,7 +471,7 @@ function getChartData(e) {
     const xGap = getBoundValues().xIncr;
     let record = xyPlots.find(point => Math.abs(point.x - offX) <= xGap / 2);
     record = (!record) ? xyPlots[xyPlots.length - 1] : record;
-    const color = (propArr.length > 0 && propArr[0].includes('cases')) ? (mode === 'dark') ? '#54cbf2' : '#038ebc' : (mode === 'dark') ? '#f44336' : '#B13507';
+    const color = propSwitch(currentProp);
     const yellow = (mode === 'dark') ? '#ffc82a' : '#967000';
     //HOVER VERTICAL LIGN + DOTS
     let html = `<line class='hover-line' x1="${record.x}" x2="${record.x}" y1="${0}" y2="${getBoundValues().yBound}" stroke-width='1px'></line>`;
@@ -479,7 +487,7 @@ function getChartData(e) {
 }
 function popupHtml(record) {
     const varArr = ['value1', 'value2'];
-    const color = (propArr.length > 0 && propArr[0].includes('cases')) ? (mode === 'dark') ? '#54cbf2' : '#038ebc' : (mode === 'dark') ? '#f44336' : '#B13507';
+    const color = propSwitch(currentProp);
     const yellow = (mode === 'dark') ? '#ffc82a' : '#967000';
     const colors = [color, yellow];
     let tooltip = `<p class='chart-popup-date'>${formatDate(record.date)}</p>`;
@@ -487,7 +495,7 @@ function popupHtml(record) {
     for (i = 0; i < propArr.length; i++) {
         if (record[varArr[i]] != null) {
             record[varArr[i]] = (record[varArr[i]] > 999) ? Math.round(record[varArr[i]]) : record[varArr[i]];
-            let propPrefix = (propTitle[i] === 'New Cases' || propTitle[i] === 'New Deaths' || propTitle[i] === 'New Tests') ? 'Daily': (propTitle[i] != 'Stringency Index') ?'Cumulative' : '';
+            let propPrefix = (propTitle[i] === 'Vaccinations') ? 'Daily' : '';
             tooltip +=
                 `<div class='chart-popup-wrapper'>   
                     <div class='chart-popup-flex'>
@@ -541,13 +549,13 @@ function onChartMove(e) {
         toolEl.innerHTML = popupHtml(record);
         const xLimit = offX + toolEl.offsetWidth + 10;
         let x;
-        if(window.innerWidth > 768){
+        if (window.innerWidth > 768) {
             x = (xLimit > getBoundValues().xBound + 20 + labelMaxWidth) ? record.x - toolEl.offsetWidth + 15 + 'px' : record.x + 25 + 'px';
         }
-        else{   
+        else {
             x = firstXTextWidth + 30 + 'px';//20 left padding + 10 initialXplot
         }
-        const y = (window.innerWidth > 768 ) ? headerHeight + 70 + 'px' : headerHeight + 30 + 'px';//20 top padding + 50 extra
+        const y = (window.innerWidth > 768) ? headerHeight + 70 + 'px' : headerHeight + 30 + 'px';//20 top padding + 50 extra
         toolEl.setAttribute('style', `-o-transform: translate(${x}, ${y}); -moz-transform: translate(${x}, ${y}); -ms-transform: translate(${x}, ${y}); -webkit-transform: translate(${x}, ${y}); transform: translate(${x}, ${y}); display: block;`);
     }
     else {
