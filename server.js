@@ -30,7 +30,7 @@ app.use(express.static(path.join(__dirname, 'public')));//localhost
 const io = require('socket.io')(server);
 
 //DOWNLOAD OWID JSON FILE
-var parsedFull, latestData, fetchData, parsedCsv, vaccineData;
+var parsedFull, latestData, fetchData, parsedCsv, vaccineData, parsedLocationsCsv;
 function downloadFile(url, callback) {
     const filename = (path.extname(url) != '') ? path.basename(url) : path.basename(urlParser.parse(url).pathname) + '.json';
     const downloadReq = https.get(url, res => {
@@ -99,7 +99,8 @@ console.log("parsed country codes...")
 parsedFull = loadFullData();
 latestData = getLatestData();
 fetchData = parseFetchData();
-parsedCsv = parseCsv();
+parsedCsv = parseCsv('vaccinations.csv');
+parsedLocationsCsv = parseCsv('locations.csv');
 function loadFullData() {
     const rawData = fs.readFileSync(path.join(__dirname, 'owid-covid-data.json'));
     var parsed;
@@ -156,7 +157,7 @@ function parseFetchData() {
     console.log("parsed fetch data...")
     return parsed;
 }
-function mapVaccineData(data, prop){
+function mapVaccineData(data, prop) {
     const valList = data.map(item => {
         return item[prop];
     });
@@ -167,50 +168,53 @@ function getVaccineData() {
     const propList = ['total_vaccinations', 'people_vaccinated', 'people_fully_vaccinated'];
     countryCodes.forEach(country => {
         const list = parsedCsv.filter(row => row.iso_code.toLowerCase() === country.alpha3.toLowerCase());
-        if(list.length > 0){
+        if (list.length > 0) {
             const values = [];
             propList.forEach(prop => {
                 const mapped = mapVaccineData(list, prop);
                 const max = Math.max.apply(null, mapped);
                 values.push(max);
             });
-            dataList.push({country: country.alpha2, totalVaccinations: values[0], peopleVaccinated: values[1], peopleFullyVaccinated: values[2] });
+            const index = parsedLocationsCsv.findIndex(row => row.iso_code.toLowerCase() === country.alpha3.toLowerCase());
+            const vaccines = (index != -1) ? parsedLocationsCsv[index].vaccines : 'Not Reported';
+            dataList.push({ country: country.alpha2, totalVaccinations: values[0], peopleVaccinated: values[1], peopleFullyVaccinated: values[2], vaccines: vaccines });
         }
     });
     //OWID_WRL
     const list = parsedCsv.filter(row => row.iso_code === 'OWID_WRL');
-    if(list.length > 0){
+    if (list.length > 0) {
         const values = [];
         propList.forEach(prop => {
             const mapped = mapVaccineData(list, prop);
             const max = Math.max.apply(null, mapped);
             values.push(max);
         });
-        dataList.push({country: 'OWID_WRL', totalVaccinations: values[0], peopleVaccinated: values[1], peopleFullyVaccinated: values[2] });
+        dataList.push({ country: 'OWID_WRL', totalVaccinations: values[0], peopleVaccinated: values[1], peopleFullyVaccinated: values[2] });
     }
     console.log("vaccine data compiled...");
     return dataList;
 }
-function parseCsv() {
+function parseCsv(file) {
     const results = [];
-    fs.createReadStream('vaccinations.csv')
+    fs.createReadStream(file)
         .pipe(csv())
         .on('data', (data) => results.push(data))
         .on('end', () => {
-            console.log("vaccine data parsed...");
+            console.log(`${file} data parsed...`);
             vaccineData = getVaccineData();
         });
     return results;
 }
-/* const url = 'https://covid.ourworldindata.org/data/vaccinations/vaccinations.csv';
-    downloadFile(url, (file) => {
-        if (file) {
-            console.log(`${file} FINISHED DOWNLOADING AT ${new Date()}`);
-        }
-        else {
-            console.log('FILE NOT FOUND');
-        }
-    }); */
+//const url = 'https://covid.ourworldindata.org/data/vaccinations/vaccinations.csv';
+/* const url = 'https://covid.ourworldindata.org/data/vaccinations/locations.csv';
+downloadFile(url, (file) => {
+    if (file) {
+        console.log(`${file} FINISHED DOWNLOADING AT ${new Date()}`);
+    }
+    else {
+        console.log('FILE NOT FOUND');
+    }
+}); */
 //CLIENT SERVER FUNCTIONS
 function getWorldData(alpha2) {
     if (parsedFull.length === 0) { return false; }

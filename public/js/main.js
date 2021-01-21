@@ -233,6 +233,7 @@ function getData(data) {
             data[index].totalVaccinations = (vaccIndex != -1) ? dataVacc[vaccIndex].totalVaccinations : 0;
             data[index].peopleVaccinated = (vaccIndex != -1) ? dataVacc[vaccIndex].peopleVaccinated : 0;
             data[index].peopleFullyVaccinated = (vaccIndex != -1) ? dataVacc[vaccIndex].peopleFullyVaccinated : 0;
+            data[index].vaccines = (vaccIndex != -1) ? dataVacc[vaccIndex].vaccines : 'Not Reported';
             countriesList.push(data[index]);
         }
     });
@@ -692,65 +693,79 @@ function pathHover(e) {
     }
 }
 function rawTotalSwitch(property) {
-    let totalProp, title;
+    let totalProp, title, colorClass;
     switch (property) {
         case 'casesPerMil':
             totalProp = 'totalCases';
             title = 'Cases/Million';
+            colorClass = '';//for countryPopup prop-title
             break;
         case 'newCasesPerMil':
             totalProp = 'newCases';
             title = 'New Cases/Million';
+            colorClass = '';
             break;
         case 'percRecovered':
             totalProp = 'totalRecovered';
             title = '% Recovered';
+            colorClass = '';
             break;
         case 'percActive':
             totalProp = 'activeCases';
             title = '% Active';
+            colorClass = '';
             break;
         case 'percCritical':
             totalProp = 'seriousCritical';
             title = '% Critical';
+            colorClass = '';
             break;
         case 'deathsPerMil':
             totalProp = 'totalDeaths';
             title = 'Deaths/Million';
+            colorClass = '';
             break;
         case 'newDeathsPerMil':
             totalProp = 'newDeaths';
             title = 'New Deaths/Million';
+            colorClass = 'red';
             break;
         case 'percDeaths':
             totalProp = 'totalDeaths';
             title = 'Case Fatality Rate';
+            colorClass = 'red';
             break;
         case 'testsPerMil':
             totalProp = 'totalTests';
             title = 'Tests/Million';
+            colorClass = 'yellow-test';
             break;
         case 'totalTests':
             totalProp = 'totalTests';
             title = 'Total Tests';
+            colorClass = '';
             break;
         case 'population':
             totalProp = 'population';
             title = 'population';
+            colorClass = '';
             break;
         case 'totalVaccinations':
             totalProp = 'totalVaccinations';
             title = 'Total Vaccinations';
+            colorClass = 'green';
             break;
         case 'percVacc':
             totalProp = 'peopleVaccinated';
             title = '% Vaccinated';
+            colorClass = 'green';
             break;
         case 'percFullyVacc':
             totalProp = 'peopleFullyVaccinated';
             title = '% Fully Vaccinated';
+            colorClass = 'green';
     }
-    return { totalProp: totalProp, title: title };
+    return { totalProp: totalProp, title: title, colorClass: colorClass };
 }
 function getPopupInfo(country) {
     let statText = "";
@@ -843,8 +858,8 @@ function showCountryPopup(country, alpha2) {
     setTimeout(() => {
         resultsTransform();
     }, 300);
-    const propList = ["totalCases", "newCases", "newDeaths", "totalDeaths", "totalRecovered", "activeCases", "seriousCritical", "totalTests", "testsPerMil"];
-    const propTitles = ["Total Cases", "New Cases", "New Deaths", "Total Deaths", "Recovered", "Active", "Critical", "Tests", "Tests/Million"];
+    const propList = ["newCasesPerMil", "newDeathsPerMil", "percDeaths", "percRecovered", "percActive", "percCritical", "testsPerMil", "percVacc", "percFullyVacc", "totalVaccinations"];
+    const propTitles = ["New Cases", "New Deaths", "Case Fatality Rate", "Recovered", "Active", "Critical", "Tests", "Vaccinated", "Fully Vaccinated", "Vaccinations"];
     const flagId = dataSVG.find(dataSVG => dataSVG.country === country);
     const wrapperProplist = ['casesPerMil', 'deathsPerMil', 'population'];
     let record, rank = [];
@@ -856,20 +871,15 @@ function showCountryPopup(country, alpha2) {
     });
     var html = "";
     propList.forEach((item, index) => {
-        if (item != "totalDeaths" && item != "newDeaths") {
-            html += `
-                    <div class='stats-column-flex'>
-                        <p class='prop-title'>${propTitles[index]}</p>
-                        ${getRecord(record.country, item, 'Total')}
-                    </div>`;
-        }
-        else {
-            html += `
-                    <div class='stats-column-flex'>
-                        <p class='prop-title red'>${propTitles[index]}</p>
-                        ${getRecord(record.country, item, 'Total')}
-                    </div>`;
-        }
+        const title = rawTotalSwitch(item).title;
+        const totalProp = rawTotalSwitch(item).totalProp;
+        const colorClass = rawTotalSwitch(item).colorClass;
+        const flexClass = (item === 'totalVaccinations') ? 'stats-column-flex-100' : '';
+        html += `
+            <div class='stats-column-flex ${flexClass}'>
+                <p class='prop-title ${colorClass}'>${propTitles[index]}</p>
+                ${getRecord(record.country, item, title, totalProp)}
+            </div>`;
     });
     countryPopup.innerHTML = `
             <div id='countryWrapper'>
@@ -880,18 +890,22 @@ function showCountryPopup(country, alpha2) {
                     <p class='stats-titles dark-gray'>Population</p>
                 </div>
                 <div class='stats-column'>
-                    <p class='prop-title blue'>Cases/Million</p>
+                    <p class='prop-title blue'>Cases</p>
                     <p class='stats blue'>${record.casesPerMil.commaSplit()}</p>
-                    <p class='stats-titles white'>Total</p>
+                    <p class='stats-titles white'>Cases/Million</p>
                     <p class='stats blue'>${rank[0]}</p>
                     <p class='stats-titles white'>Rank</p>
+                    <p class='stats dark-gray'>${record.totalCases.commaSplit()}</p>
+                    <p class='stats-titles dark-gray'>Raw Total</p>
                 </div>
                 <div class='stats-column'>
-                    <p class='prop-title red'>Deaths/Million</p>
+                    <p class='prop-title red'>Deaths</p>
                     <p class='stats red'>${record.deathsPerMil.commaSplit()}</p>
-                    <p class='stats-titles white'>Deaths</p>
+                    <p class='stats-titles white'>Deaths/Million</p>
                     <p class='stats red'>${rank[1]}</p>
                     <p class='stats-titles white'>Rank</p>
+                    <p class='stats dark-gray'>${record.totalDeaths.commaSplit()}</p>
+                    <p class='stats-titles dark-gray'>Raw Total</p>
                 </div>
             </div>
             <div class='flex-stats-container'>
@@ -932,7 +946,7 @@ function getLatestData(payload, world) {
     return { perc: perc, percDeaths: percDeaths };
 }
 function addPercNew(perc, deaths) {
-    const childNum = (deaths) ? 3 : 2;
+    const childNum = (deaths) ? 2 : 1;
     const cases = countryPopup.querySelector(`.flex-stats-container .stats-column-flex:nth-child(${childNum})`);
     const div = document.createElement('div');
     div.setAttribute('class', 'flex-stat');
@@ -968,9 +982,9 @@ function getPiePerc(perc, property, world) {
     const strokeValue = (perc / 100) * factor;
     const strokeWidth = (world) ? 2 : 5;
     const style = (world) ? 'width:60px; height:70px; margin-top:0;' : '';
-    const color1 = (property === 'totalRecovered' || property === 'percVacc' || property === 'percFullyVacc') ? (mode === 'dark' || world) ? '#f6584C' : '#B13507' : (mode === 'dark' || world) ? '#6dff71' : '#209222';
+    const color1 = (property === 'totalRecovered' || property === 'percRecovered' || property === 'percVacc' || property === 'percFullyVacc') ? (mode === 'dark' || world) ? '#f6584C' : '#B13507' : (mode === 'dark' || world) ? '#6dff71' : '#209222';
     const color2 = (color1 === '#f6584C' || color1 === '#B13507') ? (mode === 'dark' || world) ? '#6dff71' : '#209222' : (mode === 'dark' || world) ? '#f6584C' : '#B13507';
-    const info = (property === 'seriousCritical') ? '% of Active' : (property === 'totalDeaths') ? 'Case Fatality Rate' : (property === 'percVacc' || property === 'percFullyVacc') ? '% of Population' : '% of Cases';
+    const info = (property === 'percCritical' || property === 'seriousCritical') ? '% of Active' : (property === 'percVacc' || property === 'percFullyVacc') ? '% of Pop' : '% of Cases';
     const infoDisplay = (world) ? 'none' : 'block';
     let html = `
     <div class="pie-wrapper" style='${style}' title='${(world) ? info : ''}'>
@@ -983,59 +997,63 @@ function getPiePerc(perc, property, world) {
     </div>`;
     return html;
 }
-function getRecord(country, property, propTitle) {
+function getRecord(country, property, propTitle, totalProp) {
     const list = sortList(countriesList, property);
     const record = list.find(data => data.country === country);
     //const rankMax = list[list.length - 1].rankMax;
     let html = "";
     let rankText = "";
-    let percText = "";
+    let totalText = "";
     let pie = "";
     if (record) {
         rankText = `
             <p class='stats'>${record.rank}</p>
             <p class='stats-titles dark-gray'>Rank</p>`;
-        if (property != "testsPerMil") {
-            if (record.perc >= 0 && record.perc != null) {
-                percText = `
-                    <div class='flex-stat'>
-                        <p class='stats'>${record.perc.commaSplit()}</p>
-                        <p class='stats-titles dark-gray text-center'>% of Population</p>
-                    </div> `;
-            }
-            if (record.perMill >= 0 && record.perMill != null) {
-                percText = `
-                    <div class='flex-stat'> 
-                        <p class='stats'>${record.perMill.commaSplit()}</p>
-                        <p class='stats-titles dark-gray text-center'>Per Million</p>
-                    </div> `;
-            }
+        if (property != 'totalVaccinations') {
+            totalText = `
+            <div class='flex-stat'>
+                <p class='stats'>${record[totalProp].commaSplit()}</p>
+                <p class='stats-titles dark-gray text-center'>Raw Total</p>
+            </div> `;
+        }
+        else {
+            totalText = `
+            <div class='flex-stat'>
+                <p class='stats text-center font-vw'>${record.vaccines}</p>
+                <p class='stats-titles dark-gray text-center'>Vaccines</p>
+            </div> `;
         }
         let perc;
         switch (property) {
-            case 'totalDeaths':
+            case 'percDeaths':
                 perc = countriesList.find(data => data.country === country).percDeaths;
                 break;
-            case 'totalRecovered':
+            case 'percRecovered':
                 perc = countriesList.find(data => data.country === country).percRecovered;
                 break;
-            case 'activeCases':
+            case 'percActive':
                 perc = countriesList.find(data => data.country === country).percActive;
                 break;
-            case 'seriousCritical':
+            case 'percCritical':
                 perc = countriesList.find(data => data.country === country).percCritical;
+                break;
+            case 'percVacc':
+                perc = countriesList.find(data => data.country === country).percVacc;
+                break;
+            case 'percFullyVacc':
+                perc = countriesList.find(data => data.country === country).percFullyVacc;
         }
-        pie = (perc >= 0 && perc != null) ? getPiePerc(perc, property) : '';
-        html = `
-            <div class='flex-stat'>
+        pie = (perc >= 0 && perc != null) ? getPiePerc(perc, property) :
+            `<div class='flex-stat'>
                 <p class='stats'>${record[property].commaSplit()}</p>
                 <p class='stats-titles dark-gray'>${propTitle}</p>
-            </div>
+            </div>`;
+        html = `
+            ${pie} 
             <div class='flex-stat'>
                 ${rankText}
             </div>
-            ${percText}
-            ${pie}     
+            ${totalText}       
         `;
         return html;
     }
@@ -1497,6 +1515,7 @@ function removeHeader() {
     elements.forEach(e => {
         e.classList.add('transform-y-50');
     });
+    globalInstructions.classList.add('transform-y-220');
     globalHelpTip.style.top = "50px";
     if (mobileNav.classList.length === 0) {
         mobileNav.classList.add('transform-y-220');
@@ -1733,8 +1752,8 @@ function globalHelpTipHandler() {
         globalHelpTip.style.top = (globalInstructions.classList.length > 1) ? "50px" : "70px";
     }
 }
-function legendHelpTipHandler(){
-    let text = (is_touch_device) ? 'Tap color to isolate countries in specific range.': 'Hover mouse over color to isolate countries in specific range.';
+function legendHelpTipHandler() {
+    let text = (is_touch_device) ? 'Tap color to isolate countries in specific range.' : 'Hover mouse over color to isolate countries in specific range.';
     const p = legendHelpTip.querySelector('p');
     p.innerText = text;
 }

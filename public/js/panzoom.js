@@ -294,4 +294,5 @@ function onResize() {
     showGlInstructions();
 }
 onResize();
+fadeIn(mapDiv);
 window.addEventListener("resize", onResize, false);
