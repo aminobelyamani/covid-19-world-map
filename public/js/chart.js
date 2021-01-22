@@ -9,6 +9,7 @@ var ratio = 1,
     xyPlots,
     initialX = 0,
     dataHist = [],
+    chartArray = [],
     currentProp;
 
 function makePropList(data) {
@@ -47,6 +48,25 @@ function getDataList(data, property) {
         item[property] = (item[property] >= 0) ? item[property] : null;
         return item[property];
     });
+    return list;
+}
+function createChartArray(data, property) {
+    const list = [];
+    let payload;
+    data.forEach(d => {
+        if (d.hasOwnProperty(property)) {
+            if (d.hasOwnProperty('new_tests_smoothed') && (property != 'new_vaccinations_smoothed' && property != 'stringency_index')) {
+                payload = { date: d.date, [property]: d[property], new_tests_smoothed: d.new_tests_smoothed };
+            }
+            else {
+                payload = { date: d.date, [property]: d[property] };
+            }
+            list.push(payload);
+        }
+    });
+    if (getMax(list, property) === 0){
+        list.length = 0;
+    }
     return list;
 }
 function roundVal(value, precision) {
@@ -140,7 +160,7 @@ function getBoundValues() {
         yBound: yBound,
         xBound: xBound,
         yIncr: yBound / yListLength - 1,//nuber of y data-ranges - 1
-        xIncr: (xBound - initialX) / dataHist.length
+        xIncr: (xBound - initialX) / chartArray.length
     }
     return bounds;
 }
@@ -362,6 +382,7 @@ function onChartOptClick(e) {
     const text = this.innerText;
     const prop = this.dataset.chartprop;
     currentProp = prop;
+    chartArray = createChartArray(dataHist, currentProp);
     propArr = [], propTitle = [];
     propArr.push(prop);
     propTitle.push(text);
@@ -435,10 +456,10 @@ function closeChartDropDown() {
 }
 //RENDER/REMOVE CHART
 function makeChart() {
-    const length = makePropList(dataHist);
+    const length = makePropList(chartArray);
     updateChartInfo();
-    makeXYAxis(dataHist);
-    plotData(dataHist);
+    makeXYAxis(chartArray);
+    plotData(chartArray);
     makeChartLabels();
     appendHoverG();
 }
@@ -452,10 +473,22 @@ function removeChart() {
     chartWrapper.removeChild(popup);
 }
 function resetChart() {
-    removeChartListeners();
-    removeChart();
-    makeChart();
-    addChartListeners();
+    if (chartOn) { removeChartListeners(); removeChart(); }
+    if (chartArray.length > 0) {
+        chartOn = true;
+        makeChart();
+        addChartListeners();
+    }
+    else {
+        chartOn = false;
+        propArr = [];
+        propTitle = [];
+        updateChartInfo();
+        const checkBox = _('testsCheckBox');
+        const wrapper = _('testsCheckBoxWrapper');
+        checkBox.disabled = true;
+        wrapper.style.opacity = '0.5';
+    }
 }
 //LISTENERS
 //CHART DATA HOVER

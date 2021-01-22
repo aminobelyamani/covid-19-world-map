@@ -47,7 +47,7 @@ function setCTM(m) {
 }
 function pathStrokeHandler() {
     const zoom = zoomEl.transform.baseVal.getItem(0).matrix.a;
-    for(let i = 0; i < pathCountries.length; i++){
+    for (let i = 0; i < pathCountries.length; i++) {
         if (pathCountries[i].getAttribute('data-name')) {//avoid including centerBtn SVG in loop
             pathCountries[i].style.setProperty('--zoom', zoom);
         }
@@ -196,7 +196,7 @@ function zoomToCountry(e) {
     }, 500);
 }
 function highlightCountry(country) {
-    for(let i = 0; i < pathCountries.length; i++){
+    for (let i = 0; i < pathCountries.length; i++) {
         if (pathCountries[i].getAttribute('data-name')) {
             if (pathCountries[i].getAttribute('data-name') === country) {
                 pathCountries[i].classList.add('light-path');
@@ -215,7 +215,7 @@ function panToCountry(m, x, y) {
 function zoomToCountryNoAnim(e, noPrevMat) {
     trail.x = trail.y = touchTrail.x = touchTrail.y = 0;
     cancelAnimationFrame(fadePan);
-    if(!noPrevMat){ getPrevMatrix();}
+    if (!noPrevMat) { getPrevMatrix(); }
     removeZoomTapListeners();
     removePopupListeners();
     const pathBox = e.getBBox();
@@ -229,7 +229,7 @@ function zoomToCountryNoAnim(e, noPrevMat) {
     zoomEl.setAttributeNS(null, 'transform', transform);
     pathStrokeHandler();
     clearPage();
-    if(chartOn){removeChartListeners(); chartOn = false;}
+    if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); chartOn = false; }
     showCountryPopup(country, alpha2);
     closePopup.addEventListener('mouseup', onClosePopup, false);
 }

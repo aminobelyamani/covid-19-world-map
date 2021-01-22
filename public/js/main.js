@@ -140,11 +140,18 @@ function socketListeners(socket) {
             propArr = ['new_cases_smoothed'];
             currentProp = 'new_cases_smoothed';
             propTitle = ['Daily Cases'];
+            chartArray = createChartArray(dataHist, currentProp);
+            if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); }
             makeChartDiv();
-            makeChart();
-            if (chartOn) { removeChartListeners(); }
-            addChartListeners();
-            chartOn = true;
+            addGlobalChartListeners();
+            if (chartArray.length > 0) {
+                makeChart();
+                addChartListeners();
+                chartOn = true;
+            }
+            else {
+                chartOn = false;
+            }
         }
         else {
             chartOn = false;
@@ -1070,7 +1077,7 @@ function onClosePopup(e) {
     showPage();
     addPopupListeners(this.dataset.country);
     addZoomTapListeners();
-    if (chartOn) { removeChartListeners(); chartOn = false; }
+    if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); chartOn = false; }
 }
 //GLOBAL LISTENERS
 function addZoomTapListeners() {
@@ -1218,15 +1225,6 @@ function addChartListeners() {
     hoverG.addEventListener('mouseover', onChartHover, false);
     document.addEventListener('mousemove', onChartMove, false);
     window.addEventListener("resize", onChartResize, false);
-    const chartWrapper = _('chart');
-    const btns = chartWrapper.querySelectorAll('.chart-btns');
-    for (let i = 0; i < btns.length; i++) {
-        btns[i].addEventListener('mouseup', onChartOptClick, false);
-    }
-    const checkBox = _('testsCheckBox');
-    checkBox.addEventListener('change', onChartCheckBox, false);
-    const menu = _('chartDropDown');
-    menu.addEventListener('mouseup', onChartDropDown, false);
 }
 function removeChartListeners() {
     const chart = _('svgChart');
@@ -1238,6 +1236,19 @@ function removeChartListeners() {
     hoverG.removeEventListener('mouseover', onChartHover);
     document.removeEventListener('mousemove', onChartMove);
     window.removeEventListener("resize", onChartResize);
+}
+function addGlobalChartListeners() {
+    const chartWrapper = _('chart');
+    const btns = chartWrapper.querySelectorAll('.chart-btns');
+    for (let i = 0; i < btns.length; i++) {
+        btns[i].addEventListener('mouseup', onChartOptClick, false);
+    }
+    const checkBox = _('testsCheckBox');
+    checkBox.addEventListener('change', onChartCheckBox, false);
+    const menu = _('chartDropDown');
+    menu.addEventListener('mouseup', onChartDropDown, false);
+}
+function removeGlobalChartListeners() {
     const chartWrapper = _('chart');
     const btns = chartWrapper.querySelectorAll('.chart-btns');
     for (let i = 0; i < btns.length; i++) {
@@ -1994,7 +2005,7 @@ document.querySelectorAll('.menu-btns').forEach(btn => {
             let country = closePopup.dataset.country;
             removePopupListeners();
             addPopupListeners(country);
-            if (chartOn) { removeChartListeners(); chartOn = false; }
+            if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); chartOn = false; }
         }
         else {
             removePopupListeners();
