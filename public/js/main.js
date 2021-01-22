@@ -937,14 +937,14 @@ function getLatestData(payload, world) {
     //console.log(payload);
     let perc, percDeaths;
     const record = (world) ? dataAPI.find(data => data.country === "World") : sortList(countriesList, 'newCases').find(data => data.country === payload.country);
-    let date = (payload.latest.data1.new_cases != record.newCases) ? 'data1' : (payload.latest.data2) ? 'data2' : false;
+    let date = (payload.latest.data1.new_cases != record.newCases && payload.latest.data1.new_cases != 0) ? 'data1' : (payload.latest.data2 && payload.latest.data2.new_cases != record.newCases && payload.latest.data2.new_cases != 0) ? 'data2' : false;
     if (date) {
         const factor1 = (payload.latest[date].new_cases > 0) ? payload.latest[date].new_cases : 1;
         perc = ((record.newCases - (payload.latest[date].new_cases || 0)) / factor1) * 100;
         perc = roundVal(perc, 2);
     }
     else { perc = false; }
-    date = (payload.latest.data1.new_deaths != record.newDeaths) ? 'data1' : (payload.latest.data2) ? 'data2' : false;
+    date = (payload.latest.data1.new_deaths != record.newDeaths && payload.latest.data1.new_deaths != 0) ? 'data1' : (payload.latest.data2 && payload.latest.data2.new_deaths != record.newDeaths && payload.latest.data2.new_deaths != 0) ? 'data2' : false;
     if (date) {
         const factor2 = (payload.latest[date].new_deaths > 0) ? payload.latest[date].new_deaths : 1;
         percDeaths = ((record.newDeaths - (payload.latest[date].new_deaths || 0)) / factor2) * 100;
@@ -1801,20 +1801,18 @@ for (let i = 0; i < buttons.length; i++) {
 //STATS DASHBOARD SCROLL
 statsWrapper.addEventListener('scroll', onStatsScroll, false);
 function onStatsScroll(e) {
-    if (window.innerWidth <= 768) {
-        if (this.scrollTop <= 0) {
-            sideBar.className = "";
-            sideBar.style.height = "100%";
+    if (this.scrollTop <= 0) {
+        sideBar.className = "";
+        sideBar.style.height = "100%";
+    }
+    else {
+        if (this.scrollTop > 500) {
+            sideBar.className = 'transform-y-178';
+            sideBar.style.height = window.innerHeight + 178 + "px";//30(header) + 148(switchWrapper)
         }
         else {
-            if (this.scrollTop > 500) {
-                sideBar.className = 'transform-y-178';
-                sideBar.style.height = window.innerHeight + 178 + "px";//30(header) + 148(switchWrapper)
-            }
-            else {
-                sideBar.className = 'transform-y-30';
-                sideBar.style.height = window.innerHeight + 30 + "px";
-            }
+            sideBar.className = 'transform-y-30';
+            sideBar.style.height = window.innerHeight + 30 + "px";
         }
     }
 }

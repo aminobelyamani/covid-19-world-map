@@ -118,7 +118,7 @@ function getXList(data) {
     const xList = [];
     let value = '';//string for dates
     const length = data.length;
-    const numXElems = (window.innerWidth > 768) ? 6 : 3;
+    const numXElems = (window.innerWidth > 768 && length >= 12) ? 6 : 3;
     const xIncrFactor = Math.floor(length / numXElems);
     for (i = 0; i <= numXElems; i++) {
         value = (i === numXElems) ? formatDate(data[data.length - 1].date) : (i === 0) ? formatDate(data[i * xIncrFactor].date) : formatDate(data[i * xIncrFactor].date, true);
@@ -312,7 +312,7 @@ function makeChartDiv() {
         <div class='chart-header'>
             <h2>CHART: NO DATA</h2>
             <div class="help-tip">
-                <p>Published by the Oxford Coronavirus Government Response Tracker (OxCGRT), the <strong><em>stringency index</em></strong> measures the severity of the lockdown measures. This metric should not be interpreted as an indication of how appropriate or effective a country’s response was to the pandemic.</p>
+                <p></p>
             </div>
             <div id='chartInfo'>
                 <p></p>
@@ -353,9 +353,14 @@ function updateChartInfo() {
         }
         if (propArr[0].includes('smoothed')) {
             infoText = 'Daily data is smoothed out using a 7-day rolling average.';
+            if(currentProp === 'new_vaccinations_smoothed'){
+                helpTip.innerHTML = '<p>This chart shows the daily number of doses administered, it does <strong>NOT</strong> represent the number of people vaccinated.</p>'
+                fadeIn(helpTip);
+            }
         }
         else if (propArr[0].includes('stringency')) {
             infoText = 'Scaled to a value from 0 to 100 (100 = strictest).';
+            helpTip.innerHTML = '<p>Published by the Oxford Coronavirus Government Response Tracker (OxCGRT), the <strong><em>stringency index</em></strong> measures the severity of the lockdown measures. This metric should not be interpreted as an indication of how appropriate or effective a country’s response was to the pandemic.</p>'
             fadeIn(helpTip);
         }
         else {

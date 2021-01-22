@@ -29,7 +29,7 @@ app.use(express.static(path.join(__dirname, 'public')));//localhost
 //OTHER PACKAGES
 const io = require('socket.io')(server);
 
-//DOWNLOAD OWID JSON FILE
+//DOWNLOAD DATA FILES
 var parsedFull, latestData, fetchData, parsedCsv, vaccineData, parsedLocationsCsv;
 function downloadFile(url, callback) {
     const filename = (path.extname(url) != '') ? path.basename(url) : path.basename(urlParser.parse(url).pathname) + '.json';
@@ -88,24 +88,70 @@ const worldometersJob = new CronJob('0 2 * * *', function () {// 2 AM
         }
     });
 }, null, true, 'America/New_York');
+const vaccJob = new CronJob('0 12 * * *', function () {// NOON
+    const url = 'https://covid.ourworldindata.org/data/vaccinations/vaccinations.csv';
+    downloadFile(url, (file) => {
+        if (file) {
+            console.log(`${file} FINISHED DOWNLOADING AT ${new Date()}`);
+            const url2 = 'https://covid.ourworldindata.org/data/vaccinations/locations.csv';
+            downloadFile(url2, (file) => {
+                if (file) {
+                    console.log(`${file} FINISHED DOWNLOADING AT ${new Date()}`);
+                    runCSV();
+                }
+                else {
+                    console.log('FILE NOT FOUND');
+                }
+            });
+        }
+        else {
+            console.log('FILE NOT FOUND');
+        }
+    });
+}, null, true, 'America/New_York');
+
 owidJob.start();
 worldometersJob.start();
+vaccJob.start();
 
 //LOAD FILES ON SERVER START
 const worldFile = fs.readFileSync(path.join(__dirname, 'world.json'));
 const countryCodes = JSON.parse(worldFile);
 console.log("parsed country codes...")
 
-parsedFull = loadFullData();
-latestData = getLatestData();
-fetchData = parseFetchData();
-parsedCsv = parseCsv('vaccinations.csv');
-parsedLocationsCsv = parseCsv('locations.csv');
-function loadFullData() {
-    const rawData = fs.readFileSync(path.join(__dirname, 'owid-covid-data.json'));
-    var parsed;
+const runINITIAL = async () => {
+    parsedFull = await loadFullData();
+    latestData = getLatestData();
+    fetchData = await parseFetchData();
+};
+const runCSV = async () => {
+    parsedCsv = await readCsv('vaccinations.csv');
+    parsedLocationsCsv = await readCsv('locations.csv');
+    vaccineData = getVaccineData();
+};
+runINITIAL();
+runCSV();
+
+function readCsv(file) {
+    return new Promise(resolve => {
+        const results = [];
+        fs.createReadStream(file)
+            .pipe(csv())
+            .on('data', (data) => results.push(data))
+            .on('end', () => {
+                console.log(`${file} parsed...`);
+                resolve(results);
+            });
+    });
+}
+
+async function loadFullData() {
     try {
+        var parsed;
+        const rawData = fs.readFileSync(path.join(__dirname, 'owid-covid-data.json'));
         parsed = JSON.parse(rawData);
+        console.log("parsed owid data...")
+        return await parsed;
     }
     catch (err) {
         if (err) {
@@ -113,9 +159,8 @@ function loadFullData() {
             return parsedFull;
         }
     }
-    console.log("parsed data...")
-    return parsed;
 }
+
 function getLatestData() {
     const dataList = [];
     countryCodes.forEach(country => {
@@ -142,11 +187,14 @@ function getLatestData() {
     console.log("latest data compiled...")
     return dataList;
 }
-function parseFetchData() {
-    const rawData = fs.readFileSync(path.join(__dirname, 'LATEST.json'));
-    var parsed;
+
+async function parseFetchData() {
     try {
+        const rawData = fs.readFileSync(path.join(__dirname, 'LATEST.json'));
+        var parsed;
         parsed = JSON.parse(rawData);
+        console.log("parsed fetch data...")
+        return await parsed;
     }
     catch (err) {
         if (err) {
@@ -154,15 +202,15 @@ function parseFetchData() {
             return fetchData;
         }
     }
-    console.log("parsed fetch data...")
-    return parsed;
 }
+//VACCINE FUNCTIONS
 function mapVaccineData(data, prop) {
     const valList = data.map(item => {
         return item[prop];
     });
     return valList;
 }
+
 function getVaccineData() {
     const dataList = [];
     const propList = ['total_vaccinations', 'people_vaccinated', 'people_fully_vaccinated'];
@@ -194,27 +242,7 @@ function getVaccineData() {
     console.log("vaccine data compiled...");
     return dataList;
 }
-function parseCsv(file) {
-    const results = [];
-    fs.createReadStream(file)
-        .pipe(csv())
-        .on('data', (data) => results.push(data))
-        .on('end', () => {
-            console.log(`${file} data parsed...`);
-            vaccineData = getVaccineData();
-        });
-    return results;
-}
-//const url = 'https://covid.ourworldindata.org/data/vaccinations/vaccinations.csv';
-/* const url = 'https://covid.ourworldindata.org/data/vaccinations/locations.csv';
-downloadFile(url, (file) => {
-    if (file) {
-        console.log(`${file} FINISHED DOWNLOADING AT ${new Date()}`);
-    }
-    else {
-        console.log('FILE NOT FOUND');
-    }
-}); */
+
 //CLIENT SERVER FUNCTIONS
 function getWorldData(alpha2) {
     if (parsedFull.length === 0) { return false; }
@@ -240,6 +268,7 @@ function getWorldData(alpha2) {
         }
     }
 }
+
 function loadCountryData(country) {
     if (parsedFull.length === 0) { return false; }
     else {
@@ -253,11 +282,13 @@ function loadCountryData(country) {
         }
     }
 }
+
 function getCountryLatest(country) {
     const record = latestData.find(record => record.country.toLowerCase() === country.toLowerCase());
     const latest = (record) ? record : false;
     return latest;
 }
+
 //SOCKET LISTENERS
 io.sockets.on('connection', (socket) => {
     socket.on('getCountryCodes', () => {
