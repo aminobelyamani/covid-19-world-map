@@ -66,6 +66,8 @@ var chartOn = false;
 function onPageLoad() {
     _('overlay').style.display = "none";
     sideBar.style.visibility = "visible";
+    sideBar.className = '';
+    toggle.style.opacity = 0;
     currentData.innerText = currentTitle;
     currentDataWrapper.style.visibility = "visible";
     fadeOut(loader);
@@ -144,7 +146,7 @@ function socketListeners(socket) {
             if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); }
             makeChartDiv();
             addGlobalChartListeners();
-            if (chartArray.length > 0) {
+            if (chartArray.length > 3) {
                 makeChart();
                 addChartListeners();
                 chartOn = true;
@@ -1799,22 +1801,46 @@ for (let i = 0; i < buttons.length; i++) {
     }
 }
 //STATS DASHBOARD SCROLL
+var lastScrollTop = 0;
 statsWrapper.addEventListener('scroll', onStatsScroll, false);
 function onStatsScroll(e) {
-    if (this.scrollTop <= 0) {
+    var st = this.scrollTop;
+    if (st <= 0) {
         sideBar.className = "";
-        sideBar.style.height = "100%";
+        if (st > lastScrollTop){// downscroll code
+            sideBar.style.height = '100%';     
+         }
+         else{
+            setTimeout(() => {//avoid wheel action on svg map
+                sideBar.style.height = '100%';
+            }, 300);
+         }    
     }
     else {
-        if (this.scrollTop > 500) {
+        if (st > 500) {
             sideBar.className = 'transform-y-178';
-            sideBar.style.height = window.innerHeight + 178 + "px";//30(header) + 148(switchWrapper)
+            if (st > lastScrollTop){// downscroll code
+                sideBar.style.height = window.innerHeight + 178 + "px";//30(header) + 148(switchWrapper)
+            }
+            else{
+                setTimeout(() => {
+                    sideBar.style.height = window.innerHeight + 178 + "px";//30(header) + 148(switchWrapper)
+                }, 300);   
+            }   
         }
         else {
-            sideBar.className = 'transform-y-30';
-            sideBar.style.height = window.innerHeight + 30 + "px";
+            sideBar.className = 'transform-y-30';    
+            if (st > lastScrollTop){// downscroll code
+                sideBar.style.height = window.innerHeight + 30 + "px";//30
+            }
+            else{
+                setTimeout(() => {
+                    sideBar.style.height = window.innerHeight + 30 + "px";//30
+                }, 300);
+            }          
         }
     }
+    lastScrollTop = st <= 0 ? 0 : st; // For Mobile or negative scrolling
 }
 //DARK/LIGHT MODE
 function changeNavColor() {
@@ -1962,14 +1988,6 @@ function setPrevMapState() {
     const transform = `matrix(${prevMatrix.scale}, 0, 0, ${prevMatrix.scale}, ${prevMatrix.x}, ${prevMatrix.y})`;
     zoomEl.setAttributeNS(null, 'transform', transform);
     pathStrokeHandler();
-    if (sideBarState) {
-        sideBar.className = '';
-        toggle.style.opacity = 0;
-    }
-    else {
-        sideBar.className = 'transform';
-        toggle.style.opacity = 1;
-    }
 }
 //PAGE SWITCHING
 document.querySelectorAll('.menu-btns').forEach(btn => {

@@ -80,6 +80,8 @@
 }
 *, :after, :before {
     box-sizing: border-box;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
 }
 *::-webkit-scrollbar {
     display: none;
@@ -1340,7 +1342,7 @@ header{
 }
 #worldStats{
     padding:15px 12px 25px;
-    overflow-x: hidden;
+    overflow: hidden;
 }
 .worldStats-flex{
     display: -webkit-box; display: -ms-flexbox; display: flex;

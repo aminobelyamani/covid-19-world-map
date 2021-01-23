@@ -6,7 +6,6 @@ const svgEl = _('worldMap'),
     maxZoom = 20;
 var initialScale = 0,
     mouseMove = false,
-    sideBarState = true,
     countryAnim = false,
     prevMatrix = {};
 //ZOOM & PAN
@@ -238,7 +237,6 @@ function getPrevMatrix() {
     prevMatrix.scale = matrix.a;
     prevMatrix.x = matrix.e;
     prevMatrix.y = matrix.f;
-    sideBarState = (sideBar.classList.length === 0 || sideBar.className === 'transform-y-70' || sideBar.className === 'transform-y-140') ? true : false;
 }
 //CENTER & RESIZE
 function centerMap() {
@@ -278,8 +276,6 @@ function onResize() {
     const matrix = `matrix(${initialScale}, 0, 0, ${initialScale}, ${posX}, ${posY})`;
     zoomEl.setAttributeNS(null, 'transform', matrix);
     if (window.innerWidth > 768) {
-        sideBar.className = '';
-        toggle.style.opacity = 0;
         resultsTransform();
         globalHelpTip.style.top = "unset";
     }

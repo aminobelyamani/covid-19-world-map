@@ -479,7 +479,7 @@ function removeChart() {
 }
 function resetChart() {
     if (chartOn) { removeChartListeners(); removeChart(); }
-    if (chartArray.length > 0) {
+    if (chartArray.length > 3) {
         chartOn = true;
         makeChart();
         addChartListeners();
