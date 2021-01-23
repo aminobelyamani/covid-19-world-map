@@ -146,7 +146,7 @@ function socketListeners(socket) {
             if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); }
             makeChartDiv();
             addGlobalChartListeners();
-            if (chartArray.length > 3) {
+            if (chartArray.length > 1) {
                 makeChart();
                 addChartListeners();
                 chartOn = true;
@@ -936,7 +936,7 @@ function onCountryPopupScroll() {
     }
 }
 function getLatestData(payload, world) {
-    //console.log(payload);
+    console.log(payload);
     let perc, percDeaths;
     const record = (world) ? dataAPI.find(data => data.country === "World") : sortList(countriesList, 'newCases').find(data => data.country === payload.country);
     let date = (payload.latest.data1.new_cases != record.newCases && payload.latest.data1.new_cases != 0) ? 'data1' : (payload.latest.data2 && payload.latest.data2.new_cases != record.newCases && payload.latest.data2.new_cases != 0) ? 'data2' : false;

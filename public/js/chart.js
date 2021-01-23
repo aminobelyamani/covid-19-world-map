@@ -64,7 +64,7 @@ function createChartArray(data, property) {
             list.push(payload);
         }
     });
-    if (getMax(list, property) === 0){
+    if (getMax(list, property) === 0) {
         list.length = 0;
     }
     return list;
@@ -118,7 +118,8 @@ function getXList(data) {
     const xList = [];
     let value = '';//string for dates
     const length = data.length;
-    const numXElems = (window.innerWidth > 768 && length >= 12) ? 6 : 3;
+    const factor = (data.length > 1) ? Math.floor(length / 2) : 1;
+    const numXElems = (window.innerWidth > 768) ? Math.min(6, factor) : Math.min(3, factor);
     const xIncrFactor = Math.floor(length / numXElems);
     for (i = 0; i <= numXElems; i++) {
         value = (i === numXElems) ? formatDate(data[data.length - 1].date) : (i === 0) ? formatDate(data[i * xIncrFactor].date) : formatDate(data[i * xIncrFactor].date, true);
@@ -160,7 +161,7 @@ function getBoundValues() {
         yBound: yBound,
         xBound: xBound,
         yIncr: yBound / yListLength - 1,//nuber of y data-ranges - 1
-        xIncr: (xBound - initialX) / chartArray.length
+        xIncr: (xBound - initialX) / (chartArray.length - 1)//number of data plots - 1
     }
     return bounds;
 }
@@ -185,13 +186,13 @@ function makeXYAxis(data) {
     let yText = '', yLines = '', xText = '';
     for (let i = 0; i < yList.length; i++) {//y-axis labels + horizontal gridlines
         yText += `<text class='chart-text' x='${maxWidth}', y='${yPlot}' dominant-baseline='middle' text-anchor='end'>${yList[i]}</text>`;
-        yLines += (i === 0) ? `<line class='chart-horiz-lines' x1="${maxWidth + 10}" x2="${xBound - getBoundValues().xIncr}" y1="${yPlot}" y2="${yPlot}"></line>` : `<line class='chart-horiz-lines' x1="${maxWidth + 10}" x2="${xBound - getBoundValues().xIncr}" y1="${yPlot}" y2="${yPlot}" stroke-dasharray='3,2'></line>`;
+        yLines += (i === 0) ? `<line class='chart-horiz-lines' x1="${maxWidth + 10}" x2="${xBound}" y1="${yPlot}" y2="${yPlot}"></line>` : `<line class='chart-horiz-lines' x1="${maxWidth + 10}" x2="${xBound}" y1="${yPlot}" y2="${yPlot}" stroke-dasharray='3,2'></line>`;
         yPlot -= yIncr;
     }
     for (let i = 0; i < xList.length; i++) {//x-axis labels
         xText += (i === xList.length - 1) ? `
-            <text class='chart-text' x='${xBound - getBoundValues().xIncr}', y='${yBound + xTextPadding}' dominant-baseline='middle' text-anchor='middle'>${xList[i]}</text>
-            <line class='chart-lines' x1="${xBound - getBoundValues().xIncr}" x2="${xBound - getBoundValues().xIncr}" y1="${yBound}" y2="${yBound + 4}"></line>` :
+            <text class='chart-text' x='${xBound}', y='${yBound + xTextPadding}' dominant-baseline='middle' text-anchor='middle'>${xList[i]}</text>
+            <line class='chart-lines' x1="${xBound}" x2="${xBound}" y1="${yBound}" y2="${yBound + 4}"></line>` :
             `<text class='chart-text' x='${xPlot}', y='${yBound + xTextPadding}' dominant-baseline='middle' text-anchor='middle'>${xList[i]}</text>
             <line class='chart-lines' x1="${xPlot}" x2="${xPlot}" y1="${yBound}" y2="${yBound + 4}"></line>`;
         xPlot += xIncr;
@@ -353,7 +354,7 @@ function updateChartInfo() {
         }
         if (propArr[0].includes('smoothed')) {
             infoText = 'Daily data is smoothed out using a 7-day rolling average.';
-            if(currentProp === 'new_vaccinations_smoothed'){
+            if (currentProp === 'new_vaccinations_smoothed') {
                 helpTip.innerHTML = '<p>This chart shows the daily number of doses administered, it does <strong>NOT</strong> represent the number of people vaccinated.</p>'
                 fadeIn(helpTip);
             }
@@ -479,7 +480,7 @@ function removeChart() {
 }
 function resetChart() {
     if (chartOn) { removeChartListeners(); removeChart(); }
-    if (chartArray.length > 3) {
+    if (chartArray.length > 1) {
         chartOn = true;
         makeChart();
         addChartListeners();
