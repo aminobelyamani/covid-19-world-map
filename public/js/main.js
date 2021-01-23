@@ -245,6 +245,7 @@ function getData(data) {
             data[index].totalVaccinations = (vaccIndex != -1) ? dataVacc[vaccIndex].totalVaccinations : 0;
             data[index].peopleVaccinated = (vaccIndex != -1) ? dataVacc[vaccIndex].peopleVaccinated : 0;
             data[index].peopleFullyVaccinated = (vaccIndex != -1) ? dataVacc[vaccIndex].peopleFullyVaccinated : 0;
+            data[index].partiallyVaccinated = (vaccIndex != -1) ? Math.abs(((dataVacc[vaccIndex].peopleVaccinated || 0) - (dataVacc[vaccIndex].peopleFullyVaccinated || 0))) : 0;
             data[index].vaccines = (vaccIndex != -1) ? dataVacc[vaccIndex].vaccines : 'Not Reported';
             countriesList.push(data[index]);
         }
@@ -262,7 +263,7 @@ function calcData(data) {
         });
         const newCases = (item.newCases / item.population) * 100;
         const newDeaths = (item.newDeaths / item.population) * 100;
-        const percVacc = (item.peopleVaccinated / item.population) * 100;
+        const percVacc = (item.partiallyVaccinated / item.population) * 100;
         const percFullyVacc = (item.peopleFullyVaccinated / item.population) * 100;
         item.newCasesPerMil = roundVal(newCases * 10000, 2);
         item.newDeathsPerMil = roundVal(newDeaths * 10000, 2);
@@ -285,19 +286,19 @@ function worldData(data) {
     const world = data.find(data => data.country === "World");
     const totalTests = totalOfProp('totalTests');
     const totalPop = totalOfProp('population');
-    const totalPplVacc = totalOfProp('peopleVaccinated');
+    const totalPartialVacc = totalOfProp('partiallyVaccinated');
     const totalPplFlVacc = totalOfProp('peopleFullyVaccinated');
     const totalVacc = totalOfProp('totalVaccinations');
     world.totalTests = totalTests;
     world.totalPop = totalPop;
-    world.totalPplVacc = totalPplVacc;
+    world.totalPartialVacc = totalPartialVacc;
     world.totalPplFlVacc = totalPplFlVacc;
     world.totalVacc = totalVacc;
     const percRecovered = roundVal((world.totalRecovered / world.totalCases) * 100, 1);
     const percActive = roundVal((world.activeCases / world.totalCases) * 100, 1);
     const percDeaths = roundVal((world.totalDeaths / world.totalCases) * 100, 1);
     const percCritical = roundVal((world.seriousCritical / world.activeCases) * 100, 1);
-    const percPplVacc = roundVal((world.totalPplVacc / world.totalPop) * 100, 1);
+    const percPartialVacc = roundVal((world.totalPartialVacc / world.totalPop) * 100, 1);
     const percPplFlVacc = roundVal((world.totalPplFlVacc / world.totalPop) * 100, 1);
     let worldStats = _('worldStats');
     const alpha2 = 'OWID_WRL';
@@ -351,10 +352,10 @@ function worldData(data) {
             <h2 class='global-vacc-title'>Global Stats</h2>
             <div class='worldStats-flex'>
                 <div>
-                    <p class='stats white'>${world.totalPplVacc.commaSplit()}</p>
-                    <p class='stats-titles gray'>People Vaccinated</p>
+                    <p class='stats white'>${world.totalPartialVacc.commaSplit()}</p>
+                    <p class='stats-titles gray'>People Partially Vaccinated</p>
                 </div>
-                ${getPiePerc(percPplVacc, 'percVacc', true)}
+                ${getPiePerc(percPartialVacc, 'percVacc', true)}
             </div>
             <div class='worldStats-flex'>
                 <div>
@@ -768,8 +769,8 @@ function rawTotalSwitch(property) {
             colorClass = 'green';
             break;
         case 'percVacc':
-            totalProp = 'peopleVaccinated';
-            title = '% Vaccinated';
+            totalProp = 'partiallyVaccinated';
+            title = '% Partially Vaccinated';
             colorClass = 'green';
             break;
         case 'percFullyVacc':
@@ -871,7 +872,7 @@ function showCountryPopup(country, alpha2) {
         resultsTransform();
     }, 300);
     const propList = ["newCasesPerMil", "newDeathsPerMil", "percDeaths", "percRecovered", "percActive", "percCritical", "testsPerMil", "percVacc", "percFullyVacc", "totalVaccinations"];
-    const propTitles = ["Daily New Cases", "Daily New Deaths", "Case Fatality Rate", "Recovered", "Active", "Critical", "Tests", "Vaccinated", "Fully Vaccinated", "Vaccinations"];
+    const propTitles = ["Daily New Cases", "Daily New Deaths", "Case Fatality Rate", "Recovered", "Active", "Critical", "Tests", "Partially Vaccinated", "Fully Vaccinated", "Vaccinations"];
     const flagId = dataSVG.find(dataSVG => dataSVG.country === country);
     const wrapperProplist = ['casesPerMil', 'deathsPerMil', 'population'];
     let record, rank = [];
@@ -938,7 +939,7 @@ function onCountryPopupScroll() {
     }
 }
 function getLatestData(payload, world) {
-    console.log(payload);
+    //console.log(payload);
     let perc, percDeaths;
     const record = (world) ? dataAPI.find(data => data.country === "World") : sortList(countriesList, 'newCases').find(data => data.country === payload.country);
     let date = (payload.latest.data1.new_cases != record.newCases && payload.latest.data1.new_cases != 0) ? 'data1' : (payload.latest.data2 && payload.latest.data2.new_cases != record.newCases && payload.latest.data2.new_cases != 0) ? 'data2' : false;
@@ -1627,7 +1628,7 @@ function toggleSwitchCases(cat) {
             color = '#4cf6af';
             menu = vaccMenu;
             property = 'percVacc';
-            title = 'Vaccinated';
+            title = 'Partially Vaccinated';
             height = '160px';
             btns = '.vacc-btns';
             colors = ['#e2fdf1', '#bafbdf', '#89f9ca', '#4cf6af', '#33a976', '#1f6949', '#0e2f20'];
