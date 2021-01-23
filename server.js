@@ -135,13 +135,18 @@ runCSV();
 function readCsv(file) {
     return new Promise(resolve => {
         const results = [];
-        fs.createReadStream(file)
-            .pipe(csv())
+        const filestream = fs.createReadStream(file);
+        filestream.pipe(csv())
             .on('data', (data) => results.push(data))
             .on('end', () => {
                 console.log(`${file} parsed...`);
                 resolve(results);
             });
+        filestream.on('error', (err) => {
+            console.log(`${file} could not be read...`);
+            console.error(err);
+            resolve(results);
+        });
     });
 }
 
@@ -212,10 +217,26 @@ function mapVaccineData(data, prop) {
 }
 
 function getVaccineData() {
-    const dataList = [];
-    const propList = ['total_vaccinations', 'people_vaccinated', 'people_fully_vaccinated'];
-    countryCodes.forEach(country => {
-        const list = parsedCsv.filter(row => row.iso_code.toLowerCase() === country.alpha3.toLowerCase());
+    if (parsedCsv.length === 0 || parsedLocationsCsv.length === 0) { return false; }
+    else {
+        const dataList = [];
+        const propList = ['total_vaccinations', 'people_vaccinated', 'people_fully_vaccinated'];
+        countryCodes.forEach(country => {
+            const list = parsedCsv.filter(row => row.iso_code.toLowerCase() === country.alpha3.toLowerCase());
+            if (list.length > 0) {
+                const values = [];
+                propList.forEach(prop => {
+                    const mapped = mapVaccineData(list, prop);
+                    const max = Math.max.apply(null, mapped);
+                    values.push(max);
+                });
+                const index = parsedLocationsCsv.findIndex(row => row.iso_code.toLowerCase() === country.alpha3.toLowerCase());
+                const vaccines = (index != -1) ? parsedLocationsCsv[index].vaccines : 'Not Reported';
+                dataList.push({ country: country.alpha2, totalVaccinations: values[0], peopleVaccinated: values[1], peopleFullyVaccinated: values[2], vaccines: vaccines });
+            }
+        });
+        //OWID_WRL
+        const list = parsedCsv.filter(row => row.iso_code === 'OWID_WRL');
         if (list.length > 0) {
             const values = [];
             propList.forEach(prop => {
@@ -223,24 +244,11 @@ function getVaccineData() {
                 const max = Math.max.apply(null, mapped);
                 values.push(max);
             });
-            const index = parsedLocationsCsv.findIndex(row => row.iso_code.toLowerCase() === country.alpha3.toLowerCase());
-            const vaccines = (index != -1) ? parsedLocationsCsv[index].vaccines : 'Not Reported';
-            dataList.push({ country: country.alpha2, totalVaccinations: values[0], peopleVaccinated: values[1], peopleFullyVaccinated: values[2], vaccines: vaccines });
+            dataList.push({ country: 'OWID_WRL', totalVaccinations: values[0], peopleVaccinated: values[1], peopleFullyVaccinated: values[2] });
         }
-    });
-    //OWID_WRL
-    const list = parsedCsv.filter(row => row.iso_code === 'OWID_WRL');
-    if (list.length > 0) {
-        const values = [];
-        propList.forEach(prop => {
-            const mapped = mapVaccineData(list, prop);
-            const max = Math.max.apply(null, mapped);
-            values.push(max);
-        });
-        dataList.push({ country: 'OWID_WRL', totalVaccinations: values[0], peopleVaccinated: values[1], peopleFullyVaccinated: values[2] });
+        console.log("vaccine data compiled...");
+        return dataList;
     }
-    console.log("vaccine data compiled...");
-    return dataList;
 }
 
 //CLIENT SERVER FUNCTIONS

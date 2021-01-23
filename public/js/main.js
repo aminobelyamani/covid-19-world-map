@@ -126,7 +126,7 @@ function onDOMLoaded() {
 function socketListeners(socket) {
     socket.on('getFetchFromServer', data => {
         dataAPI = data.regionData;
-        getData(dataAPI);
+        socket.emit('getVaccineData');
         timeStamp.innerText = `Updated at ${formatTime()} EST`;
     });
     socket.on('getCountryCodes', data => {
@@ -195,7 +195,9 @@ function socketListeners(socket) {
     });
     socket.on('getVaccineData', data => {
         //console.log(data);
-        dataVacc = data;
+        if (data) {
+            dataVacc = data;
+        }
         getData(dataAPI);
     });
 }
@@ -228,10 +230,10 @@ function fetchAPI() {
             }
         });
 }
-function displayFetchError() {
+/* function displayFetchError() {
     fadeOut(loader);
     _('overlayMsg').innerText = "Failed to fetch data";
-}
+} */
 //DATA MANIP
 function getData(data) {
     countriesList.length = 0;//reinitialize array
@@ -1807,37 +1809,37 @@ function onStatsScroll(e) {
     var st = this.scrollTop;
     if (st <= 0) {
         sideBar.className = "";
-        if (st > lastScrollTop){// downscroll code
-            sideBar.style.height = '100%';     
-         }
-         else{
+        if (st > lastScrollTop) {// downscroll code
+            sideBar.style.height = '100%';
+        }
+        else {
             setTimeout(() => {//avoid wheel action on svg map
                 sideBar.style.height = '100%';
             }, 300);
-         }    
+        }
     }
     else {
         if (st > 500) {
             sideBar.className = 'transform-y-178';
-            if (st > lastScrollTop){// downscroll code
+            if (st > lastScrollTop) {// downscroll code
                 sideBar.style.height = window.innerHeight + 178 + "px";//30(header) + 148(switchWrapper)
             }
-            else{
+            else {
                 setTimeout(() => {
                     sideBar.style.height = window.innerHeight + 178 + "px";//30(header) + 148(switchWrapper)
-                }, 300);   
-            }   
+                }, 300);
+            }
         }
         else {
-            sideBar.className = 'transform-y-30';    
-            if (st > lastScrollTop){// downscroll code
+            sideBar.className = 'transform-y-30';
+            if (st > lastScrollTop) {// downscroll code
                 sideBar.style.height = window.innerHeight + 30 + "px";//30
             }
-            else{
+            else {
                 setTimeout(() => {
                     sideBar.style.height = window.innerHeight + 30 + "px";//30
                 }, 300);
-            }          
+            }
         }
     }
     lastScrollTop = st <= 0 ? 0 : st; // For Mobile or negative scrolling
