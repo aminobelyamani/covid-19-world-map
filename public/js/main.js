@@ -64,6 +64,7 @@ var is_touch_device;
 let socket;
 var chartOn = false;
 function onPageLoad() {
+    statsWrapper.scrollTop = 0;
     _('overlay').style.display = "none";
     sideBar.style.visibility = "visible";
     sideBar.className = '';
@@ -97,6 +98,7 @@ function showGlInstructions() {
 function onDOMLoaded() {
     socket = io();
     socketListeners(socket);
+    socket.emit('getCountryCodes');
     parseSVG();
     pathStrokeHandler();
     fetch('https://api.apify.com/v2/key-value-stores/SmuuI0oebnTWjRTUh/records/LATEST?disableRedirect=true')
@@ -108,7 +110,7 @@ function onDOMLoaded() {
         .then(data => {
             if (data) {
                 dataAPI = data.regionData;
-                socket.emit('getCountryCodes');
+                getData(dataAPI);
                 socket.emit('getVaccineData');
                 timeStamp.innerText = `Updated at ${formatTime()} EST`;
                 onPageLoad();
@@ -888,6 +890,7 @@ function showCountryPopup(country, alpha2) {
         const totalProp = rawTotalSwitch(item).totalProp;
         const colorClass = rawTotalSwitch(item).colorClass;
         const flexClass = (item === 'totalVaccinations') ? 'stats-column-flex-100' : '';
+        const helpText = dropDownSwitch(item);
         html += `
             <div class='stats-column-flex ${flexClass}'>
                 <p class='prop-title ${colorClass}'>${propTitles[index]}</p>
@@ -1670,6 +1673,7 @@ switchToggle.addEventListener('mouseup', function (e) {
             changeLegendColors(cat);
             buttonsHandler(prop);
             worldData(dataAPI);
+            statsWrapper.scrollTop = 0;
             removeLegendListeners();
             addLegendListeners();
             const height = toggleSwitchCases(cat).height;
@@ -1703,14 +1707,18 @@ function closeDropDown() {
     toggle.classList.remove('transform-rotate');
 }
 dropDown.addEventListener('click', (e) => {
+    statsWrapper.style.overflowY = 'hidden';
+    statsWrapper.removeEventListener('scroll', onStatsScroll);
     if (optionsDiv.style.height === "40px" || optionsDiv.style.height === "") {
-        statsWrapper.removeEventListener('scroll', onStatsScroll);
         openDropDown();
     }
     else {
-        statsWrapper.addEventListener('scroll', onStatsScroll, false);
         closeDropDown();
     }
+    setTimeout(() => {
+        statsWrapper.style.overflowY = 'scroll';
+        statsWrapper.addEventListener('scroll', onStatsScroll, false);
+    }, 400);
     sideBar.className = '';
 });
 function dropDownSwitch(property) {
@@ -1773,6 +1781,7 @@ function legendHelpTipHandler() {
     let text = (is_touch_device) ? 'Tap color to isolate countries in specific range.' : 'Hover mouse over color to isolate countries in specific range.';
     const p = legendHelpTip.querySelector('p');
     p.innerText = text;
+    p.style.width = (is_touch_device) ? '300px' : '370px';
 }
 //DROPDOWN PROPERTIES
 var bckColorLDM = "#3d3c3a";
@@ -1797,7 +1806,17 @@ for (let i = 0; i < buttons.length; i++) {
                 keyTitle.innerText = rawTotalSwitch(prop).title;
                 getMinMax(countriesList, prop, rangeLimit);
                 if (window.innerWidth <= 768) {
-                    closeSideBar();
+                    if (sideBar.classList.length > 0) {// handle when dropdown is open and fixed to top
+                        statsWrapper.style.overflowY = 'hidden';
+                        statsWrapper.removeEventListener('scroll', onStatsScroll);
+                        sideBar.className = '';
+                        setTimeout(() => {
+                            closeSideBar();
+                            statsWrapper.style.overflowY = 'scroll';
+                            statsWrapper.addEventListener('scroll', onStatsScroll, false);
+                        }, 400);
+                    }
+                    else{closeSideBar();}
                 }
             }
         });
@@ -1808,6 +1827,7 @@ var lastScrollTop = 0;
 statsWrapper.addEventListener('scroll', onStatsScroll, false);
 function onStatsScroll(e) {
     var st = this.scrollTop;
+    if (st === lastScrollTop) { return; }//firefox bug firing scroll when height changes
     if (st <= 0) {
         sideBar.className = "";
         if (st > lastScrollTop) {// downscroll code

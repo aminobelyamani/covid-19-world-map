@@ -650,12 +650,14 @@ body{
     width:auto;
     max-width: calc(100% - 36px);
     text-align: left;
+    margin-right: 10px;
 }
 /* begin chart info tooltip */
 .help-tip{
+    display: inline-block;
     position: relative;
-    top: -1px;
-    left: 10px;
+    top:-1px;
+    left:unset;
     text-align: center;
     background-color: #faebd7;
     border-radius: 50%;
@@ -980,6 +982,9 @@ body{
     top:60px;
     right:52px;
     z-index: 8;
+}
+#globalHelpTip{
+    left:10px;
 }
 #globalHelpTip, #legendHelpTip{
     margin-top:-5px;
@@ -1944,11 +1949,11 @@ svg{
     }
     #legendHelpTip p{
         right:unset;
-        top:-80px;
+        top:-78px;
     }
     #legendHelpTip p:before{ /* The pointer of the tooltip */
         border-top-color:#faebd7;
-        border-bottom-color: unset;
+        border-bottom-color: transparent;
         left:10px!important;
         bottom:-12px;
         top:unset;
