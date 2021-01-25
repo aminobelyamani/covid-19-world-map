@@ -265,7 +265,7 @@ function propSwitch(property) {
             color = (mode === 'dark') ? '#f44336' : '#B13507';
             break;
         case 'new_vaccinations_smoothed':
-            color = (mode === 'dark') ? '#4cf6af' : '#209222';
+            color = (mode === 'dark') ? '#4cf6af' : '#33a976';
             break;
         case 'stringency_index':
             color = (mode === 'dark') ? '#ffc82a' : '#967000';
