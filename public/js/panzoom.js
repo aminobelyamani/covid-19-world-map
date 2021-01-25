@@ -262,6 +262,7 @@ function centerMap() {
         addZoomTapListeners();
         removePopupListeners();
         addPopupListeners();
+        showGlInstructions();
     }
 }
 function onResize() {
@@ -276,18 +277,16 @@ function onResize() {
     const matrix = `matrix(${initialScale}, 0, 0, ${initialScale}, ${posX}, ${posY})`;
     zoomEl.setAttributeNS(null, 'transform', matrix);
     if (window.innerWidth > 768) {
-        resultsTransform();
         globalHelpTip.style.top = "unset";
     }
     else {
         globalHelpTip.style.top = (is_touch_device) ? "70px" : "50px";
-        onCloseSearch();
     }
+    resultsTransform();
     addHeader();
     pathStrokeHandler();
     onLegendResize(globalRangeList);
     onToggleSVGResize();
-    showGlInstructions();
 }
 onResize();
 fadeIn(mapDiv);

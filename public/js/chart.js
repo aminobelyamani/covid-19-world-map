@@ -474,6 +474,16 @@ function removeChart() {
     const popup = chartWrapper.querySelector('.chart-popup');
     chartWrapper.removeChild(popup);
 }
+function onNoChartData(){
+    chartOn = false;
+    propArr = [];
+    propTitle = [];
+    updateChartInfo();
+    const checkBox = _('testsCheckBox');
+    const wrapper = _('testsCheckBoxWrapper');
+    checkBox.disabled = true;
+    wrapper.style.opacity = '0.5';
+}
 function resetChart() {
     if (chartOn) { removeChartListeners(); removeChart(); }
     if (chartArray.length > 1) {
@@ -482,14 +492,7 @@ function resetChart() {
         addChartListeners();
     }
     else {
-        chartOn = false;
-        propArr = [];
-        propTitle = [];
-        updateChartInfo();
-        const checkBox = _('testsCheckBox');
-        const wrapper = _('testsCheckBoxWrapper');
-        checkBox.disabled = true;
-        wrapper.style.opacity = '0.5';
+       onNoChartData();
     }
 }
 //LISTENERS

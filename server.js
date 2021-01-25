@@ -88,7 +88,7 @@ const worldometersJob = new CronJob('0 2 * * *', function () {// 2 AM
         }
     });
 }, null, true, 'America/New_York');
-const vaccJob = new CronJob('0 12 * * *', function () {// NOON
+const vaccJob = new CronJob('0 15 * * *', function () {// 3 PM
     const url = 'https://covid.ourworldindata.org/data/vaccinations/vaccinations.csv';
     downloadFile(url, (file) => {
         if (file) {

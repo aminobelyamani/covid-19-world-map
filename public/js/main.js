@@ -154,7 +154,7 @@ function socketListeners(socket) {
                 chartOn = true;
             }
             else {
-                chartOn = false;
+                onNoChartData();
             }
         }
         else {
@@ -868,6 +868,7 @@ function resultsTransform() {
 function showCountryPopup(country, alpha2) {
     countryPopup.scrollTo(0, 0);
     countryPopup.classList.remove('transform');
+    closePopup.style.visibility = 'visible';
     closePopup.style.marginLeft = "-5px";
     closePopup.setAttribute('data-country', country);
     setTimeout(() => {
@@ -893,6 +894,7 @@ function showCountryPopup(country, alpha2) {
         const helpText = dropDownSwitch(item);
         html += `
             <div class='stats-column-flex ${flexClass}'>
+                <div class="help-tip-stats help-tip"><p>${helpText}</p></div>
                 <p class='prop-title ${colorClass}'>${propTitles[index]}</p>
                 ${getRecord(record.country, item, title, totalProp)}
             </div>`;
@@ -906,7 +908,7 @@ function showCountryPopup(country, alpha2) {
                     <p class='stats-titles dark-gray'>Population</p>
                 </div>
                 <div class='stats-column'>
-                    <p class='prop-title blue'>Cases</p>
+                    <p class='prop-title-main blue'>Cases</p>
                     <p class='stats blue'>${record.casesPerMil.commaSplit()}</p>
                     <p class='stats-titles white'>Cases/Million</p>
                     <p class='stats blue'>${rank[0]}</p>
@@ -915,7 +917,7 @@ function showCountryPopup(country, alpha2) {
                     <p class='stats-titles dark-gray'>Raw Total</p>
                 </div>
                 <div class='stats-column'>
-                    <p class='prop-title red'>Deaths</p>
+                    <p class='prop-title-main red'>Deaths</p>
                     <p class='stats red'>${record.deathsPerMil.commaSplit()}</p>
                     <p class='stats-titles white'>Deaths/Million</p>
                     <p class='stats red'>${rank[1]}</p>
@@ -1651,7 +1653,7 @@ switchToggle.addEventListener('mouseup', function (e) {
             const y = parseInt(switchCircle.getAttribute('cy'));
             switchCircle.setAttribute('cx', 32);
             switchCircle.setAttribute('cy', 32);
-            if (x === cx || y === cy) {
+            if (x === cx || y === cy) {//if destination is on same axis
                 switchCircle.setAttribute('cx', cx);
                 switchCircle.setAttribute('cy', cy);
             }
@@ -1725,7 +1727,7 @@ function dropDownSwitch(property) {
     let p = '';
     switch (property) {
         case 'casesPerMil':
-            p = 'This is the reported total cumulative count of detected and laboratory cases (and sometimes, depending on the country reporting them and the criteria adopted at the time, also clinical cases). Depending on the country reporting standards, this number can also include presumptive, suspect, or probable cases of detected infection.';
+            p = 'This is the reported total cumulative count of detected, laboratory, and sometimes (depending on the country reporting them and the criteria adopted at the time) also clinical cases. Depending on the country reporting standards, this number can also include presumptive, suspect, or probable cases of detected infection.';
             break;
         case 'newCasesPerMil':
             p = 'Every country reports their daily new cases at different times in the day. The daily data by all reporting countries resets every day after midnight GMT.';
@@ -1734,7 +1736,7 @@ function dropDownSwitch(property) {
             p = 'This is the percent of cases that have recovered from the disease. This statistic is highly imperfect, because reporting can be missing, incomplete, incorrect, based on different definitions, or dated (or a combination of all of these) for many governments, both at the local and national level, sometimes with differences between states within the same country or counties within the same state. ';
             break;
         case 'percActive':
-            p = 'This figure represents the current number of people detected and confirmed to be infected with the virus. This figure can increase or decrease, and represents an important metric for Public Health and Emergency response authorities when assessing hospitalization needs versus capacity.';
+            p = 'This figure represents the current number of people detected and confirmed to be infected with the virus. This figure can increase or decrease, and represents an important metric for public health and emergency response authorities when assessing hospitalization needs versus capacity.';
             break;
         case 'percCritical':
             p = `This is the percent of current active cases that are in critical condition. This statistic is imperfect, for many reasons. When 99% of the cases were in China, the figure pretty much corresponded to the Chinese NHC's reported number of "severe" cases. Today, it represents for the most part the number of patients currently being treated in Intensive Care Unit (ICU), if and when this figure is reported.`;
@@ -1750,10 +1752,10 @@ function dropDownSwitch(property) {
             p = 'Every country reports their daily new deaths at different times in the day. The daily data by all reporting countries resets every day after midnight GMT.';
             break;
         case 'percDeaths':
-            p = `The Case Fatality rate (CFR) represents the proportion of cases who eventually die from the disease. This statistic for each country is imperfect, since it is based on both the total number of reported cases and deaths, both of which depend on the respective countries' reporting criteria. Globally, the WHO has estimated the coronavirus' CFR at 2%. For comparison, the CFR for SARS was 10%, and for MERS 34%.`;
+            p = `The Case Fatality rate (CFR) represents the proportion of cases who eventually die from the disease. This statistic for each country is imperfect, since it is based on both the total number of reported cases and deaths, both of which depend on the respective countries' reporting criteria. Globally, the WHO has estimated the coronavirus' CFR at <strong>2%</strong>. For comparison, the CFR for SARS was <strong>10%</strong>, and for MERS <strong>34%</strong>.`;
             break;
         case 'percVacc':
-            p = 'This is the percent of population that received at lease one vaccine dose.';
+            p = 'This is the percent of population that received at least one vaccine dose, but has <strong>NOT</strong> received all doses presribed by the vaccination protocol.';
             break;
         case 'percFullyVacc':
             p = 'This is the percent of population that received all doses prescribed by the vaccination protocol.';
@@ -1816,7 +1818,7 @@ for (let i = 0; i < buttons.length; i++) {
                             statsWrapper.addEventListener('scroll', onStatsScroll, false);
                         }, 400);
                     }
-                    else{closeSideBar();}
+                    else { closeSideBar(); }
                 }
             }
         });
@@ -2004,6 +2006,7 @@ function clearPopup() {
         countryPopup.style.overflow = '';
     }, 10);
     setTimeout(() => {
+        closePopup.style.visibility = 'hidden';
         resultsTransform();
     }, 500);
 }
@@ -2035,9 +2038,6 @@ document.querySelectorAll('.menu-btns').forEach(btn => {
             addZoomTapListeners();
             clearPopup();
             showPage();
-            if (window.innerWidth <= 768) {
-                closeSideBar();
-            }
             about.style.display = "none";
         }
         if (closePopup.dataset.country) {
@@ -2051,6 +2051,7 @@ document.querySelectorAll('.menu-btns').forEach(btn => {
             addPopupListeners();
         }
         onResize();
+        onCloseSearch();
         popup.style.display = "none";
     });
 });

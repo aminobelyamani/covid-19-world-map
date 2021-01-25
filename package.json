@@ -1,6 +1,6 @@
 {
   "name": "worldmapcovid19",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "an interactive map of covid-19 data",
   "main": "server.js",
   "scripts": {
