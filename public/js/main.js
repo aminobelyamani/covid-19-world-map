@@ -286,8 +286,10 @@ function totalOfProp(property) {
 }
 function worldData(data) {
     const world = data.find(data => data.country === "World");
-    const totalTests = totalOfProp('totalTests');
     const totalPop = totalOfProp('population');
+    const newCasesPerMil = roundVal((world.newCases / totalPop) * 10000, 2);
+    const newDeathsPerMil = roundVal((world.newDeaths / totalPop) * 10000, 2);
+    const totalTests = totalOfProp('totalTests');
     const totalPartialVacc = totalOfProp('partiallyVaccinated');
     const totalPplFlVacc = totalOfProp('peopleFullyVaccinated');
     const totalVacc = totalOfProp('totalVaccinations');
@@ -307,14 +309,12 @@ function worldData(data) {
     if (switchValue === "cases") {
         worldStats.innerHTML = `
             <h2 class='global-cases-title'>Global Stats</h2>
-            <p class='stats white'>${world.totalCases.commaSplit()}</p>
-            <p class='stats-titles gray'>Confirmed Cases</p>
             <p class='stats white'>${world.casesPerMil.commaSplit()}</p>
             <p class='stats-titles gray'>Cases/Million</p>
             <div class='worldStats-flex'>
                 <div>
-                    <p class='stats white'>${world.newCases.commaSplit()}</p>
-                    <p class='stats-titles gray'>New Cases</p>
+                    <p class='stats white'>${newCasesPerMil.commaSplit()}</p>
+                    <p class='stats-titles gray'>New Cases/Million</p>
                 </div>
                 <div class='flex-stat' style='width:60px; height:70px;margin:0;' title='Percent Daily Change'></div>
             </div>
@@ -338,7 +338,9 @@ function worldData(data) {
                     <p class='stats-titles gray'>Critical Cases</p>
                 </div>
                 ${getPiePerc(percCritical, 'seriousCritical', true)}
-            </div>`;
+            </div>
+            <p class='stats white'>${world.totalCases.commaSplit()}</p>
+            <p class='stats-titles gray'>Confirmed Cases</p>`;
         socket.emit('getLatestWorldData', alpha2);
     }
     else if (switchValue === 'tests') {
@@ -372,22 +374,22 @@ function worldData(data) {
     else {
         worldStats.innerHTML = `
             <h2 class='global-deaths-title'>Global Stats</h2>
+            <p class='stats white'>${world.deathsPerMil.commaSplit()}</p>
+            <p class='stats-titles gray'>Deaths/Million</p>
+            <div class='worldStats-flex'>
+                <div>
+                    <p class='stats white'>${newDeathsPerMil.commaSplit()}</p>
+                    <p class='stats-titles gray'>New Deaths/Million</p>
+                </div>
+                <div class='flex-stat' style='width:60px; height:70px;margin:0;' title='Percent Daily Change'></div>
+            </div>
             <div class='worldStats-flex'>
                 <div>
                     <p class='stats white'>${world.totalDeaths.commaSplit()}</p>
                     <p class='stats-titles gray'>Total Deaths</p>
                 </div>
                 ${getPiePerc(percDeaths, 'totalDeaths', true)}
-            </div>
-            <div class='worldStats-flex'>
-                <div>
-                    <p class='stats white'>${world.newDeaths.commaSplit()}</p>
-                    <p class='stats-titles gray'>New Deaths</p>
-                </div>
-                <div class='flex-stat' style='width:60px; height:70px;margin:0;' title='Percent Daily Change'></div>
-            </div>
-            <p class='stats white'>${world.deathsPerMil.commaSplit()}</p>
-            <p class='stats-titles gray'>Deaths/Million</p>`;
+            </div>`;    
         socket.emit('getLatestWorldData', alpha2);
     }
 }
@@ -980,7 +982,7 @@ function addPercNew(perc, deaths) {
     fadeIn(div, true);
 }
 function addPercNewWorld(perc, deaths) {
-    const childNum = (deaths) ? 1 : 0;
+    const childNum = 0;
     const wrapper = worldStats.querySelectorAll(`.worldStats-flex`)[childNum];
     const div = wrapper.querySelector('.flex-stat');
     div.style.opacity = 0;
