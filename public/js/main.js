@@ -389,7 +389,7 @@ function worldData(data) {
                     <p class='stats-titles gray'>Total Deaths</p>
                 </div>
                 ${getPiePerc(percDeaths, 'totalDeaths', true)}
-            </div>`;    
+            </div>`;
         socket.emit('getLatestWorldData', alpha2);
     }
 }
@@ -1936,30 +1936,30 @@ hamburger.addEventListener('mouseup', (e) => {
 });
 //MOBILE SEARCH WRAPPER
 function showSearch() {
-    const color = (mode === 'dark') ? '#282828' : '#e6e6e6';
     if (window.innerWidth <= 768) {
-        if (searchWrapper.classList.length === 1) {
-            searchWrapper.classList.add('flex-1');
-            closeSearch.style.display = "block";
-            searchInput.style.visibility = "visible";
-            searchWrapper.style.backgroundColor = color;
-            searchWrapper.style.marginRight = "45px";
-            headerTitle.style.display = "none";
-        }
-        else {
-            searchWrapper.classList.remove('flex-1');
-            closeSearch.style.display = "none";
-            searchInput.style.visibility = "hidden";
-            searchWrapper.style.backgroundColor = "transparent";
-            searchWrapper.style.marginRight = "30px";
-            setTimeout(() => {
-                headerTitle.style.display = "block";
-            }, 300);
-        }
+        if (searchWrapper.classList.length === 1) { expandSearch(); }
+        else { collapseSearch(); }
     }
-    else {
-        searchInput.focus();
-    }
+    else { searchInput.focus(); }
+}
+function expandSearch() {
+    const color = (mode === 'dark') ? '#282828' : '#e6e6e6';
+    searchWrapper.classList.add('flex-1');
+    closeSearch.style.display = "block";
+    searchInput.style.visibility = "visible";
+    searchWrapper.style.backgroundColor = color;
+    searchWrapper.style.marginRight = "45px";
+    headerTitle.style.display = "none";
+}
+function collapseSearch() {
+    searchWrapper.classList.remove('flex-1');
+    closeSearch.style.display = "none";
+    searchInput.style.visibility = "hidden";
+    searchWrapper.style.backgroundColor = "transparent";
+    searchWrapper.style.marginRight = "30px";
+    setTimeout(() => {
+        headerTitle.style.display = "block";
+    }, 300);
 }
 searchIcon.addEventListener('mouseup', showSearch, false);
 //MAIN PAGE

@@ -281,6 +281,7 @@ function onResize() {
     }
     else {
         globalHelpTip.style.top = (is_touch_device) ? "70px" : "50px";
+        if (resultsWrapper.innerText.length > 0) { expandSearch(); }
     }
     resultsTransform();
     addHeader();
