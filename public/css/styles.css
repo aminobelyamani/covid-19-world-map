@@ -1040,7 +1040,6 @@ body{
     background-color:#1d1d1d;
     visibility: hidden;
     color:#faebd7;
-    /* overflow: hidden; */
     z-index: 7;
     /* -ms-touch-action:none;touch-action:none; */
 }
@@ -1225,9 +1224,6 @@ header{
 #casesTitle{
     opacity: 1;
 }
-/* .light #switchCircle{
-    fill: #fff;
-} */
 /* end switch */
 /* begin dropdown */
 #optionsDiv{
