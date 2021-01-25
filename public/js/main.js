@@ -1938,7 +1938,7 @@ hamburger.addEventListener('mouseup', (e) => {
 function showSearch() {
     if (window.innerWidth <= 768) {
         if (searchWrapper.classList.length === 1) { expandSearch(); }
-        else { collapseSearch(); }
+        else { collapseSearch(); onCloseSearch(); }
     }
     else { searchInput.focus(); }
 }
