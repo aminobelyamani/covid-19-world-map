@@ -17,8 +17,8 @@
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
     <link rel="manifest" href="site.webmanifest">
-    <!-- <link href="css/styles.css" rel="stylesheet" type="text/css"> -->
-    <link href="css/styles.min.css" rel="stylesheet" type="text/css">
+    <link href="css/styles.css" rel="stylesheet" type="text/css">
+   <!--  <link href="css/styles.min.css" rel="stylesheet" type="text/css"> -->
     <meta name="description"
         content="An interactive COVID-19 World Map created and developed by Amino Belyamani. Live updates every 5 minutes. In contrast to a cold and stale string of numbers, this site presents a visual context for the current state of the global pandemic.">
     <!--Facebook-->
@@ -88,6 +88,9 @@
             type='text/javascript'>kofiwidget2.init('Buy Me a Coffee', '#f44336', 'M4M42OFFV'); kofiwidget2.draw();</script>
     </nav>
     <!-- GLOBAL ELEMENTS -->
+    <div id="globalInstructions" class="ease-out">
+        <p></p>
+    </div>
     <div id="resultsWrapper">
     </div>
     <div id="countryPopup" class="transform"> </div>
@@ -124,12 +127,15 @@
     <!-- END GLOBAL ELEMENTS -->
     <!-- LEGEND SECTION -->
     <div id="keys">
+        <div id='legendHelpTip' class="help-tip">
+            <p>Hover mouse over color to isolate countries in specific range.</p>
+        </div>
         <span id="closeKeys" class="closeBtn" title="Close Legend">X</span>
         <h2>Legend</h2>
         <p id="keyTitle"></p>
         <div class="keys">
             <div class="colors-wrapper">
-                <div id="blues" class="colors flex-column">
+                <div id="legendColors" class="colors flex-column">
                     <div class="color" style="background-color:#013544;"></div>
                     <div class="color" style="background-color:#035e79;"></div>
                     <div class="color" style="background-color:#038ebc;"></div>
@@ -137,17 +143,7 @@
                     <div class="color" style="background-color:#54cbf2;"></div>
                     <div class="color" style="background-color:#96dcf4;"></div>
                     <div class="color" style="background-color:#d6f5ff;"></div>
-                    <div class="color" style="background-color:#ffc82a;"></div>
-                </div>
-                <div id="reds" class="colors flex-column">
-                    <div class="color" style="background-color:#9e251b;"></div>
-                    <div class="color" style="background-color:#bd4137;"></div>
-                    <div class="color" style="background-color:#f6584c;"></div>
-                    <div class="color" style="background-color:#fd8177;"></div>
-                    <div class="color" style="background-color:#ffada6;"></div>
-                    <div class="color" style="background-color:#fcd2cd;"></div>
-                    <div class="color" style="background-color:#ffe9e7;"></div>
-                    <div class="color" style="background-color:#ffc82a;"></div>
+                    <div class="color" style="background-color:#9c9c9c;"></div>
                 </div>
             </div>
             <div class="key-data flex-column">
@@ -187,18 +183,30 @@
     <!-- SIDEBAR DASHBOARD -->
     <div id="sideBar" class="transform">
         <header>
-            <h1 class="white">DASHBOARD</h1>
-            <span id="closeDash" class="closeBtn" title="Close Dashboard">X</span>
             <span id="livePulse" class="pulse"></span><span class="pulse">Live</span>
             <p id="timeStamp" class="yellow"></p>
+            <span id="closeDash" class="closeBtn" title="Close Dashboard">X</span>
         </header>
         <div id="switchWrapper">
-            <p id="casesTitle" class="switch-titles">CASES</p>
-            <label class="switch">
-                <input id="switchToggle" type="checkbox">
-                <span id="switch" class="switch-slider" title="Toggle Deaths"></span>
-            </label>
-            <p id="deathsTitle" class="switch-titles">DEATHS</p>
+            <svg id="switchSVG" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <g id="switchG" fill="#68d0f4" width="64" height="64" transform="matrix(1, 0, 0, 1, 118, 42)">
+                    <rect class="switch-rect" stroke-linejoin="round" stroke-linecap="round" y="22" x="0" width="64" rx="10" height="20"/>
+                    <rect class="switch-rect" stroke-linejoin="round" stroke-linecap="round" y="22" x="0" width="64" rx="10" height="20" transform="rotate(90 32,32)"/>
+                    <circle id="switchCircle" r='8' cx='10' cy='32' fill='#1e1e1e'></circle>
+                    <circle class="switch-target-circles" r='8' cx='10' cy='32' fill='#000' data-cat="cases"><title>Toggle Cases</title></circle>
+                    <circle class="switch-target-circles" r='8' cx='32' cy='10' fill='#000' data-cat="tests"><title>Toggle Tests</title></circle>
+                    <circle class="switch-target-circles" r='8' cx='54' cy='32' fill='#000' data-cat="deaths"><title>Toggle Deaths</title></circle>
+                    <circle class="switch-target-circles" r='8' cx='32' cy='54' fill='#000' data-cat="vaccines"><title>Toggle Vaccines</title></circle>
+                </g>
+                <text id="casesTitle" class="switch-titles" x="12" y="77" dominant-baseline="middle" text-anchor="start" fill="#68d0f4" data-cat="cases">CASES
+                    <title>Toggle Cases</title></text>
+                <text id="testsTitle" class="switch-titles" x="150" y="12" dominant-baseline="hanging" text-anchor="middle" fill="#f4bc68" data-cat="tests">TESTS
+                    <title>Toggle Tests</title></text>
+                <text id="deathsTitle" class="switch-titles" x="288" y="77" dominant-baseline="middle" text-anchor="end" fill="#f6584c" data-cat="deaths">DEATHS
+                    <title>Toggle Deaths</title></text>
+                <text id="vaccTitle" class="switch-titles" x="150" y="136" dominant-baseline="auto" text-anchor="middle" fill="#4cf6af" data-cat="vaccines">VACCINES
+                    <title>Toggle Vaccines</title></text>   
+            </svg>
         </div>
         <div id="optionsDiv" class="ease-out">
             <div id="dropDown">
@@ -207,20 +215,25 @@
             </div>
             <div id="casesMenu">
                 <button type="button" class="cases-btns" data-category="cases" data-prop="casesPerMil">Cases/Million</button>
-                <button type="button" class="cases-btns" data-category="cases" data-prop="newCases">New Cases</button>
-                <button type="button" class="cases-btns" data-category="cases" data-prop="totalCases">Total Cases</button>
-                <button type="button" class="cases-btns" data-category="cases" data-prop="totalRecovered">Recovered</button>  
-                <button type="button" class="cases-btns" data-category="cases" data-prop="activeCases">Active</button>
-                <button type="button" class="cases-btns" data-category="cases" data-prop="seriousCritical">Critical</button>
-                <button type="button" class="cases-btns" data-category="cases" data-prop="totalTests">Tests</button>
-                <button type="button" class="cases-btns" data-category="cases" data-prop="testsPerMil">Tests/Million</button>
-                <button type="button" class="cases-btns" data-category="cases" data-prop="population">Population</button>
+                <button type="button" class="cases-btns" data-category="cases" data-prop="newCasesPerMil">New Daily Cases</button>
+                <button type="button" class="cases-btns" data-category="cases" data-prop="percRecovered">Recovered</button>  
+                <button type="button" class="cases-btns" data-category="cases" data-prop="percActive">Active</button>
+                <button type="button" class="cases-btns" data-category="cases" data-prop="percCritical">Critical</button>
+            </div>
+            <div id="testsMenu">
+                <button type="button" class="tests-btns" data-category="tests" data-prop="testsPerMil">Tests/Million</button>
+                <button type="button" class="tests-btns" data-category="tests" data-prop="totalTests">Total Tests</button>
+                <button type="button" class="tests-btns" data-category="tests" data-prop="population">Population</button>
             </div>
             <div id="deathsMenu">
                 <button type="button" class="deaths-btns" data-category="deaths" data-prop="deathsPerMil">Deaths/Million</button>
-                <button type="button" class="deaths-btns" data-category="deaths" data-prop="newDeaths">New Deaths</button>
-                <button type="button" class="deaths-btns" data-category="deaths" data-prop="totalDeaths">Total Deaths</button>
+                <button type="button" class="deaths-btns" data-category="deaths" data-prop="newDeathsPerMil">New Daily Deaths</button>
                 <button type="button" class="deaths-btns" data-category="deaths" data-prop="percDeaths">Case Fatality Rate</button>
+            </div>
+            <div id="vaccMenu">
+                <button type="button" class="vacc-btns" data-category="vaccines" data-prop="percVacc">Partially Vaccinated</button>
+                <button type="button" class="vacc-btns" data-category="vaccines" data-prop="percFullyVacc">Fully Vaccinated</button>
+                <button type="button" class="vacc-btns" data-category="vaccines" data-prop="totalVaccinations">Total Vaccinations</button>
             </div>
         </div>
         <div id="statsWrapper">
@@ -676,8 +689,8 @@
                     <h1>WHY?</h1>
                     <p class="text">Perspective</p>
                 </div>
-                <div class="about-flex-col">
-                    <p class="small-text">There is no shortage of COVID-19 data; however, it is often difficult to decode. In contrast to a cold and stale string of numbers, this interactive map presents a visual context for the current state of the global pandemic.</p>
+                <div class="about-flex-col" style="margin:0;">
+                    <p class="small-text">There is no shortage of COVID-19 data; however, too often it is misrepresented or misconstrued. A spoon of sugar in a gallon of coffee is not nearly as sweet as a spoon of sugar in a cup of coffee. In addition to providing a visual perspective, this site presents data in context, by prioritizing ratio-driven stats and rankings.</p>
                 </div>
             </div>
             <div class="about-flex about-dark-blue">

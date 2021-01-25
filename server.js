@@ -5,6 +5,7 @@ const fs = require('fs');
 const http = require('http');
 const https = require('https');
 const urlParser = require('url');
+const csv = require('csv-parser');
 
 //SERVER START
 const server = http.createServer();
@@ -28,8 +29,8 @@ app.use(express.static(path.join(__dirname, 'public')));//localhost
 //OTHER PACKAGES
 const io = require('socket.io')(server);
 
-//DOWNLOAD OWID JSON FILE
-var parsedFull, latestData, fetchData;
+//DOWNLOAD DATA FILES
+var parsedFull, latestData, fetchData, parsedCsv, vaccineData, parsedLocationsCsv;
 function downloadFile(url, callback) {
     const filename = (path.extname(url) != '') ? path.basename(url) : path.basename(urlParser.parse(url).pathname) + '.json';
     const downloadReq = https.get(url, res => {
@@ -87,22 +88,75 @@ const worldometersJob = new CronJob('0 2 * * *', function () {// 2 AM
         }
     });
 }, null, true, 'America/New_York');
+const vaccJob = new CronJob('0 15 * * *', function () {// 3 PM
+    const url = 'https://covid.ourworldindata.org/data/vaccinations/vaccinations.csv';
+    downloadFile(url, (file) => {
+        if (file) {
+            console.log(`${file} FINISHED DOWNLOADING AT ${new Date()}`);
+            const url2 = 'https://covid.ourworldindata.org/data/vaccinations/locations.csv';
+            downloadFile(url2, (file) => {
+                if (file) {
+                    console.log(`${file} FINISHED DOWNLOADING AT ${new Date()}`);
+                    runCSV();
+                }
+                else {
+                    console.log('FILE NOT FOUND');
+                }
+            });
+        }
+        else {
+            console.log('FILE NOT FOUND');
+        }
+    });
+}, null, true, 'America/New_York');
+
 owidJob.start();
 worldometersJob.start();
+vaccJob.start();
 
 //LOAD FILES ON SERVER START
 const worldFile = fs.readFileSync(path.join(__dirname, 'world.json'));
 const countryCodes = JSON.parse(worldFile);
 console.log("parsed country codes...")
 
-parsedFull = loadFullData();
-latestData = getLatestData();
-fetchData = parseFetchData();
-function loadFullData() {
-    const rawData = fs.readFileSync(path.join(__dirname, 'owid-covid-data.json'));
-    var parsed;
+const runINITIAL = async () => {
+    parsedFull = await loadFullData();
+    latestData = getLatestData();
+    fetchData = await parseFetchData();
+};
+const runCSV = async () => {
+    parsedCsv = await readCsv('vaccinations.csv');
+    parsedLocationsCsv = await readCsv('locations.csv');
+    vaccineData = getVaccineData();
+};
+runINITIAL();
+runCSV();
+
+function readCsv(file) {
+    return new Promise(resolve => {
+        const results = [];
+        const filestream = fs.createReadStream(file);
+        filestream.pipe(csv())
+            .on('data', (data) => results.push(data))
+            .on('end', () => {
+                console.log(`${file} parsed...`);
+                resolve(results);
+            });
+        filestream.on('error', (err) => {
+            console.log(`${file} could not be read...`);
+            console.error(err);
+            resolve(results);
+        });
+    });
+}
+
+async function loadFullData() {
     try {
+        var parsed;
+        const rawData = fs.readFileSync(path.join(__dirname, 'owid-covid-data.json'));
         parsed = JSON.parse(rawData);
+        console.log("parsed owid data...")
+        return await parsed;
     }
     catch (err) {
         if (err) {
@@ -110,9 +164,8 @@ function loadFullData() {
             return parsedFull;
         }
     }
-    console.log("parsed data...")
-    return parsed;
 }
+
 function getLatestData() {
     const dataList = [];
     countryCodes.forEach(country => {
@@ -128,22 +181,25 @@ function getLatestData() {
                     count--;
                 }
             }
-            if(count === 0){
+            if (count === 0) {
                 dataList.push({ country: country.alpha2, data1: countryData[count], data2: false });
             }
-            else if(count > 0){
+            else if (count > 0) {
                 dataList.push({ country: country.alpha2, data1: countryData[count], data2: countryData[count - 1] });
-            }        
-        }    
+            }
+        }
     });
     console.log("latest data compiled...")
     return dataList;
 }
-function parseFetchData() {
-    const rawData = fs.readFileSync(path.join(__dirname, 'LATEST.json'));
-    var parsed;
+
+async function parseFetchData() {
     try {
+        const rawData = fs.readFileSync(path.join(__dirname, 'LATEST.json'));
+        var parsed;
         parsed = JSON.parse(rawData);
+        console.log("parsed fetch data...")
+        return await parsed;
     }
     catch (err) {
         if (err) {
@@ -151,22 +207,49 @@ function parseFetchData() {
             return fetchData;
         }
     }
-    console.log("parsed fetch data...")
-    return parsed;
 }
-/* function getVaccineData() {
-    const records = [];
-    latestData.forEach(row => {
-        if (row.data1.hasOwnProperty('total_vaccinations')) {
-            const payload = {country: row.country, data: row.data1.total_vaccinations};
-            records.push(payload);
-            //console.log(row.country);
-        }
+//VACCINE FUNCTIONS
+function mapVaccineData(data, prop) {
+    const valList = data.map(item => {
+        return item[prop];
     });
-    //console.log(records.length);
-    return records;
-} */
-//getVaccineData();
+    return valList;
+}
+
+function getVaccineData() {
+    if (parsedCsv.length === 0 || parsedLocationsCsv.length === 0) { return false; }
+    else {
+        const dataList = [];
+        const propList = ['total_vaccinations', 'people_vaccinated', 'people_fully_vaccinated'];
+        countryCodes.forEach(country => {
+            const list = parsedCsv.filter(row => row.iso_code.toLowerCase() === country.alpha3.toLowerCase());
+            if (list.length > 0) {
+                const values = [];
+                propList.forEach(prop => {
+                    const mapped = mapVaccineData(list, prop);
+                    const max = Math.max.apply(null, mapped);
+                    values.push(max);
+                });
+                const index = parsedLocationsCsv.findIndex(row => row.iso_code.toLowerCase() === country.alpha3.toLowerCase());
+                const vaccines = (index != -1) ? parsedLocationsCsv[index].vaccines : 'Not Reported';
+                dataList.push({ country: country.alpha2, totalVaccinations: values[0], peopleVaccinated: values[1], peopleFullyVaccinated: values[2], vaccines: vaccines });
+            }
+        });
+        //OWID_WRL
+        const list = parsedCsv.filter(row => row.iso_code === 'OWID_WRL');
+        if (list.length > 0) {
+            const values = [];
+            propList.forEach(prop => {
+                const mapped = mapVaccineData(list, prop);
+                const max = Math.max.apply(null, mapped);
+                values.push(max);
+            });
+            dataList.push({ country: 'OWID_WRL', totalVaccinations: values[0], peopleVaccinated: values[1], peopleFullyVaccinated: values[2] });
+        }
+        console.log("vaccine data compiled...");
+        return dataList;
+    }
+}
 
 //CLIENT SERVER FUNCTIONS
 function getWorldData(alpha2) {
@@ -193,12 +276,13 @@ function getWorldData(alpha2) {
         }
     }
 }
+
 function loadCountryData(country) {
-    if (parsedFull.length === 0) {return false;}
+    if (parsedFull.length === 0) { return false; }
     else {
-        const alpha2 = countryCodes.find(record => record.alpha2.toLowerCase() === country.toLowerCase()).alpha3.toUpperCase();
-        if (alpha2) {
-            const data = (parsedFull[alpha2]) ? parsedFull[alpha2].data : false;
+        const alpha3 = countryCodes.find(record => record.alpha2.toLowerCase() === country.toLowerCase()).alpha3.toUpperCase();
+        if (alpha3) {
+            const data = (parsedFull[alpha3]) ? parsedFull[alpha3].data : false;
             return data;
         }
         else {
@@ -206,11 +290,13 @@ function loadCountryData(country) {
         }
     }
 }
+
 function getCountryLatest(country) {
     const record = latestData.find(record => record.country.toLowerCase() === country.toLowerCase());
     const latest = (record) ? record : false;
     return latest;
 }
+
 //SOCKET LISTENERS
 io.sockets.on('connection', (socket) => {
     socket.on('getCountryCodes', () => {
@@ -230,10 +316,9 @@ io.sockets.on('connection', (socket) => {
         const newPayload = { latest: data, country: 'world' };
         socket.emit('getLatestWorldData', newPayload);
     });
-   /*  socket.on('getVaccineData', () => {
-        const payload = getVaccineData();
-        socket.emit('getVaccineData', payload);
-    }); */
+    socket.on('getVaccineData', () => {
+        socket.emit('getVaccineData', vaccineData);
+    });
     socket.on('getFetchFromServer', () => {
         socket.emit('getFetchFromServer', fetchData);
     });

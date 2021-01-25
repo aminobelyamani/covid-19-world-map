@@ -8,7 +8,9 @@ var ratio = 1,
     xTextPadding = 20,
     xyPlots,
     initialX = 0,
-    dataHist = [];
+    dataHist = [],
+    chartArray = [],
+    currentProp;
 
 function makePropList(data) {
     const nullProps = propArr.filter(prop => getMax(data, prop) === 0);
@@ -19,17 +21,17 @@ function makePropList(data) {
     });
     const checkBox = _('testsCheckBox');
     const wrapper = _('testsCheckBoxWrapper');
-    if(propArr.length === 0){
-        checkBox.disabled = true; 
+    if (propArr.length === 0) {
+        checkBox.disabled = true;
         wrapper.style.opacity = '0.5';
     }
-    if(propArr.length > 0 && (propArr[0].includes('cases') || propArr[0].includes('deaths'))){
+    if (propArr.length > 0 && (propArr[0].includes('cases') || propArr[0].includes('deaths'))) {
         const testProp = testsSwitch(propArr[0]).testProp;
-        if (getMax(data, testProp) === 0){
+        if (getMax(data, testProp) === 0) {
             checkBox.disabled = true;
             wrapper.style.opacity = '0.5';
         }
-        else{
+        else {
             checkBox.disabled = false;
             wrapper.style.opacity = '1';
         }
@@ -48,7 +50,30 @@ function getDataList(data, property) {
     });
     return list;
 }
+function createChartArray(data, property) {
+    const list = [];
+    let payload;
+    data.forEach(d => {
+        if (d.hasOwnProperty(property)) {
+            if (d.hasOwnProperty('new_tests_smoothed') && (property != 'new_vaccinations_smoothed' && property != 'stringency_index')) {
+                payload = { date: d.date, [property]: d[property], new_tests_smoothed: d.new_tests_smoothed };
+            }
+            else {
+                payload = { date: d.date, [property]: d[property] };
+            }
+            list.push(payload);
+        }
+    });
+    if (getMax(list, property) === 0) {
+        list.length = 0;
+    }
+    return list;
+}
 function roundVal(value, precision) {
+    const multiplier = Math.pow(10, precision || 0);
+    return Math.ceil(value * multiplier) / multiplier;
+}
+function floorVal(value, precision) {
     const multiplier = Math.pow(10, precision || 0);
     return Math.floor(value * multiplier) / multiplier;
 }
@@ -61,7 +86,7 @@ function getYList(data) {
     maxList.sort((a, b) => (a < b) ? 1 : -1);//sort by increasing value
     let max = Math.max.apply(null, maxList);
     let numLength = Math.log(max) * Math.LOG10E + 1 | 0;;
-    max = (numLength > 0) ? roundVal(max, -(numLength - 2)) : 1;
+    max = (numLength > 0) ? floorVal(max, -(numLength - 2)) : 1;
     ratio = max / 5;
     max = (max > 0) ? max : 1;
     numLength = Math.log(ratio) * Math.LOG10E + 1 | 0;
@@ -82,7 +107,7 @@ function getYList(data) {
     let value = 0;
     ratio = (ratio > 0) ? ratio : 1;
     while (value <= max) {
-        let roundedValue = roundVal(value, 1).commaSplit();
+        let roundedValue = floorVal(value, 1).commaSplit();
         yList.push(roundedValue);
         value += ratio;
     }
@@ -93,7 +118,8 @@ function getXList(data) {
     const xList = [];
     let value = '';//string for dates
     const length = data.length;
-    const numXElems = (window.innerWidth > 768) ? 6 : 3;
+    const factor = (data.length > 1) ? Math.floor(length / 2) : 1;
+    const numXElems = (window.innerWidth > 768) ? Math.min(6, factor) : Math.min(3, factor);
     const xIncrFactor = Math.floor(length / numXElems);
     for (i = 0; i <= numXElems; i++) {
         value = (i === numXElems) ? formatDate(data[data.length - 1].date) : (i === 0) ? formatDate(data[i * xIncrFactor].date) : formatDate(data[i * xIncrFactor].date, true);
@@ -135,7 +161,7 @@ function getBoundValues() {
         yBound: yBound,
         xBound: xBound,
         yIncr: yBound / yListLength - 1,//nuber of y data-ranges - 1
-        xIncr: (xBound - initialX) / dataHist.length
+        xIncr: (xBound - initialX) / (chartArray.length - 1)//number of data plots - 1
     }
     return bounds;
 }
@@ -160,13 +186,13 @@ function makeXYAxis(data) {
     let yText = '', yLines = '', xText = '';
     for (let i = 0; i < yList.length; i++) {//y-axis labels + horizontal gridlines
         yText += `<text class='chart-text' x='${maxWidth}', y='${yPlot}' dominant-baseline='middle' text-anchor='end'>${yList[i]}</text>`;
-        yLines += (i === 0) ? `<line class='chart-horiz-lines' x1="${maxWidth + 10}" x2="${xBound - getBoundValues().xIncr}" y1="${yPlot}" y2="${yPlot}"></line>` : `<line class='chart-horiz-lines' x1="${maxWidth + 10}" x2="${xBound - getBoundValues().xIncr}" y1="${yPlot}" y2="${yPlot}" stroke-dasharray='3,2'></line>`;
+        yLines += (i === 0) ? `<line class='chart-horiz-lines' x1="${maxWidth + 10}" x2="${xBound}" y1="${yPlot}" y2="${yPlot}"></line>` : `<line class='chart-horiz-lines' x1="${maxWidth + 10}" x2="${xBound}" y1="${yPlot}" y2="${yPlot}" stroke-dasharray='3,2'></line>`;
         yPlot -= yIncr;
     }
     for (let i = 0; i < xList.length; i++) {//x-axis labels
         xText += (i === xList.length - 1) ? `
-            <text class='chart-text' x='${xBound - getBoundValues().xIncr}', y='${yBound + xTextPadding}' dominant-baseline='middle' text-anchor='middle'>${xList[i]}</text>
-            <line class='chart-lines' x1="${xBound - getBoundValues().xIncr}" x2="${xBound - getBoundValues().xIncr}" y1="${yBound}" y2="${yBound + 4}"></line>` :
+            <text class='chart-text' x='${xBound}', y='${yBound + xTextPadding}' dominant-baseline='middle' text-anchor='middle'>${xList[i]}</text>
+            <line class='chart-lines' x1="${xBound}" x2="${xBound}" y1="${yBound}" y2="${yBound + 4}"></line>` :
             `<text class='chart-text' x='${xPlot}', y='${yBound + xTextPadding}' dominant-baseline='middle' text-anchor='middle'>${xList[i]}</text>
             <line class='chart-lines' x1="${xPlot}" x2="${xPlot}" y1="${yBound}" y2="${yBound + 4}"></line>`;
         xPlot += xIncr;
@@ -213,8 +239,8 @@ function plotData(data) {
         }
         xPlot += xIncr;
     }
-    const color = (propArr.length > 0 && propArr[0].includes('cases')) ? (mode === 'dark') ? '#54cbf2' : '#038ebc' : (mode === 'dark') ? '#f44336' : '#B13507';
     const yellow = (mode === 'dark') ? '#ffc82a' : '#967000';
+    const color = propSwitch(currentProp);
     let plotHtml = `
         <rect x='${initialX}' y='${0}' width='${xBound - initialX}' height='${yBound}' fill='#000' opacity='0'></rect>
         <polyline class='polyline' stroke='${color}' points='${points1}'></polyline>
@@ -228,6 +254,23 @@ function getLastNonNull(data, y) {
         index--;
     }
     return data[index][y];
+}
+function propSwitch(property) {
+    let color;
+    switch (property) {
+        case 'new_cases_smoothed':
+            color = (mode === 'dark') ? '#54cbf2' : '#038ebc';
+            break;
+        case 'new_deaths_smoothed':
+            color = (mode === 'dark') ? '#f44336' : '#B13507';
+            break;
+        case 'new_vaccinations_smoothed':
+            color = (mode === 'dark') ? '#4cf6af' : '#33a976';
+            break;
+        case 'stringency_index':
+            color = (mode === 'dark') ? '#ffc82a' : '#967000';
+    }
+    return color;
 }
 function makeChartLabels() {
     const chart = _('svgChart');
@@ -245,7 +288,7 @@ function makeChartLabels() {
         }
     }
     const yPlots = [yPlot1, yPlot2];
-    const color = (propArr.length > 0 && propArr[0].includes('cases')) ? (mode === 'dark') ? '#54cbf2' : '#038ebc' : (mode === 'dark') ? '#f44336' : '#B13507';
+    const color = propSwitch(currentProp);
     const yellow = (mode === 'dark') ? '#ffc82a' : '#967000';
     let html = '';
     for (i = 0; i < propArr.length; i++) {
@@ -265,76 +308,73 @@ function appendHoverG() {
     chartWrapper.appendChild(toolEl);
 }
 function makeChartDiv() {
-    const container = countryPopup.querySelector('.flex-stats-container');
-    const chart = document.createElement('div');
-    chart.setAttribute('id', 'chart');
+    const chart = _('chart');
     let html = `
         <div class='chart-header'>
-            <h2>NO DATA</h2>
-            <div class="help-tip">
-                <p>Published by the Oxford Coronavirus Government Response Tracker (OxCGRT), the <strong><em>stringency index</em></strong> measures the severity of the lockdown measures. This metric should not be interpreted as an indication of how appropriate or effective a country’s response was to the pandemic.</p>
-            </div>
-            <div id='chartInfo'>
-                <p></p>
-            </div>
+            <h2>CHART: NO DATA</h2>
+            <div class="help-tip"><p></p></div>
+            <div id='chartInfo'><p></p></div>
             <div id='testsCheckBoxWrapper' class='yellow-test'>
                 <input id='testsCheckBox' type='checkbox'></input>
                 <label for='testsCheckBox'>Tests</label>
             </div>
             <div class="chart-options-wrapper" class="ease-out">
                 <div id="chartDropDown">
-                    <span class="flex-span" id="chartOptionTitle">New Cases</span>
+                    <span class="flex-span" id="chartOptionTitle">Daily Cases</span>
                     <span class="flex-span bckg-sprite" id="chartOptionArrow"></span> 
                 </div>
                 <div id="chartMenu">
-                    <button type="button" class="chart-btns" data-chartprop="new_cases_smoothed">New Cases</button>
-                    <button type="button" class="chart-btns" data-chartprop="new_deaths_smoothed">New Deaths</button>
-                    <button type="button" class="chart-btns" data-chartprop="total_cases">Total Cases</button>  
-                    <button type="button" class="chart-btns" data-chartprop="total_deaths">Total Deaths</button>
-                    <button type="button" class="chart-btns" data-chartprop="total_cases_per_million">Cases/Million</button>
-                    <button type="button" class="chart-btns" data-chartprop="total_deaths_per_million">Deaths/Million</button>
+                    <button type="button" class="chart-btns" data-chartprop="new_cases_smoothed">Daily Cases</button>
+                    <button type="button" class="chart-btns" data-chartprop="new_deaths_smoothed">Daily Deaths</button>
+                    <button type="button" class="chart-btns" data-chartprop="new_vaccinations_smoothed">Vaccinations</button>
                     <button type="button" class="chart-btns" data-chartprop="stringency_index">Stringency Index</button>
                 </div>
             </div> 
         </div>
         <svg id='svgChart' width='100%' height='100%'></svg>`;
     chart.innerHTML = html;
-    container.appendChild(chart);
 }
-function updateChartInfo(){
+function updateChartInfo() {
     const chart = _('chart');
     const helpTip = chart.querySelector('.chart-header .help-tip');
     const h2 = chart.querySelector('h2');
     const chartInfo = _('chartInfo');
-    const info =  chartInfo.querySelector('p');
+    const info = chartInfo.querySelector('p');
     let text = '', infoText = '';
     helpTip.style.display = 'none';
     helpTip.style.opacity = 0;
-    if (propTitle.length > 0){
-        for(i = 0; i < propTitle.length; i++){
+    if (propTitle.length > 0) {
+        for (i = 0; i < propTitle.length; i++) {
             text = (i > 0) ? text + ' AND ' : text;
-            text += propTitle[i]; 
+            text += propTitle[i];
         }
-        if(propArr[0].includes('smoothed')){
+        if (propArr[0].includes('smoothed')) {
             infoText = 'Daily data is smoothed out using a 7-day rolling average.';
+            if (currentProp === 'new_vaccinations_smoothed') {
+                helpTip.innerHTML = '<p>This chart shows the daily number of doses administered, it does <strong>NOT</strong> represent the number of people vaccinated.</p>'
+                fadeIn(helpTip);
+            }
         }
-        else if(propArr[0].includes('stringency')){
+        else if (propArr[0].includes('stringency')) {
             infoText = 'Scaled to a value from 0 to 100 (100 = strictest).';
+            helpTip.innerHTML = '<p>Published by the Oxford Coronavirus Government Response Tracker (OxCGRT), the <strong><em>stringency index</em></strong> measures the severity of the lockdown measures. This metric should not be interpreted as an indication of how appropriate or effective a country’s response was to the pandemic.</p>'
             fadeIn(helpTip);
         }
-        else{
+        else {
             infoText = 'Due to limited testing and challenges in the cause of death, confirmed cases and deaths shown below might be lower.';
         }
     }
-    else{
+    else {
         text = 'NO DATA';
     }
     info.innerText = infoText;
-    h2.innerText = text;
+    const color = propSwitch(currentProp);
+    h2.style.color = color;
+    h2.innerText = `CHART: ${text}`;
     const svg = _('svgChart');
     const header = chart.querySelector('.chart-header');
     const menu = document.querySelector('.chart-options-wrapper');
-    headerHeight = (menu.style.height === '240px') ? header.offsetHeight - 210 : header.offsetHeight;//subtract 210(30 less than menu height, 30 is dropdown height) when dropdown menu is open to avoid negative yBound values
+    headerHeight = (menu.style.height === '150px') ? header.offsetHeight - 120 : header.offsetHeight;//subtract 210(30 less than menu height, 30 is dropdown height) when dropdown menu is open to avoid negative yBound values
     svg.setAttribute('style', `height:calc(100% - ${headerHeight}px)`);
     svg.style.top = headerHeight + 'px';
 }
@@ -343,11 +383,13 @@ function onChartOptClick(e) {
     const checkBox = _('testsCheckBox');
     const text = this.innerText;
     const prop = this.dataset.chartprop;
+    currentProp = prop;
+    chartArray = createChartArray(dataHist, currentProp);
     propArr = [], propTitle = [];
     propArr.push(prop);
     propTitle.push(text);
     const wrapper = _('testsCheckBoxWrapper');
-    if (prop === 'stringency_index') {
+    if (prop === 'stringency_index' || prop === 'new_vaccinations_smoothed') {
         checkBox.disabled = true;
         wrapper.style.opacity = '0.5';
     }
@@ -373,17 +415,7 @@ function testsSwitch(property) {
         case 'new_cases_smoothed':
         case 'new_deaths_smoothed':
             testProp = 'new_tests_smoothed';
-            testTitle = 'New Tests';
-            break;
-        case 'total_cases':
-        case 'total_deaths':
-            testProp = 'total_tests';
-            testTitle = 'Total Tests';
-            break;
-        case 'total_cases_per_million':
-        case 'total_deaths_per_million':
-            testProp = 'total_tests_per_thousand';
-            testTitle = 'Tests/Thousand';
+            testTitle = 'Daily Tests';
     }
     return { testProp: testProp, testTitle: testTitle };
 }
@@ -403,22 +435,22 @@ function onChartCheckBox(e) {
     }
     resetChart();
 }
-function onChartDropDown(){
+function onChartDropDown() {
     const menu = document.querySelector('.chart-options-wrapper');
-    if(menu.style.height === '30px' || menu.style.height === ''){
+    if (menu.style.height === '30px' || menu.style.height === '') {
         openChartDropDown();
     }
-    else{
+    else {
         closeChartDropDown();
     }
 }
-function openChartDropDown(){
+function openChartDropDown() {
     const toggle = _('chartOptionArrow');
     const menu = document.querySelector('.chart-options-wrapper');
-    menu.style.height = '240px';
+    menu.style.height = '150px';
     toggle.classList.add('transform-rotate');
 }
-function closeChartDropDown(){
+function closeChartDropDown() {
     const toggle = _('chartOptionArrow');
     const menu = document.querySelector('.chart-options-wrapper');
     menu.style.height = '30px';
@@ -426,12 +458,12 @@ function closeChartDropDown(){
 }
 //RENDER/REMOVE CHART
 function makeChart() {
-    const length = makePropList(dataHist);
+    const length = makePropList(chartArray);
     updateChartInfo();
-    makeXYAxis(dataHist);
-    plotData(dataHist);
+    makeXYAxis(chartArray);
+    plotData(chartArray);
     makeChartLabels();
-    appendHoverG();  
+    appendHoverG();
 }
 function removeChart() {
     const chartWrapper = _('chart');
@@ -442,11 +474,26 @@ function removeChart() {
     const popup = chartWrapper.querySelector('.chart-popup');
     chartWrapper.removeChild(popup);
 }
+function onNoChartData(){
+    chartOn = false;
+    propArr = [];
+    propTitle = [];
+    updateChartInfo();
+    const checkBox = _('testsCheckBox');
+    const wrapper = _('testsCheckBoxWrapper');
+    checkBox.disabled = true;
+    wrapper.style.opacity = '0.5';
+}
 function resetChart() {
-    removeChartListeners();
-    removeChart();
-    makeChart();
-    addChartListeners();
+    if (chartOn) { removeChartListeners(); removeChart(); }
+    if (chartArray.length > 1) {
+        chartOn = true;
+        makeChart();
+        addChartListeners();
+    }
+    else {
+       onNoChartData();
+    }
 }
 //LISTENERS
 //CHART DATA HOVER
@@ -462,7 +509,7 @@ function getChartData(e) {
     const xGap = getBoundValues().xIncr;
     let record = xyPlots.find(point => Math.abs(point.x - offX) <= xGap / 2);
     record = (!record) ? xyPlots[xyPlots.length - 1] : record;
-    const color = (propArr.length > 0 && propArr[0].includes('cases')) ? (mode === 'dark') ? '#54cbf2' : '#038ebc' : (mode === 'dark') ? '#f44336' : '#B13507';
+    const color = propSwitch(currentProp);
     const yellow = (mode === 'dark') ? '#ffc82a' : '#967000';
     //HOVER VERTICAL LIGN + DOTS
     let html = `<line class='hover-line' x1="${record.x}" x2="${record.x}" y1="${0}" y2="${getBoundValues().yBound}" stroke-width='1px'></line>`;
@@ -478,7 +525,7 @@ function getChartData(e) {
 }
 function popupHtml(record) {
     const varArr = ['value1', 'value2'];
-    const color = (propArr.length > 0 && propArr[0].includes('cases')) ? (mode === 'dark') ? '#54cbf2' : '#038ebc' : (mode === 'dark') ? '#f44336' : '#B13507';
+    const color = propSwitch(currentProp);
     const yellow = (mode === 'dark') ? '#ffc82a' : '#967000';
     const colors = [color, yellow];
     let tooltip = `<p class='chart-popup-date'>${formatDate(record.date)}</p>`;
@@ -486,7 +533,7 @@ function popupHtml(record) {
     for (i = 0; i < propArr.length; i++) {
         if (record[varArr[i]] != null) {
             record[varArr[i]] = (record[varArr[i]] > 999) ? Math.round(record[varArr[i]]) : record[varArr[i]];
-            let propPrefix = (propTitle[i] === 'New Cases' || propTitle[i] === 'New Deaths' || propTitle[i] === 'New Tests') ? 'Daily': (propTitle[i] != 'Stringency Index') ?'Cumulative' : '';
+            let propPrefix = (propTitle[i] === 'Vaccinations') ? 'Daily' : '';
             tooltip +=
                 `<div class='chart-popup-wrapper'>   
                     <div class='chart-popup-flex'>
@@ -540,13 +587,13 @@ function onChartMove(e) {
         toolEl.innerHTML = popupHtml(record);
         const xLimit = offX + toolEl.offsetWidth + 10;
         let x;
-        if(window.innerWidth > 768){
+        if (window.innerWidth > 768) {
             x = (xLimit > getBoundValues().xBound + 20 + labelMaxWidth) ? record.x - toolEl.offsetWidth + 15 + 'px' : record.x + 25 + 'px';
         }
-        else{   
+        else {
             x = firstXTextWidth + 30 + 'px';//20 left padding + 10 initialXplot
         }
-        const y = (window.innerWidth > 768 ) ? headerHeight + 70 + 'px' : headerHeight + 30 + 'px';//20 top padding + 50 extra
+        const y = (window.innerWidth > 768) ? headerHeight + 70 + 'px' : headerHeight + 30 + 'px';//20 top padding + 50 extra
         toolEl.setAttribute('style', `-o-transform: translate(${x}, ${y}); -moz-transform: translate(${x}, ${y}); -ms-transform: translate(${x}, ${y}); -webkit-transform: translate(${x}, ${y}); transform: translate(${x}, ${y}); display: block;`);
     }
     else {

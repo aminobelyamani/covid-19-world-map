@@ -6,6 +6,7 @@ var pathCountries = [];
 var countryCodes = [];
 const dataSVG = [];
 var dataAPI = [];
+var dataVacc = [];
 const countriesList = [];
 var globalRangeList = [];
 var prop = "casesPerMil";
@@ -23,6 +24,7 @@ var hamburger = _('hamburger');
 var mapDiv = _('mapDiv');
 var worldMap = _('worldMap');
 var about = _('about');
+var globalInstructions = _('globalInstructions');
 var currentDataWrapper = _('currentDataWrapper');
 var globalHelpTip = _('globalHelpTip');
 var currentData = _('currentData');
@@ -30,19 +32,25 @@ var toggleDark = _('toggleDark');
 var centerBtn = _('centerBtn');
 var keyBtn = _('keyBtn');
 var keys = _('keys');
+var legendHelpTip = _('legendHelpTip');
 var closeKeys = _('closeKeys');
 var keyTitle = _('keyTitle');
-var blues = _('blues');
-var reds = _('reds');
+var legendColors = _('legendColors');
 var toggle = _('toggleSideBar');
 var closeDash = _('closeDash');
 var sideBar = _('sideBar');
 var timeStamp = _('timeStamp');
-var switchToggle = _('switchToggle');
-var switchSpan = _('switch');
+var switchWrapper = _('switchWrapper');
+const switchToggle = _('switchSVG');
+var switchG = _('switchG');
+var switchCircle = _('switchCircle');
 var optionsDiv = _('optionsDiv');
 var dropDown = _('dropDown');
 var dropDownTitle = _('dropDownTitle');
+var casesMenu = _('casesMenu');
+var testsMenu = _('testsMenu');
+var deathsMenu = _('deathsMenu');
+var vaccMenu = _('vaccMenu');
 var statsWrapper = _('statsWrapper');
 var searchWrapper = _('searchWrapper');
 var searchIcon = _('searchIcon');
@@ -55,9 +63,12 @@ var popup = _('popup');
 var is_touch_device;
 let socket;
 var chartOn = false;
-function onPageLoad(socket) {
+function onPageLoad() {
+    statsWrapper.scrollTop = 0;
     _('overlay').style.display = "none";
     sideBar.style.visibility = "visible";
+    sideBar.className = '';
+    toggle.style.opacity = 0;
     currentData.innerText = currentTitle;
     currentDataWrapper.style.visibility = "visible";
     fadeOut(loader);
@@ -72,12 +83,22 @@ function onPageLoad(socket) {
     }
     openLegend();
     addPopupListeners();
-    socket.emit('getCountryCodes');
-    socketListeners(socket);
-    switchToggle.checked = false;//for pop state if left page while true
+    showGlInstructions();
+    globalHelpTipHandler();
+    legendHelpTipHandler();
+}
+function showGlInstructions() {
+    if (is_touch_device) {
+        globalInstructions.classList.remove('transform-y-220');
+        const p = globalInstructions.querySelector('p');
+        globalInstructions.style.display = "block";
+        p.innerText = 'Tap country for info, press and hold for full country profile.';
+    }
 }
 function onDOMLoaded() {
     socket = io();
+    socketListeners(socket);
+    socket.emit('getCountryCodes');
     parseSVG();
     pathStrokeHandler();
     fetch('https://api.apify.com/v2/key-value-stores/SmuuI0oebnTWjRTUh/records/LATEST?disableRedirect=true')
@@ -88,43 +109,59 @@ function onDOMLoaded() {
         })
         .then(data => {
             if (data) {
-                getData(data.regionData);
+                dataAPI = data.regionData;
+                getData(dataAPI);
+                socket.emit('getVaccineData');
                 timeStamp.innerText = `Updated at ${formatTime()} EST`;
-                onPageLoad(socket);
+                onPageLoad();
             }
             else {
                 //displayFetchError();
                 socket.emit('getFetchFromServer');
-                socket.on('getFetchFromServer', data => {
-                    getData(data.regionData);
-                    timeStamp.innerText = `Updated at ${formatTime()} EST`;
-                });
-                onPageLoad(socket);
+                onPageLoad();
             }
         });
-
     setInterval(() => {
         fetchAPI();
     }, 300000);
 }
 function socketListeners(socket) {
+    socket.on('getFetchFromServer', data => {
+        dataAPI = data.regionData;
+        socket.emit('getVaccineData');
+        timeStamp.innerText = `Updated at ${formatTime()} EST`;
+    });
     socket.on('getCountryCodes', data => {
         countryCodes = data;
     });
     socket.on('getCountryData', data => {
         if (data) {
+            const chart = _('chart');
+            fadeOut(_('chartLoader'));
+            chart.style.minHeight = '350px';
+            chart.style.height = '70vh';
             dataHist = data;
             propArr = ['new_cases_smoothed'];
-            propTitle = ['New Cases'];
+            currentProp = 'new_cases_smoothed';
+            propTitle = ['Daily Cases'];
+            chartArray = createChartArray(dataHist, currentProp);
+            if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); }
             makeChartDiv();
-            makeChart();
-            fadeIn(_('chart'));
-            if (chartOn) { removeChartListeners(); }
-            addChartListeners();
-            chartOn = true;
+            addGlobalChartListeners();
+            if (chartArray.length > 1) {
+                makeChart();
+                addChartListeners();
+                chartOn = true;
+            }
+            else {
+                onNoChartData();
+            }
         }
         else {
             chartOn = false;
+            const chart = _('chart');
+            fadeOut(_('chartLoader'));
+            chart.innerHTML = "<h2 class='chart-no-data yellow-test'>NO CHART DATA</h2>";
         }
     });
     socket.on('getLatestData', payload => {
@@ -142,6 +179,7 @@ function socketListeners(socket) {
     });
     socket.on('getLatestWorldData', data => {
         if (data.latest) {
+            //console.log(data);
             const percObj = getLatestData(data, true);
             const perc = percObj.perc;
             const percDeaths = percObj.percDeaths;
@@ -156,6 +194,13 @@ function socketListeners(socket) {
                 }
             }
         }
+    });
+    socket.on('getVaccineData', data => {
+        //console.log(data);
+        if (data) {
+            dataVacc = data;
+        }
+        getData(dataAPI);
     });
 }
 function parseSVG() {
@@ -177,7 +222,8 @@ function fetchAPI() {
         })
         .then(data => {
             if (data) {
-                getData(data.regionData);
+                dataAPI = data.regionData;
+                getData(dataAPI);
                 timeStamp.innerText = `Updated at ${formatTime()} EST`;
             }
             else {
@@ -186,18 +232,23 @@ function fetchAPI() {
             }
         });
 }
-function displayFetchError() {
+/* function displayFetchError() {
     fadeOut(loader);
     _('overlayMsg').innerText = "Failed to fetch data";
-}
+} */
 //DATA MANIP
 function getData(data) {
-    dataAPI = data;
     countriesList.length = 0;//reinitialize array
     dataSVG.forEach(item => {
         const index = data.findIndex(data => data.country === item.country);
         if (index != -1) {
             data[index].alpha2 = item.id;
+            const vaccIndex = dataVacc.findIndex(row => row.country === item.id);
+            data[index].totalVaccinations = (vaccIndex != -1) ? dataVacc[vaccIndex].totalVaccinations : 0;
+            data[index].peopleVaccinated = (vaccIndex != -1) ? dataVacc[vaccIndex].peopleVaccinated : 0;
+            data[index].peopleFullyVaccinated = (vaccIndex != -1) ? dataVacc[vaccIndex].peopleFullyVaccinated : 0;
+            data[index].partiallyVaccinated = (vaccIndex != -1) ? Math.abs(((dataVacc[vaccIndex].peopleVaccinated || 0) - (dataVacc[vaccIndex].peopleFullyVaccinated || 0))) : 0;
+            data[index].vaccines = (vaccIndex != -1) ? dataVacc[vaccIndex].vaccines : 'Not Reported';
             countriesList.push(data[index]);
         }
     });
@@ -212,21 +263,47 @@ function calcData(data) {
         propList.forEach((value, index) => {
             percVar[index] = (item[value] != null) ? roundVal((item[value] / item.totalCases) * 100, 1) : null;
         });
+        const newCases = (item.newCases / item.population) * 100;
+        const newDeaths = (item.newDeaths / item.population) * 100;
+        const percVacc = (item.partiallyVaccinated / item.population) * 100;
+        const percFullyVacc = (item.peopleFullyVaccinated / item.population) * 100;
+        item.newCasesPerMil = roundVal(newCases * 10000, 2);
+        item.newDeathsPerMil = roundVal(newDeaths * 10000, 2);
         item.percDeaths = percVar[0];
         item.percRecovered = percVar[1];
         item.percActive = percVar[2];
-        if (item.activeCases != null) {
-            item.percCritical = roundVal((item.seriousCritical / item.activeCases) * 100, 1);
-        }
+        item.percCritical = (item.activeCases != null && item.activeCases != 0) ? roundVal((item.seriousCritical / item.activeCases) * 100, 1) : 0;
+        item.percVacc = roundVal(percVacc, 2);
+        item.percFullyVacc = roundVal(percFullyVacc, 2);
     });
+}
+function totalOfProp(property) {
+    let count = 0;
+    countriesList.forEach(country => {
+        count = count + country[property];
+    });
+    return count;
 }
 function worldData(data) {
     const world = data.find(data => data.country === "World");
+    const totalTests = totalOfProp('totalTests');
+    const totalPop = totalOfProp('population');
+    const totalPartialVacc = totalOfProp('partiallyVaccinated');
+    const totalPplFlVacc = totalOfProp('peopleFullyVaccinated');
+    const totalVacc = totalOfProp('totalVaccinations');
+    world.totalTests = totalTests;
+    world.totalPop = totalPop;
+    world.totalPartialVacc = totalPartialVacc;
+    world.totalPplFlVacc = totalPplFlVacc;
+    world.totalVacc = totalVacc;
     const percRecovered = roundVal((world.totalRecovered / world.totalCases) * 100, 1);
     const percActive = roundVal((world.activeCases / world.totalCases) * 100, 1);
     const percDeaths = roundVal((world.totalDeaths / world.totalCases) * 100, 1);
     const percCritical = roundVal((world.seriousCritical / world.activeCases) * 100, 1);
+    const percPartialVacc = roundVal((world.totalPartialVacc / world.totalPop) * 100, 1);
+    const percPplFlVacc = roundVal((world.totalPplFlVacc / world.totalPop) * 100, 1);
     let worldStats = _('worldStats');
+    const alpha2 = 'OWID_WRL';
     if (switchValue === "cases") {
         worldStats.innerHTML = `
             <h2 class='global-cases-title'>Global Stats</h2>
@@ -239,7 +316,7 @@ function worldData(data) {
                     <p class='stats white'>${world.newCases.commaSplit()}</p>
                     <p class='stats-titles gray'>New Cases</p>
                 </div>
-                <div class='flex-stat' style='width:60px; height:70px;margin:0;'></div>
+                <div class='flex-stat' style='width:60px; height:70px;margin:0;' title='Percent Daily Change'></div>
             </div>
             <div class='worldStats-flex'>
                 <div>
@@ -262,6 +339,35 @@ function worldData(data) {
                 </div>
                 ${getPiePerc(percCritical, 'seriousCritical', true)}
             </div>`;
+        socket.emit('getLatestWorldData', alpha2);
+    }
+    else if (switchValue === 'tests') {
+        worldStats.innerHTML = `
+            <h2 class='global-tests-title'>Global Stats</h2>
+            <p class='stats white'>${world.totalTests.commaSplit()}</p>
+            <p class='stats-titles gray'>Total Tests</p>
+            <p class='stats white'>${world.totalPop.commaSplit()}</p>
+            <p class='stats-titles gray'>Population</p>`;
+    }
+    else if (switchValue === 'vaccines') {
+        worldStats.innerHTML = `
+            <h2 class='global-vacc-title'>Global Stats</h2>
+            <div class='worldStats-flex'>
+                <div>
+                    <p class='stats white'>${world.totalPartialVacc.commaSplit()}</p>
+                    <p class='stats-titles gray'>People Partially Vaccinated</p>
+                </div>
+                ${getPiePerc(percPartialVacc, 'percVacc', true)}
+            </div>
+            <div class='worldStats-flex'>
+                <div>
+                    <p class='stats white'>${world.totalPplFlVacc.commaSplit()}</p>
+                    <p class='stats-titles gray'>People Fully Vaccinated</p>
+                </div>
+                ${getPiePerc(percPplFlVacc, 'percFullyVacc', true)}
+            </div>
+            <p class='stats white'>${world.totalVacc.commaSplit()}</p>
+            <p class='stats-titles gray'>Total Vaccinations</p>`;
     }
     else {
         worldStats.innerHTML = `
@@ -278,42 +384,29 @@ function worldData(data) {
                     <p class='stats white'>${world.newDeaths.commaSplit()}</p>
                     <p class='stats-titles gray'>New Deaths</p>
                 </div>
-                <div class='flex-stat' style='width:60px; height:70px;margin:0;'></div>
+                <div class='flex-stat' style='width:60px; height:70px;margin:0;' title='Percent Daily Change'></div>
             </div>
             <p class='stats white'>${world.deathsPerMil.commaSplit()}</p>
             <p class='stats-titles gray'>Deaths/Million</p>`;
+        socket.emit('getLatestWorldData', alpha2);
     }
-    const alpha2 = 'OWID_WRL';
-    socket.emit('getLatestWorldData', alpha2);
 }
 function buttonsHandler(property) {
-    const caseBtns = document.querySelectorAll('.cases-btns');
-    const deathBtns = document.querySelectorAll('.deaths-btns');
-    for (let i = 0; i < caseBtns.length; i++) {
-        if (caseBtns[i].dataset.prop === property) {
-            caseBtns[i].style.backgroundColor = "#08aae3";
-            caseBtns[i].style.color = colorLDM;
-            blues.classList.remove('no-display');
-            reds.classList.add('no-display');
+    const btnsQuery = toggleSwitchCases(switchValue).btns;
+    const btns = document.querySelectorAll(btnsQuery);
+    const catColor = toggleSwitchCases(switchValue).color;
+    for (let i = 0; i < btns.length; i++) {
+        if (btns[i].dataset.prop === property) {
+            btns[i].style.backgroundColor = catColor;
+            btns[i].style.color = '#000';
         }
         else {
-            caseBtns[i].style.backgroundColor = bckColorLDM;
-            caseBtns[i].style.color = colorLDM;
+            btns[i].style.backgroundColor = bckColorLDM;
+            btns[i].style.color = colorLDM;
         }
     }
-    for (let i = 0; i < deathBtns.length; i++) {
-        if (deathBtns[i].dataset.prop === property) {
-            deathBtns[i].style.backgroundColor = "#f6584c";
-            deathBtns[i].style.color = colorLDM;
-            blues.classList.add('no-display');
-            reds.classList.remove('no-display');
-        }
-        else {
-            deathBtns[i].style.backgroundColor = bckColorLDM;
-            deathBtns[i].style.color = colorLDM;
-        }
-    }
-    currentData.innerText = dropDownTitle.innerText = keyTitle.innerText = currentTitle;
+    currentData.innerText = dropDownTitle.innerText = currentTitle;
+    keyTitle.innerText = rawTotalSwitch(property).title;
     getMinMax(countriesList, property);
 }
 function getMinMax(data, property) {
@@ -322,7 +415,7 @@ function getMinMax(data, property) {
     var min = (Math.min.apply(null, list.filter(Boolean)) > 1) ? 1 : Math.min.apply(null, list.filter(Boolean));
     const minDecimal = min.countDecimals();
     min = (min < 1) ? 1 / Math.pow(10, minDecimal) : min;
-    globalRangeList = getRangeList(max, min);
+    globalRangeList = (property === 'percRecovered' || property === 'percActive' || property === 'percCritical' || property === 'percVacc' || property === 'percFullyVacc') ? getPercRangeList(max, min) : globalRangeList = getRangeList(max, min);
     makeLegend(globalRangeList);
     matchData(countriesList, property, globalRangeList);
     showSortedList(countriesList);
@@ -333,6 +426,17 @@ function mapData(data, property) {
         return item[property];
     });
     return list.sort((a, b) => (a < b) ? 1 : -1);//sort by descending;
+}
+function getPercRangeList(max, min) {
+    const rangeList = [];
+    const factor = (min < 1) ? 5 : 6;
+    max = (Math.floor(max / factor) >= 1) ? Math.floor(max / factor) : 1;
+    let item = min;
+    for (let i = 0; i < rangeLimit; i++) {
+        rangeList.push(item);
+        item = (item < 1) ? 1 : (item === 1 && max >= 2) ? item + (max - 1) : item + max;
+    }
+    return rangeList;
 }
 function getRangeList(max, min) {
     const rangeList = [];
@@ -361,10 +465,16 @@ function getRangeList(max, min) {
     rangeList.reverse();//for legend colors, light to dark
     return rangeList;
 }
+function changeLegendColors(cat) {
+    const colors = legendColors.querySelectorAll('.color');
+    const color = toggleSwitchCases(cat).colors.reverse();
+    for (let i = 0; i < colors.length - 1; i++) {
+        colors[i].style.backgroundColor = color[i];
+    }
+}
 function makeLegend(rangeList) {
-    const redorblue = (switchValue === 'deaths') ? reds : blues;
     const rangeElems = keys.querySelectorAll('.data-range');
-    const colorElems = redorblue.querySelectorAll('.color');
+    const colorElems = legendColors.querySelectorAll('.color');
     for (let i = 0; i < rangeElems.length; i++) {
         rangeElems[i].classList.add('no-display');
     }
@@ -381,9 +491,8 @@ function makeLegend(rangeList) {
     onLegendResize(rangeList);
 }
 function onLegendResize(rangeList) {
-    const redorblue = (switchValue === 'deaths') ? reds : blues;
     const rangeElems = keys.querySelectorAll('.data-range');
-    const colorElems = redorblue.querySelectorAll('.color');
+    const colorElems = legendColors.querySelectorAll('.color');
     rangeElems[rangeElems.length - 1].innerText = (window.innerWidth <= 768) ? 'No Data' : 'No Reported Data';
     if (rangeList.length === 0) {
         colorElems[colorElems.length - 2].style.borderTopRightRadius = '3px';
@@ -397,7 +506,7 @@ function onLegendResize(rangeList) {
     for (let count = 0; count < rangeList.length; count++) {
         const index = rangeElems.length - (3 + count);
         const decCount = rangeList[count].countDecimals();
-        const rangeMin = (rangeList[count] <= 1) ? 0 : (prop === 'percDeaths') ? 0.1 : 1;
+        const rangeMin = (rangeList[count] <= 1) ? 0 : (prop === 'percRecovered' || prop === 'percActive' || prop === 'percCritical' || prop === 'percDeaths' || prop === 'percVacc' || prop === 'percFullyVacc') ? 0.1 : 1;
         const rangeMax = (rangeList[count] < 1 && rangeList[count + 1] === 1) ? 1 / Math.pow(10, decCount) : 0;
         rangeElems[index].classList.remove('no-display');
         colorElems[index].classList.remove('no-display');
@@ -435,19 +544,17 @@ function matchData(data, property, range) {
                     pathCountries[i].style.fill = (switchValue === 'deaths') ? val2color(value, range, true) : val2color(value, range);
                 }
                 else {
-                    pathCountries[i].style.fill = '#ffc82a';//no data
+                    pathCountries[i].style.fill = '#9c9c9c';//no data
                 }
             }
             else {
-                pathCountries[i].style.fill = '#ffc82a';//no data
+                pathCountries[i].style.fill = '#9c9c9c';//no data
             }
         }
     }
 }
 function val2color(value, range, deaths) {
-    const blues = ['#d6f5ff', '#96dcf4', '#54cbf2', '#04abe3', '#038ebc', '#035e79', '#013544'];
-    const reds = ['#ffe9e7', '#fcd2cd', '#ffada6', '#fd8177', '#f6584c', '#bd4137', '#9e251b'];
-    const colors = (deaths) ? reds : blues;
+    const colors = toggleSwitchCases(switchValue).colors;
     let color = '';
     for (let count = 0; count < range.length - 1; count++) {
         if (value === 0) {
@@ -518,8 +625,7 @@ function sortList(data, property) {
     return sortedList;
 }
 function showSortedList(data) {
-    let style = "";
-    style = (prop === "totalDeaths" || prop === "newDeaths" || prop === "deathsPerMil" || prop === "percDeaths") ? "color:#f6584c" : "color:#96dcf4";
+    const color = toggleSwitchCases(switchValue).color;
     const worldList = _('worldList');
     let html = "";
     sortList(data).forEach(item => {
@@ -532,22 +638,22 @@ function showSortedList(data) {
                 <p class='inline-stat'>${item[prop].commaSplit()}</p>
             </div> `;
     });
+    const title = rawTotalSwitch(prop).title;
     worldList.innerHTML = `
-        <h2 id='rankTitle' class='global-cases-title' style='${style}'>Global Ranks</h2>
-        <p class='ranks-title gray'>${currentTitle}</p>
+        <h2 id='rankTitle' class='global-cases-title' style='color:${color};'>Global Ranks</h2>
+        <p class='ranks-title gray'>${title}</p>
         ${html}`;
-    const rows = worldList.querySelectorAll('.stats-flex');
-    for (let i = 0; i < rows.length; i++) {
-        rows[i].addEventListener('mouseup', function (e) {
-            let country = this.dataset.country;
-            clearPage();
-            clearHighlights();
-            const path = dataSVG.find(path => path.path.getAttribute('data-name') === country);
-            zoomToCountryNoAnim(path.path);
-        });
-    }
 }
 //EVENT LISTENERS
+worldList.addEventListener('mouseup', function (e) {
+    if (e.target.parentNode.className === 'stats-flex') {
+        let country = e.target.parentNode.dataset.country;
+        clearPage();
+        clearHighlights();
+        const path = dataSVG.find(path => path.path.getAttribute('data-name') === country);
+        zoomToCountryNoAnim(path.path);
+    }
+});
 //POPUP
 function addPopupListeners(country) {
     countryAnim = false;
@@ -601,28 +707,99 @@ function pathHover(e) {
         getPopupInfo(country);
     }
 }
+function rawTotalSwitch(property) {
+    let totalProp, title, colorClass;
+    switch (property) {
+        case 'casesPerMil':
+            totalProp = 'totalCases';
+            title = 'Cases/Million';
+            colorClass = '';//for countryPopup prop-title
+            break;
+        case 'newCasesPerMil':
+            totalProp = 'newCases';
+            title = 'New Cases/Million';
+            colorClass = '';
+            break;
+        case 'percRecovered':
+            totalProp = 'totalRecovered';
+            title = '% Recovered';
+            colorClass = '';
+            break;
+        case 'percActive':
+            totalProp = 'activeCases';
+            title = '% Active';
+            colorClass = '';
+            break;
+        case 'percCritical':
+            totalProp = 'seriousCritical';
+            title = '% Critical';
+            colorClass = '';
+            break;
+        case 'deathsPerMil':
+            totalProp = 'totalDeaths';
+            title = 'Deaths/Million';
+            colorClass = '';
+            break;
+        case 'newDeathsPerMil':
+            totalProp = 'newDeaths';
+            title = 'New Deaths/Million';
+            colorClass = 'red';
+            break;
+        case 'percDeaths':
+            totalProp = 'totalDeaths';
+            title = 'Case Fatality Rate';
+            colorClass = 'red';
+            break;
+        case 'testsPerMil':
+            totalProp = 'totalTests';
+            title = 'Tests/Million';
+            colorClass = 'yellow-test';
+            break;
+        case 'totalTests':
+            totalProp = 'totalTests';
+            title = 'Total Tests';
+            colorClass = '';
+            break;
+        case 'population':
+            totalProp = 'population';
+            title = 'population';
+            colorClass = '';
+            break;
+        case 'totalVaccinations':
+            totalProp = 'totalVaccinations';
+            title = 'Total Vaccinations';
+            colorClass = 'green';
+            break;
+        case 'percVacc':
+            totalProp = 'partiallyVaccinated';
+            title = '% Partially Vaccinated';
+            colorClass = 'green';
+            break;
+        case 'percFullyVacc':
+            totalProp = 'peopleFullyVaccinated';
+            title = '% Fully Vaccinated';
+            colorClass = 'green';
+    }
+    return { totalProp: totalProp, title: title, colorClass: colorClass };
+}
 function getPopupInfo(country) {
     let statText = "";
     let rankText = "";
-    let percText = "";
+    let rawTotalText = "";
     const flagId = dataSVG.find(data => data.country === country);
     const flagUrl = (flagId.id === 'ic') ? `images/ic.png` : `https://flagcdn.com/h40/${flagId.id}.png`;
     const record = sortList(countriesList).find(data => data.country === country);
     if (record) {
         const rank = record.rank;
-        const list = sortList(countriesList);
+        //const list = sortList(countriesList);
         //const rankMax = list[list.length - 1].rankMax;
         const stat = record[prop].commaSplit();
-        if (record.perc >= 0 && record.perc != null) {
-            const perc = record.perc;
-            percText = `<p class='popup-big white'><strong>${perc.commaSplit()}</strong></p><p class='popup-small gray'>% of Pop.</p>`;
-        }
-        if (record.perMill >= 0 && record.perMill != null) {
-            const perc = record.perMill;
-            percText = `<p class='popup-big white'><strong>${perc.commaSplit()}</strong></p><p class='popup-small gray'>Per Million</p>`;
-        }
-        statText = `<p class='popup-big white'><strong>${stat}</strong></p><p class='popup-small gray'>${currentTitle}</p><br>`;
+        const totalProp = rawTotalSwitch(prop).totalProp;
+        const title = rawTotalSwitch(prop).title;
+        const rawTotal = record[totalProp].commaSplit();
+        statText = `<p class='popup-big white'><strong>${stat}</strong></p><p class='popup-small gray'>${title}</p><br>`;
         rankText = `<p class='popup-big white'><strong>${rank}</strong></p><p class='popup-small gray'>Rank</p><br>`;
+        rawTotalText = (prop === 'testsPerMil' || prop === 'totalTests' || prop === 'population' || prop === 'totalVaccinations') ? '' : `<p class='popup-big white'><strong>${rawTotal}</strong></p><p class='popup-small gray'>Raw Total</p>`;
     }
     else {
         statText = "<p class='popup-small yellow'>No Reported Data</p><br>";
@@ -632,7 +809,7 @@ function getPopupInfo(country) {
         <p class='popup country white'>${country}</p><br>
         ${statText}
         ${rankText}
-        ${percText}`;
+        ${rawTotalText}`;
 }
 function pathMove(e) {
     if (mouseMove) {
@@ -659,7 +836,7 @@ function pathMove(e) {
                 (doc && doc.clientTop || body && body.clientTop || 0);
         }
     }
-    if (e.target.parentNode === zoomEl) {
+    if (e.target.parentNode === zoomEl || e.target === popup) {
         popup.style.display = "block";
         const xLimit = e.pageX + popup.offsetWidth + 10;
         const yLimit = e.pageY + popup.offsetHeight;
@@ -691,13 +868,14 @@ function resultsTransform() {
 function showCountryPopup(country, alpha2) {
     countryPopup.scrollTo(0, 0);
     countryPopup.classList.remove('transform');
+    closePopup.style.visibility = 'visible';
     closePopup.style.marginLeft = "-5px";
     closePopup.setAttribute('data-country', country);
     setTimeout(() => {
         resultsTransform();
     }, 300);
-    const propList = ["totalCases", "newCases", "newDeaths", "totalDeaths", "totalRecovered", "activeCases", "seriousCritical", "totalTests", "testsPerMil"];
-    const propTitles = ["Total Cases", "New Cases", "New Deaths", "Total Deaths", "Recovered", "Active", "Critical", "Tests", "Tests/Million"];
+    const propList = ["newCasesPerMil", "newDeathsPerMil", "percDeaths", "percRecovered", "percActive", "percCritical", "testsPerMil", "percVacc", "percFullyVacc", "totalVaccinations"];
+    const propTitles = ["Daily New Cases", "Daily New Deaths", "Case Fatality Rate", "Recovered", "Active", "Critical", "Tests", "Partially Vaccinated", "Fully Vaccinated", "Vaccinations"];
     const flagId = dataSVG.find(dataSVG => dataSVG.country === country);
     const wrapperProplist = ['casesPerMil', 'deathsPerMil', 'population'];
     let record, rank = [];
@@ -709,20 +887,17 @@ function showCountryPopup(country, alpha2) {
     });
     var html = "";
     propList.forEach((item, index) => {
-        if (item != "totalDeaths" && item != "newDeaths") {
-            html += `
-                    <div class='stats-column-flex'>
-                        <p class='prop-title'>${propTitles[index]}</p>
-                        ${getRecord(record.country, item, 'Total')}
-                    </div>`;
-        }
-        else {
-            html += `
-                    <div class='stats-column-flex'>
-                        <p class='prop-title red'>${propTitles[index]}</p>
-                        ${getRecord(record.country, item, 'Total')}
-                    </div>`;
-        }
+        const title = rawTotalSwitch(item).title;
+        const totalProp = rawTotalSwitch(item).totalProp;
+        const colorClass = rawTotalSwitch(item).colorClass;
+        const flexClass = (item === 'totalVaccinations') ? 'stats-column-flex-100' : '';
+        const helpText = dropDownSwitch(item);
+        html += `
+            <div class='stats-column-flex ${flexClass}'>
+                <div class="help-tip-stats help-tip"><p>${helpText}</p></div>
+                <p class='prop-title ${colorClass}'>${propTitles[index]}</p>
+                ${getRecord(record.country, item, title, totalProp)}
+            </div>`;
     });
     countryPopup.innerHTML = `
             <div id='countryWrapper'>
@@ -733,25 +908,31 @@ function showCountryPopup(country, alpha2) {
                     <p class='stats-titles dark-gray'>Population</p>
                 </div>
                 <div class='stats-column'>
-                    <p class='prop-title blue'>Cases/Million</p>
+                    <p class='prop-title-main blue'>Cases</p>
                     <p class='stats blue'>${record.casesPerMil.commaSplit()}</p>
-                    <p class='stats-titles white'>Total</p>
+                    <p class='stats-titles white'>Cases/Million</p>
                     <p class='stats blue'>${rank[0]}</p>
                     <p class='stats-titles white'>Rank</p>
+                    <p class='stats dark-gray'>${record.totalCases.commaSplit()}</p>
+                    <p class='stats-titles dark-gray'>Raw Total</p>
                 </div>
                 <div class='stats-column'>
-                    <p class='prop-title red'>Deaths/Million</p>
+                    <p class='prop-title-main red'>Deaths</p>
                     <p class='stats red'>${record.deathsPerMil.commaSplit()}</p>
-                    <p class='stats-titles white'>Deaths</p>
+                    <p class='stats-titles white'>Deaths/Million</p>
                     <p class='stats red'>${rank[1]}</p>
                     <p class='stats-titles white'>Rank</p>
+                    <p class='stats dark-gray'>${record.totalDeaths.commaSplit()}</p>
+                    <p class='stats-titles dark-gray'>Raw Total</p>
                 </div>
             </div>
             <div class='flex-stats-container'>
                 ${html}
+                <div id="chart"><svg id='chartLoader' xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.0" width="64px" height="64px" viewBox="0 0 128 128" xml:space="preserve"><g><path d="M122.5 69.25H96.47a33.1 33.1 0 0 0 0-10.5h26.05a5.25 5.25 0 0 1 0 10.5z" fill="#000000" fill-opacity="1"/><path d="M112.04 97.83L89.47 84.8a33.1 33.1 0 0 0 5.25-9.1l22.57 13.03a5.25 5.25 0 0 1-5.28 9.1z" fill="#b2b2b2" fill-opacity="0.3"/><path d="M88.68 117.35L75.65 94.78a33.1 33.1 0 0 0 9.1-5.25l13.02 22.57a5.25 5.25 0 1 1-9.1 5.25z" fill="#b2b2b2" fill-opacity="0.3"/><path d="M58.7 122.57V96.5a33.1 33.1 0 0 0 10.5 0v26.07a5.25 5.25 0 0 1-10.5 0z" fill="#b2b2b2" fill-opacity="0.3"/><path d="M30.1 112.1l13.04-22.57a33.1 33.1 0 0 0 9.1 5.25L39.2 117.35a5.25 5.25 0 1 1-9.1-5.25z" fill="#b2b2b2" fill-opacity="0.3"/><path d="M10.6 88.74L33.16 75.7a33.1 33.1 0 0 0 5.25 9.1L15.88 97.83a5.25 5.25 0 1 1-5.25-9.1z" fill="#b2b2b2" fill-opacity="0.3"/><path d="M5.37 58.75h26.06a33.1 33.1 0 0 0 0 10.5H5.37a5.25 5.25 0 0 1 0-10.5z" fill="#999999" fill-opacity="0.4"/><path d="M15.85 30.17L38.4 43.2a33.1 33.1 0 0 0-5.24 9.1L10.6 39.25a5.25 5.25 0 1 1 5.25-9.1z" fill="#7f7f7f" fill-opacity="0.5"/><path d="M39.2 10.65l13.03 22.57a33.1 33.1 0 0 0-9.1 5.25l-13-22.57a5.25 5.25 0 1 1 9.1-5.25z" fill="#666666" fill-opacity="0.6"/><path d="M69.2 5.43V31.5a33.1 33.1 0 0 0-10.5 0V5.42a5.25 5.25 0 1 1 10.5 0z" fill="#4c4c4c" fill-opacity="0.7"/><path d="M97.77 15.9L84.75 38.47a33.1 33.1 0 0 0-9.1-5.25l13.03-22.57a5.25 5.25 0 1 1 9.1 5.25z" fill="#333333" fill-opacity="0.8"/><path d="M117.3 39.26L94.7 52.3a33.1 33.1 0 0 0-5.25-9.1l22.57-13.03a5.25 5.25 0 0 1 5.25 9.1z" fill="#191919" fill-opacity="0.9"/><animateTransform attributeName="transform" type="rotate" values="0 64 64;30 64 64;60 64 64;90 64 64;120 64 64;150 64 64;180 64 64;210 64 64;240 64 64;270 64 64;300 64 64;330 64 64" calcMode="discrete" dur="1080ms" repeatCount="indefinite"></animateTransform></g></svg></div>
             </div>`;
     //CHART
     const payload = { alpha2: alpha2, country: country };
+    fadeIn(_('chartLoader'));
     socket.emit('getCountryData', alpha2);
     socket.emit('getLatestData', payload);
     setTimeout(() => { addHeader(); }, 300);
@@ -766,14 +947,14 @@ function getLatestData(payload, world) {
     //console.log(payload);
     let perc, percDeaths;
     const record = (world) ? dataAPI.find(data => data.country === "World") : sortList(countriesList, 'newCases').find(data => data.country === payload.country);
-    let date = (payload.latest.data1.new_cases != record.newCases) ? 'data1' : (payload.latest.data2) ? 'data2' : false;
+    let date = (payload.latest.data1.new_cases != record.newCases && payload.latest.data1.new_cases != 0) ? 'data1' : (payload.latest.data2 && payload.latest.data2.new_cases != record.newCases && payload.latest.data2.new_cases != 0) ? 'data2' : false;
     if (date) {
         const factor1 = (payload.latest[date].new_cases > 0) ? payload.latest[date].new_cases : 1;
         perc = ((record.newCases - (payload.latest[date].new_cases || 0)) / factor1) * 100;
         perc = roundVal(perc, 2);
     }
     else { perc = false; }
-    date = (payload.latest.data1.new_deaths != record.newDeaths) ? 'data1' : (payload.latest.data2) ? 'data2' : false;
+    date = (payload.latest.data1.new_deaths != record.newDeaths && payload.latest.data1.new_deaths != 0) ? 'data1' : (payload.latest.data2 && payload.latest.data2.new_deaths != record.newDeaths && payload.latest.data2.new_deaths != 0) ? 'data2' : false;
     if (date) {
         const factor2 = (payload.latest[date].new_deaths > 0) ? payload.latest[date].new_deaths : 1;
         percDeaths = ((record.newDeaths - (payload.latest[date].new_deaths || 0)) / factor2) * 100;
@@ -783,7 +964,7 @@ function getLatestData(payload, world) {
     return { perc: perc, percDeaths: percDeaths };
 }
 function addPercNew(perc, deaths) {
-    const childNum = (deaths) ? 3 : 2;
+    const childNum = (deaths) ? 2 : 1;
     const cases = countryPopup.querySelector(`.flex-stats-container .stats-column-flex:nth-child(${childNum})`);
     const div = document.createElement('div');
     div.setAttribute('class', 'flex-stat');
@@ -819,12 +1000,12 @@ function getPiePerc(perc, property, world) {
     const strokeValue = (perc / 100) * factor;
     const strokeWidth = (world) ? 2 : 5;
     const style = (world) ? 'width:60px; height:70px; margin-top:0;' : '';
-    const color1 = (property === 'totalRecovered') ? (mode === 'dark' || world) ? '#f6584C' : '#B13507' : (mode === 'dark' || world) ? '#6dff71' : '#209222';
+    const color1 = (property === 'totalRecovered' || property === 'percRecovered' || property === 'percVacc' || property === 'percFullyVacc') ? (mode === 'dark' || world) ? '#f6584C' : '#B13507' : (mode === 'dark' || world) ? '#6dff71' : '#209222';
     const color2 = (color1 === '#f6584C' || color1 === '#B13507') ? (mode === 'dark' || world) ? '#6dff71' : '#209222' : (mode === 'dark' || world) ? '#f6584C' : '#B13507';
-    const info = (property === 'seriousCritical') ? '% of Active' : (property === 'totalDeaths') ? 'Case Fatality Rate' : '% of Cases';
+    const info = (property === 'percCritical' || property === 'seriousCritical') ? '% of Active' : (property === 'percVacc' || property === 'percFullyVacc') ? '% of Pop' : '% of Cases';
     const infoDisplay = (world) ? 'none' : 'block';
     let html = `
-    <div class="pie-wrapper" style='${style}'>
+    <div class="pie-wrapper" style='${style}' title='${(world) ? info : ''}'>
         <svg class="circle">
             <circle r="${radius}" cx="50%" cy="50%" stroke="${color1}" fill="none" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-dasharray="${factor}, ${circumference}" stroke-opacity="0.2"></circle>
             <circle r="${radius}" cx="50%" cy="50%" stroke="${color2}" fill="none" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-dasharray="${strokeValue}, 188"></circle>
@@ -834,64 +1015,68 @@ function getPiePerc(perc, property, world) {
     </div>`;
     return html;
 }
-function getRecord(country, property, propTitle) {
+function getRecord(country, property, propTitle, totalProp) {
     const list = sortList(countriesList, property);
     const record = list.find(data => data.country === country);
     //const rankMax = list[list.length - 1].rankMax;
     let html = "";
     let rankText = "";
-    let percText = "";
+    let totalText = "";
     let pie = "";
     if (record) {
         rankText = `
             <p class='stats'>${record.rank}</p>
             <p class='stats-titles dark-gray'>Rank</p>`;
-        if (property != "testsPerMil") {
-            if (record.perc >= 0 && record.perc != null) {
-                percText = `
-                    <div class='flex-stat'>
-                        <p class='stats'>${record.perc.commaSplit()}</p>
-                        <p class='stats-titles dark-gray text-center'>% of Population</p>
-                    </div> `;
-            }
-            if (record.perMill >= 0 && record.perMill != null) {
-                percText = `
-                    <div class='flex-stat'> 
-                        <p class='stats'>${record.perMill.commaSplit()}</p>
-                        <p class='stats-titles dark-gray text-center'>Per Million</p>
-                    </div> `;
-            }
+        if (property != 'totalVaccinations') {
+            totalText = `
+            <div class='flex-stat'>
+                <p class='stats'>${record[totalProp].commaSplit()}</p>
+                <p class='stats-titles dark-gray text-center'>Raw Total</p>
+            </div> `;
+        }
+        else {
+            totalText = `
+            <div class='flex-stat'>
+                <p class='stats text-center font-vw'>${record.vaccines}</p>
+                <p class='stats-titles dark-gray text-center'>Vaccines</p>
+            </div> `;
         }
         let perc;
         switch (property) {
-            case 'totalDeaths':
+            case 'percDeaths':
                 perc = countriesList.find(data => data.country === country).percDeaths;
                 break;
-            case 'totalRecovered':
+            case 'percRecovered':
                 perc = countriesList.find(data => data.country === country).percRecovered;
                 break;
-            case 'activeCases':
+            case 'percActive':
                 perc = countriesList.find(data => data.country === country).percActive;
                 break;
-            case 'seriousCritical':
+            case 'percCritical':
                 perc = countriesList.find(data => data.country === country).percCritical;
+                break;
+            case 'percVacc':
+                perc = countriesList.find(data => data.country === country).percVacc;
+                break;
+            case 'percFullyVacc':
+                perc = countriesList.find(data => data.country === country).percFullyVacc;
         }
-        pie = (perc >= 0 && perc != null) ? getPiePerc(perc, property) : '';
-        html = `
-            <div class='flex-stat'>
+        pie = (perc >= 0 && perc != null) ? getPiePerc(perc, property) :
+            `<div class='flex-stat'>
                 <p class='stats'>${record[property].commaSplit()}</p>
                 <p class='stats-titles dark-gray'>${propTitle}</p>
-            </div>
+            </div>`;
+        html = `
+            ${pie} 
             <div class='flex-stat'>
                 ${rankText}
             </div>
-            ${percText}
-            ${pie}     
+            ${totalText}       
         `;
         return html;
     }
     else {
-        html = `<p class='stats yellow text-center'>No Reported Data</p>`;
+        html = `<p class='stats yellow-test text-center'>No Reported Data</p>`;
         return html;
     }
 }
@@ -902,7 +1087,7 @@ function onClosePopup(e) {
     showPage();
     addPopupListeners(this.dataset.country);
     addZoomTapListeners();
-    if (chartOn) { removeChartListeners(); chartOn = false; }
+    if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); chartOn = false; }
 }
 //GLOBAL LISTENERS
 function addZoomTapListeners() {
@@ -945,8 +1130,7 @@ function removeZoomTapListeners() {
 }
 //LEGEND HOVER LISTENERS
 function addLegendListeners() {
-    const colorsWrapper = (switchValue === 'cases') ? blues : reds;
-    const colors = colorsWrapper.querySelectorAll('.color');
+    const colors = legendColors.querySelectorAll('.color');
     const keyRanges = keys.querySelectorAll('.data-range');
     for (let i = 0; i < colors.length; i++) {
         if (!is_touch_device) {
@@ -966,17 +1150,14 @@ function addLegendListeners() {
     }
 }
 function removeLegendListeners() {
-    const elems = [blues, reds];
     const keyRanges = keys.querySelectorAll('.data-range');
-    for (let k = 0; k < elems.length; k++) {
-        let colors = elems[k].querySelectorAll('.color');
-        for (let i = 0; i < colors.length; i++) {
-            if (!is_touch_device) {
-                colors[i].removeEventListener('mouseover', onColorOver);
-            }
-            else {
-                colors[i].removeEventListener('touchend', onColorTouch);
-            }
+    const colors = legendColors.querySelectorAll('.color');
+    for (let i = 0; i < colors.length; i++) {
+        if (!is_touch_device) {
+            colors[i].removeEventListener('mouseover', onColorOver);
+        }
+        else {
+            colors[i].removeEventListener('touchend', onColorTouch);
         }
     }
     for (let i = 0; i < keyRanges.length; i++) {
@@ -989,8 +1170,7 @@ function removeLegendListeners() {
     }
 }
 function clearLegendHover() {
-    const colorsWrapper = (switchValue === 'cases') ? blues : reds;
-    const colors = colorsWrapper.querySelectorAll('.color');
+    const colors = legendColors.querySelectorAll('.color');
     const keyRanges = keys.querySelectorAll('.data-range');
     for (let i = 0; i < colors.length; i++) {
         colors[i].classList.remove('on-color-hover');
@@ -1021,10 +1201,9 @@ function onColorOver(e) {
     highlightRangeCountries(elem.style.backgroundColor);
 }
 function getLegendTarget(e) {
-    const colors = (switchValue === 'cases') ? blues : reds;
     const parent = e.parentNode;
     const index = Array.prototype.indexOf.call(parent.children, e);
-    return { elem: colors.querySelectorAll('.color')[index], index: index };
+    return { elem: legendColors.querySelectorAll('.color')[index], index: index };
 }
 function highlightRangeCountries(color) {
     for (let i = 0; i < pathCountries.length; i++) {
@@ -1056,15 +1235,6 @@ function addChartListeners() {
     hoverG.addEventListener('mouseover', onChartHover, false);
     document.addEventListener('mousemove', onChartMove, false);
     window.addEventListener("resize", onChartResize, false);
-    const chartWrapper = _('chart');
-    const btns = chartWrapper.querySelectorAll('.chart-btns');
-    for (let i = 0; i < btns.length; i++) {
-        btns[i].addEventListener('mouseup', onChartOptClick, false);
-    }
-    const checkBox = _('testsCheckBox');
-    checkBox.addEventListener('change', onChartCheckBox, false);
-    const menu = _('chartDropDown');
-    menu.addEventListener('mouseup', onChartDropDown, false);
 }
 function removeChartListeners() {
     const chart = _('svgChart');
@@ -1076,6 +1246,19 @@ function removeChartListeners() {
     hoverG.removeEventListener('mouseover', onChartHover);
     document.removeEventListener('mousemove', onChartMove);
     window.removeEventListener("resize", onChartResize);
+}
+function addGlobalChartListeners() {
+    const chartWrapper = _('chart');
+    const btns = chartWrapper.querySelectorAll('.chart-btns');
+    for (let i = 0; i < btns.length; i++) {
+        btns[i].addEventListener('mouseup', onChartOptClick, false);
+    }
+    const checkBox = _('testsCheckBox');
+    checkBox.addEventListener('change', onChartCheckBox, false);
+    const menu = _('chartDropDown');
+    menu.addEventListener('mouseup', onChartDropDown, false);
+}
+function removeGlobalChartListeners() {
     const chartWrapper = _('chart');
     const btns = chartWrapper.querySelectorAll('.chart-btns');
     for (let i = 0; i < btns.length; i++) {
@@ -1224,15 +1407,25 @@ function onPinchZoom(e) {
     setCTM(zoomEl.getScreenCTM().multiply(matrix));
     const currentMat = zoomEl.transform.baseVal.getItem(0).matrix;
     if ((currentMat.a - initialScale) < 0.1) {
-        addHeader();
+        if (window.innerWidth <= 768) {
+            addHeader();
+        }
+        globalInstructions.classList.remove('transform-y-220');
+        globalHelpTip.style.top = (globalInstructions.classList.length > 1) ? "50px" : "70px";
     }
     else {
-        removeHeader();
+        if (window.innerWidth <= 768) {
+            removeHeader();
+        }
+        globalInstructions.classList.add('transform-y-220');
     }
 }
 function onTapZoom(e) {
     if (e.tapCount === 2 && !countryAnim) {
-        removeHeader();
+        if (window.innerWidth <= 768) {
+            removeHeader();
+        }
+        globalInstructions.classList.add('transform-y-220');
         tapP = getTouchPoint(e);
         maxScale = zoomEl.transform.baseVal.getItem(0).matrix.a * 2;
         maxScale = (maxScale > maxZoom) ? maxZoom : maxScale;
@@ -1324,11 +1517,13 @@ function touchEvents() {
 }
 //DOM MANIP
 function addRemoveHeader() {
-    if (header.classList.length === 1) {
-        removeHeader();
-    }
-    else {
-        addHeader();
+    if (window.innerWidth <= 768) {
+        if (header.classList.length === 1) {
+            removeHeader();
+        }
+        else {
+            addHeader();
+        }
     }
 }
 function addHeader() {
@@ -1342,6 +1537,8 @@ function removeHeader() {
     elements.forEach(e => {
         e.classList.add('transform-y-50');
     });
+    globalInstructions.classList.add('transform-y-220');
+    globalHelpTip.style.top = "50px";
     if (mobileNav.classList.length === 0) {
         mobileNav.classList.add('transform-y-220');
         hamburger.classList.toggle('change');
@@ -1351,10 +1548,6 @@ function removeHeader() {
     }
 }
 function removeHover() {
-    keyBtn.classList.add('no-hover');
-    centerBtn.classList.add('no-hover');
-    toggle.classList.add('no-hover');
-    toggleDark.classList.add('no-hover');
     closeKeys.classList.add('no-hover');
     closeDash.classList.add('white');
 }
@@ -1377,7 +1570,6 @@ function toggleSideBar() {
         toggle.style.opacity = 1;
     }
     else {
-        statsWrapper.addEventListener('scroll', onStatsScroll, false);
         sideBar.className = '';
         toggle.style.opacity = 0;
         popup.style.display = "none";
@@ -1386,47 +1578,123 @@ function toggleSideBar() {
 toggle.addEventListener('mouseup', toggleSideBar, false);
 closeDash.addEventListener('mouseup', closeSideBar, false);
 //SWITCH TOGGLE
-switchToggle.addEventListener('change', function () {
-    let casesTitle = _('casesTitle');
+function onToggleSVGResize() {
+    let testsTitle = _('testsTitle');
     let deathsTitle = _('deathsTitle');
-    let casesMenu = _('casesMenu');
-    let deathsMenu = _('deathsMenu');
-    if (this.checked) {//DEATHS
-        switchSpan.setAttribute('title', 'Toggle Cases');
-        switchValue = "deaths";
-        deathsTitle.style.opacity = "1";
-        casesTitle.style.opacity = "0.4";
-        casesMenu.style.display = "none";
-        deathsMenu.style.display = "block";
-        currentData.style.backgroundColor = "#f6584c";
-        prop = "deathsPerMil";
-        currentTitle = "Deaths/Million";
-        buttonsHandler(prop);
-        worldData(dataAPI);
-        removeLegendListeners();
-        addLegendListeners();
+    let vaccTittle = _('vaccTitle');
+    const width = switchWrapper.offsetWidth;
+    const posX = (window.innerWidth <= 768) ? (width - 64) / 2 : 118;
+    const matrix = `matrix(1, 0, 0, 1, ${posX}, 42)`;
+    switchG.setAttributeNS(null, 'transform', matrix);
+    const x = width / 2;
+    testsTitle.setAttribute('x', x);
+    deathsTitle.setAttribute('x', width - 12);
+    vaccTittle.setAttribute('x', x);
+}
+function toggleSwitchCases(cat) {
+    let cx, cy, color, menu, property, title, height, btns, colors;
+    switch (cat) {
+        case 'cases':
+            cx = 10;
+            cy = 32;
+            color = '#54cbf2';
+            menu = casesMenu;
+            property = 'casesPerMil';
+            title = 'Cases/Million';
+            height = '240px';//40 * 7 (number of menu options)
+            btns = '.cases-btns';
+            colors = ['#d6f5ff', '#96dcf4', '#54cbf2', '#04abe3', '#038ebc', '#035e79', '#013544'];
+            break;
+        case 'tests':
+            cx = 32;
+            cy = 10;
+            color = '#f4bc68';
+            menu = testsMenu;
+            property = 'testsPerMil';
+            title = 'Tests/Million';
+            height = '160px';
+            btns = '.tests-btns';
+            colors = ['#fbebd1', '#f9d7a4', '#f4bc68', '#f9ad3b', '#ff9700', '#c57603', '#844f01'];
+            break;
+        case 'deaths':
+            cx = 54;
+            cy = 32;
+            color = '#f6584c';
+            menu = deathsMenu;
+            property = 'deathsPerMil';
+            title = 'Deaths/Million';
+            height = '160px';
+            btns = '.deaths-btns';
+            colors = ['#ffe9e7', '#fcd2cd', '#ffada6', '#fd8177', '#f6584c', '#bd4137', '#9e251b'];
+            break;
+        case 'vaccines':
+            cx = 32;
+            cy = 54;
+            color = '#4cf6af';
+            menu = vaccMenu;
+            property = 'percVacc';
+            title = 'Partially Vaccinated';
+            height = '160px';
+            btns = '.vacc-btns';
+            colors = ['#e2fdf1', '#bafbdf', '#89f9ca', '#4cf6af', '#33a976', '#1f6949', '#0e2f20'];
     }
-    else {//CASES
-        switchSpan.setAttribute('title', 'Toggle Deaths');
-        switchValue = "cases";
-        deathsTitle.style.opacity = "0.4";
-        casesTitle.style.opacity = "1";
-        casesMenu.style.display = "block";
-        deathsMenu.style.display = "none";
-        currentData.style.backgroundColor = "#68d0f4";
-        prop = "casesPerMil";
-        currentTitle = "Cases/Million";
-        buttonsHandler(prop);
-        worldData(dataAPI);
-        removeLegendListeners();
-        addLegendListeners();
+    return { cx: cx, cy: cy, color: color, menu: menu, property: property, title: title, height: height, btns: btns, colors: colors };
+}
+switchToggle.addEventListener('mouseup', function (e) {
+    if (e.target.className.baseVal === 'switch-titles' || e.target.className.baseVal === 'switch-target-circles') {
+        const cat = e.target.getAttribute('data-cat');
+        if (switchValue != cat) {
+            switchValue = cat;
+            const color = toggleSwitchCases(cat).color;
+            switchG.setAttribute('fill', color);
+            const cx = toggleSwitchCases(cat).cx;
+            const cy = toggleSwitchCases(cat).cy;
+            const x = parseInt(switchCircle.getAttribute('cx'));
+            const y = parseInt(switchCircle.getAttribute('cy'));
+            switchCircle.setAttribute('cx', 32);
+            switchCircle.setAttribute('cy', 32);
+            if (x === cx || y === cy) {//if destination is on same axis
+                switchCircle.setAttribute('cx', cx);
+                switchCircle.setAttribute('cy', cy);
+            }
+            else {
+                setTimeout(() => {
+                    switchCircle.setAttribute('cx', cx);
+                    switchCircle.setAttribute('cy', cy);
+                }, 200);
+            }
+            const titles = switchToggle.querySelectorAll('.switch-titles');
+            for (let i = 0; i < titles.length; i++) {
+                titles[i].style.opacity = (titles[i].getAttribute('data-cat') === cat) ? 1 : 0.4;
+            }
+            const menu = toggleSwitchCases(cat).menu;
+            handleOptionsMenu(menu);
+            currentData.style.backgroundColor = color;
+            prop = toggleSwitchCases(cat).property;
+            currentTitle = toggleSwitchCases(cat).title;
+            changeLegendColors(cat);
+            buttonsHandler(prop);
+            worldData(dataAPI);
+            statsWrapper.scrollTop = 0;
+            removeLegendListeners();
+            addLegendListeners();
+            const height = toggleSwitchCases(cat).height;
+            if (optionsDiv.offsetHeight > 40) {
+                optionsDiv.style.height = height;
+            }
+            globalHelpTipHandler();
+        }
     }
-    optionsDiv.style.height = "40px";
-    globalHelpTip.style.display = "none";
 });
+function handleOptionsMenu(e) {
+    const menus = [casesMenu, testsMenu, deathsMenu, vaccMenu];
+    for (let i = 0; i < menus.length; i++) {
+        menus[i].style.display = (menus[i] === e) ? 'block' : 'none';
+    }
+}
 //DROPDOWN
 function openDropDown() {
-    const height = (switchValue === "cases") ? 400 + "px" : 200 + "px";
+    const height = toggleSwitchCases(switchValue).height;
     const toggle = _('dropDownArrow');
     optionsDiv.style.overflowY = "scroll";
     optionsDiv.style.height = height;
@@ -1441,121 +1709,163 @@ function closeDropDown() {
     toggle.classList.remove('transform-rotate');
 }
 dropDown.addEventListener('click', (e) => {
+    statsWrapper.style.overflowY = 'hidden';
+    statsWrapper.removeEventListener('scroll', onStatsScroll);
     if (optionsDiv.style.height === "40px" || optionsDiv.style.height === "") {
         openDropDown();
     }
     else {
         closeDropDown();
     }
+    setTimeout(() => {
+        statsWrapper.style.overflowY = 'scroll';
+        statsWrapper.addEventListener('scroll', onStatsScroll, false);
+    }, 400);
     sideBar.className = '';
 });
 function dropDownSwitch(property) {
     let p = '';
     switch (property) {
-        case 'newCases':
+        case 'casesPerMil':
+            p = 'This is the reported total cumulative count of detected, laboratory, and sometimes (depending on the country reporting them and the criteria adopted at the time) also clinical cases. Depending on the country reporting standards, this number can also include presumptive, suspect, or probable cases of detected infection.';
+            break;
+        case 'newCasesPerMil':
             p = 'Every country reports their daily new cases at different times in the day. The daily data by all reporting countries resets every day after midnight GMT.';
             break;
-        case 'totalCases':
-            p = 'This is the reported total cumulative count of detected and laboratory cases (and sometimes, depending on the country reporting them and the criteria adopted at the time, also clinical cases). Depending on the country reporting standards, this number can also include presumptive, suspect, or probable cases of detected infection.';
+        case 'percRecovered':
+            p = 'This is the percent of cases that have recovered from the disease. This statistic is highly imperfect, because reporting can be missing, incomplete, incorrect, based on different definitions, or dated (or a combination of all of these) for many governments, both at the local and national level, sometimes with differences between states within the same country or counties within the same state. ';
             break;
-        case 'totalRecovered':
-            p = 'This statistic is highly imperfect, because reporting can be missing, incomplete, incorrect, based on different definitions, or dated (or a combination of all of these) for many governments, both at the local and national level, sometimes with differences between states within the same country or counties within the same state. ';
+        case 'percActive':
+            p = 'This figure represents the current number of people detected and confirmed to be infected with the virus. This figure can increase or decrease, and represents an important metric for public health and emergency response authorities when assessing hospitalization needs versus capacity.';
             break;
-        case 'activeCases':
-            p = 'This figure represents the current number of people detected and confirmed to be infected with the virus. This figure can increase or decrease, and represents an important metric for Public Health and Emergency response authorities when assessing hospitalization needs versus capacity.';
+        case 'percCritical':
+            p = `This is the percent of current active cases that are in critical condition. This statistic is imperfect, for many reasons. When 99% of the cases were in China, the figure pretty much corresponded to the Chinese NHC's reported number of "severe" cases. Today, it represents for the most part the number of patients currently being treated in Intensive Care Unit (ICU), if and when this figure is reported.`;
             break;
-        case 'seriousCritical':
-            p = `This statistic is imperfect, for many reasons. When 99% of the cases were in China, the figure pretty much corresponded to the Chinese NHC's reported number of "severe" cases. Today, it represents for the most part the number of patients currently being treated in Intensive Care Unit (ICU), if and when this figure is reported.`;
-            break;
+        case 'testsPerMil':
         case 'totalTests':
             p = `This statistic is imperfect, because some countries report tests performed, while others report the individuals tested.`;
             break;
-        case 'newDeaths':
-            p = 'Every country reports their daily new deaths at different times in the day. The daily data by all reporting countries resets every day after midnight GMT.';
-            break;
-        case 'totalDeaths':
+        case 'deathsPerMil':
             p = 'This is the reported total cumulative count of deaths caused by COVID-19. Due to limited testing, challenges in the attribution of the cause of death, and varying methods of reporting in some countries, this is an imperfect statistic. ';
             break;
+        case 'newDeathsPerMil':
+            p = 'Every country reports their daily new deaths at different times in the day. The daily data by all reporting countries resets every day after midnight GMT.';
+            break;
         case 'percDeaths':
-            p = `The Case Fatality rate (CFR) represents the proportion of cases who eventually die from the disease. This statistic for each country is imperfect, since it is based on both the total number of reported cases and deaths, both of which depend on the respective countries' reporting criteria. Globally, the WHO has estimated the coronavirus' CFR at 2%. For comparison, the CFR for SARS was 10%, and for MERS 34%.`;
+            p = `The Case Fatality rate (CFR) represents the proportion of cases who eventually die from the disease. This statistic for each country is imperfect, since it is based on both the total number of reported cases and deaths, both of which depend on the respective countries' reporting criteria. Globally, the WHO has estimated the coronavirus' CFR at <strong>2%</strong>. For comparison, the CFR for SARS was <strong>10%</strong>, and for MERS <strong>34%</strong>.`;
+            break;
+        case 'percVacc':
+            p = 'This is the percent of population that received at least one vaccine dose, but has <strong>NOT</strong> received all doses presribed by the vaccination protocol.';
+            break;
+        case 'percFullyVacc':
+            p = 'This is the percent of population that received all doses prescribed by the vaccination protocol.';
+            break;
+        case 'totalVaccinations':
+            p = 'This figure represents the total number of doses administered, it does <strong>NOT</strong> represent the total number of people vaccinated.';
     }
     return p;
 }
+function globalHelpTipHandler() {
+    const pText = dropDownSwitch(prop);
+    if (pText != '') {
+        globalHelpTip.style.display = 'block';
+        const p = globalHelpTip.querySelector('p');
+        p.innerHTML = pText;
+    }
+    else {
+        globalHelpTip.style.display = 'none';
+    }
+    if (is_touch_device && window.innerWidth <= 768) {
+        globalHelpTip.style.top = (globalInstructions.classList.length > 1) ? "50px" : "70px";
+    }
+}
+function legendHelpTipHandler() {
+    let text = (is_touch_device) ? 'Tap color to isolate countries in specific range.' : 'Hover mouse over color to isolate countries in specific range.';
+    const p = legendHelpTip.querySelector('p');
+    p.innerText = text;
+    p.style.width = (is_touch_device) ? '300px' : '370px';
+}
 //DROPDOWN PROPERTIES
-var casesColor = "#08aae3";
-var deathsColor = "#f6584c";
 var bckColorLDM = "#3d3c3a";
 var colorLDM = "#faebd7";
 const buttons = document.querySelectorAll('button');
 for (let i = 0; i < buttons.length; i++) {
     if (buttons[i].dataset.prop) {
         buttons[i].addEventListener('mouseup', function (e) {
-            statsWrapper.removeEventListener('scroll', onStatsScroll);
             if (countriesList.length != 0) {//wait for countriesList to fill with data
                 prop = this.dataset.prop;
-                currentTitle = (prop === 'percDeaths' && window.innerWidth <= 768) ? 'CFR' : this.innerText;
-                if (this.dataset.category === 'cases') {
-                    const casesBtns = document.querySelectorAll('.cases-btns');
-                    for (let k = 0; k < casesBtns.length; k++) {
-                        casesBtns[k].style.backgroundColor = bckColorLDM;
-                        casesBtns[k].style.color = colorLDM;
-                    }
-                    this.style.backgroundColor = casesColor;
-                    blues.classList.remove('no-display');
-                    reds.classList.add('no-display');
+                currentTitle = this.innerText;
+                const btnQuery = toggleSwitchCases(switchValue).btns;
+                const btns = document.querySelectorAll(btnQuery);
+                for (let k = 0; k < btns.length; k++) {
+                    btns[k].style.backgroundColor = bckColorLDM;
+                    btns[k].style.color = colorLDM;
                 }
-                else {
-                    const deathsBtns = document.querySelectorAll('.deaths-btns');
-                    for (let j = 0; j < deathsBtns.length; j++) {
-                        deathsBtns[j].style.backgroundColor = bckColorLDM;
-                        deathsBtns[j].style.color = colorLDM;
-                    }
-                    this.style.backgroundColor = deathsColor;
-                    blues.classList.add('no-display');
-                    reds.classList.remove('no-display');
-                }
-                const pText = dropDownSwitch(prop);
-                if (pText != '') {
-                    globalHelpTip.style.display = 'block';
-                    const p = globalHelpTip.querySelector('p');
-                    p.innerText = pText;
-                }
-                else {
-                    globalHelpTip.style.display = 'none';
-                }
-                this.style.color = "#fff";
-                currentData.innerText = dropDownTitle.innerText = keyTitle.innerText = currentTitle;
+                this.style.backgroundColor = toggleSwitchCases(switchValue).color;
+                this.style.color = "#000";
+                globalHelpTipHandler();
+                currentData.innerText = dropDownTitle.innerText = currentTitle;
+                keyTitle.innerText = rawTotalSwitch(prop).title;
                 getMinMax(countriesList, prop, rangeLimit);
                 if (window.innerWidth <= 768) {
-                    closeSideBar();
+                    if (sideBar.classList.length > 0) {// handle when dropdown is open and fixed to top
+                        statsWrapper.style.overflowY = 'hidden';
+                        statsWrapper.removeEventListener('scroll', onStatsScroll);
+                        sideBar.className = '';
+                        setTimeout(() => {
+                            closeSideBar();
+                            statsWrapper.style.overflowY = 'scroll';
+                            statsWrapper.addEventListener('scroll', onStatsScroll, false);
+                        }, 400);
+                    }
+                    else { closeSideBar(); }
                 }
             }
         });
     }
 }
 //STATS DASHBOARD SCROLL
+var lastScrollTop = 0;
 statsWrapper.addEventListener('scroll', onStatsScroll, false);
 function onStatsScroll(e) {
-    if (window.innerWidth <= 768) {
-        if (this.scrollTop <= 0) {
-            sideBar.className = "";
-            sideBar.style.height = "100%";
+    var st = this.scrollTop;
+    if (st === lastScrollTop) { return; }//firefox bug firing scroll when height changes
+    if (st <= 0) {
+        sideBar.className = "";
+        if (st > lastScrollTop) {// downscroll code
+            sideBar.style.height = '100%';
         }
         else {
-            if (this.scrollTop > 500) {
-                sideBar.className = 'transform-y-140';
-                sideBar.style.height = window.innerHeight + 140 + "px";
+            setTimeout(() => {//avoid wheel action on svg map
+                sideBar.style.height = '100%';
+            }, 300);
+        }
+    }
+    else {
+        if (st > 500) {
+            sideBar.className = 'transform-y-178';
+            if (st > lastScrollTop) {// downscroll code
+                sideBar.style.height = window.innerHeight + 178 + "px";//30(header) + 148(switchWrapper)
             }
             else {
-                sideBar.className = 'transform-y-70';
-                sideBar.style.height = window.innerHeight + 70 + "px";
+                setTimeout(() => {
+                    sideBar.style.height = window.innerHeight + 178 + "px";//30(header) + 148(switchWrapper)
+                }, 300);
             }
-            if (optionsDiv.style.height === "200px" || optionsDiv.style.height === "400px") {//avoid trailing scroll interference
-                sideBar.className = '';
-                sideBar.style.height = "100%";
+        }
+        else {
+            sideBar.className = 'transform-y-30';
+            if (st > lastScrollTop) {// downscroll code
+                sideBar.style.height = window.innerHeight + 30 + "px";//30
+            }
+            else {
+                setTimeout(() => {
+                    sideBar.style.height = window.innerHeight + 30 + "px";//30
+                }, 300);
             }
         }
     }
+    lastScrollTop = st <= 0 ? 0 : st; // For Mobile or negative scrolling
 }
 //DARK/LIGHT MODE
 function changeNavColor() {
@@ -1659,6 +1969,7 @@ function clearPage() {
     centerBtn.style.display = "none";
     keyBtn.style.display = "none";
     keys.style.display = "none";
+    globalInstructions.style.display = "none";
     if (about.style.display === "block") {
         changeNavColor();
         about.style.display = "none";
@@ -1675,6 +1986,13 @@ function showPage() {
     centerBtn.style.display = "block";
     keyBtn.style.display = "block";
     keys.style.display = "block";
+    if (is_touch_device) {
+        if (window.innerWidth <= 768) {
+            globalHelpTip.style.top = (globalInstructions.classList.length > 1) ? "50px" : "70px";
+        }
+        globalInstructions.style.display = "block";
+    }
+    onToggleSVGResize();
 }
 //CLEAR COUNTRY POPUP
 function clearPopup() {
@@ -1688,6 +2006,7 @@ function clearPopup() {
         countryPopup.style.overflow = '';
     }, 10);
     setTimeout(() => {
+        closePopup.style.visibility = 'hidden';
         resultsTransform();
     }, 500);
 }
@@ -1695,14 +2014,6 @@ function setPrevMapState() {
     const transform = `matrix(${prevMatrix.scale}, 0, 0, ${prevMatrix.scale}, ${prevMatrix.x}, ${prevMatrix.y})`;
     zoomEl.setAttributeNS(null, 'transform', transform);
     pathStrokeHandler();
-    if (sideBarState) {
-        sideBar.className = '';
-        toggle.style.opacity = 0;
-    }
-    else {
-        sideBar.className = 'transform';
-        toggle.style.opacity = 1;
-    }
 }
 //PAGE SWITCHING
 document.querySelectorAll('.menu-btns').forEach(btn => {
@@ -1727,22 +2038,20 @@ document.querySelectorAll('.menu-btns').forEach(btn => {
             addZoomTapListeners();
             clearPopup();
             showPage();
-            if (window.innerWidth <= 768) {
-                closeSideBar();
-            }
             about.style.display = "none";
         }
         if (closePopup.dataset.country) {
             let country = closePopup.dataset.country;
             removePopupListeners();
             addPopupListeners(country);
-            if (chartOn) { removeChartListeners(); chartOn = false; }
+            if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); chartOn = false; }
         }
         else {
             removePopupListeners();
             addPopupListeners();
         }
         onResize();
+        onCloseSearch();
         popup.style.display = "none";
     });
 });

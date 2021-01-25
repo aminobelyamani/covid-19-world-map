@@ -6,7 +6,6 @@ const svgEl = _('worldMap'),
     maxZoom = 20;
 var initialScale = 0,
     mouseMove = false,
-    sideBarState = true,
     countryAnim = false,
     prevMatrix = {};
 //ZOOM & PAN
@@ -47,7 +46,7 @@ function setCTM(m) {
 }
 function pathStrokeHandler() {
     const zoom = zoomEl.transform.baseVal.getItem(0).matrix.a;
-    for(let i = 0; i < pathCountries.length; i++){
+    for (let i = 0; i < pathCountries.length; i++) {
         if (pathCountries[i].getAttribute('data-name')) {//avoid including centerBtn SVG in loop
             pathCountries[i].style.setProperty('--zoom', zoom);
         }
@@ -196,7 +195,7 @@ function zoomToCountry(e) {
     }, 500);
 }
 function highlightCountry(country) {
-    for(let i = 0; i < pathCountries.length; i++){
+    for (let i = 0; i < pathCountries.length; i++) {
         if (pathCountries[i].getAttribute('data-name')) {
             if (pathCountries[i].getAttribute('data-name') === country) {
                 pathCountries[i].classList.add('light-path');
@@ -215,7 +214,7 @@ function panToCountry(m, x, y) {
 function zoomToCountryNoAnim(e, noPrevMat) {
     trail.x = trail.y = touchTrail.x = touchTrail.y = 0;
     cancelAnimationFrame(fadePan);
-    if(!noPrevMat){ getPrevMatrix();}
+    if (!noPrevMat) { getPrevMatrix(); }
     removeZoomTapListeners();
     removePopupListeners();
     const pathBox = e.getBBox();
@@ -229,7 +228,7 @@ function zoomToCountryNoAnim(e, noPrevMat) {
     zoomEl.setAttributeNS(null, 'transform', transform);
     pathStrokeHandler();
     clearPage();
-    if(chartOn){removeChartListeners(); chartOn = false;}
+    if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); chartOn = false; }
     showCountryPopup(country, alpha2);
     closePopup.addEventListener('mouseup', onClosePopup, false);
 }
@@ -238,7 +237,6 @@ function getPrevMatrix() {
     prevMatrix.scale = matrix.a;
     prevMatrix.x = matrix.e;
     prevMatrix.y = matrix.f;
-    sideBarState = (sideBar.classList.length === 0 || sideBar.className === 'transform-y-70' || sideBar.className === 'transform-y-140') ? true : false;
 }
 //CENTER & RESIZE
 function centerMap() {
@@ -264,6 +262,7 @@ function centerMap() {
         addZoomTapListeners();
         removePopupListeners();
         addPopupListeners();
+        showGlInstructions();
     }
 }
 function onResize() {
@@ -278,16 +277,17 @@ function onResize() {
     const matrix = `matrix(${initialScale}, 0, 0, ${initialScale}, ${posX}, ${posY})`;
     zoomEl.setAttributeNS(null, 'transform', matrix);
     if (window.innerWidth > 768) {
-        addHeader();
-        sideBar.className = '';
-        toggle.style.opacity = 0;
-        resultsTransform();
+        globalHelpTip.style.top = "unset";
     }
     else {
-        onCloseSearch();
+        globalHelpTip.style.top = (is_touch_device) ? "70px" : "50px";
     }
+    resultsTransform();
+    addHeader();
     pathStrokeHandler();
     onLegendResize(globalRangeList);
+    onToggleSVGResize();
 }
 onResize();
+fadeIn(mapDiv);
 window.addEventListener("resize", onResize, false);
