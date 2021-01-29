@@ -65,10 +65,10 @@ function downloadFile(url, callback) {
 const CronJob = require('cron').CronJob;
 const owidJob = new CronJob('10 3 * * *', function () {// 3:10 AM
     const url = 'https://covid.ourworldindata.org/data/owid-covid-data.json';
-    downloadFile(url, (file) => {
+    downloadFile(url, async (file) => {
         if (file) {
             console.log(`${file} FINISHED DOWNLOADING AT ${new Date()}`);
-            parsedFull = loadFullData();
+            parsedFull = await loadFullData();
             latestData = getLatestData();
         }
         else {
@@ -78,10 +78,10 @@ const owidJob = new CronJob('10 3 * * *', function () {// 3:10 AM
 }, null, true, 'America/New_York');
 const worldometersJob = new CronJob('0 2 * * *', function () {// 2 AM
     const url = 'https://api.apify.com/v2/key-value-stores/SmuuI0oebnTWjRTUh/records/LATEST?disableRedirect=true';
-    downloadFile(url, (file) => {
+    downloadFile(url, async (file) => {
         if (file) {
             console.log(`${file} FINISHED DOWNLOADING AT ${new Date()}`);
-            fetchData = parseFetchData();
+            fetchData = await parseFetchData();
         }
         else {
             console.log('FILE NOT FOUND');
