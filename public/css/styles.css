@@ -219,6 +219,11 @@
     background-size: contain;
     background-position: center;
 }
+.full-opacity{
+    opacity: 1!important;
+    margin:0!important;
+    padding:0!important;
+}
 /* END GLOBALS */
 html, body{
     margin:0;
@@ -507,6 +512,20 @@ body{
 }
 .light .country-container{
     color:#000;
+}
+.us-btn{
+    text-decoration: underline;
+    position: relative;
+    top:10px;
+    font-size: 2em;
+    font-weight: 100;
+    text-transform: uppercase;
+    color:#000;
+    background-color: #4fbbde;
+    padding:5px 20px;
+    border-radius: 8px;
+    white-space: nowrap;
+    cursor: pointer;
 }
 .flag-big{
     width: 120px;
@@ -1455,7 +1474,7 @@ header{
 /* end world stats */
 /* end sideBar */
 /* begin map */
-#mapDiv{
+#mapDiv, #usMap{
     width:100%;
     height: 100vh;
     position: fixed;
@@ -1480,7 +1499,7 @@ svg{
 .map-div path:hover{
     stroke-width: calc(2px/var(--zoom));
 }
-#worldMap{
+#worldMap, #usMap{
     width:100%;
     height: 100%;
     stroke-linejoin: round; 
@@ -1490,7 +1509,7 @@ svg{
     position: relative;
     cursor:-webkit-zoom-in;cursor:zoom-in;
 }
-.light #worldMap{
+.light #worldMap, .light #usMap{
     stroke:#000;
 }
 /* end map */

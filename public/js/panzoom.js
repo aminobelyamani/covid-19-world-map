@@ -1,10 +1,10 @@
 //GLOBALS
-const svgEl = _('worldMap'),
+const maxZoom = 20;
+var svgEl = _('worldMap'),
     zoomEl = _('gOuter'),
     VBWidth = 2000,
-    VBHeight = 1001,
-    maxZoom = 20;
-var initialScale = 0,
+    VBHeight = 1051,//1001 + 50
+    initialScale = 0,
     mouseMove = false,
     countryAnim = false,
     prevMatrix = {};
@@ -34,10 +34,11 @@ function setMatrix(p, scale) {
     return zoomMat;
 }
 function setCTM(m) {
+    const windowHeight = window.innerHeight + 50;
     const rightBound = window.innerWidth - (m.a * VBWidth);
-    const bottomBound = window.innerHeight - (m.a * VBHeight);
+    const bottomBound = windowHeight - (m.a * VBHeight);
     m.e = (m.e >= 0) ? (rightBound < 0) ? 0 : rightBound / 2 : (rightBound > 0) ? rightBound : Math.max(m.e, rightBound);
-    m.f = (m.f >= 0) ? (bottomBound < 0) ? 0 : bottomBound / 2 : (bottomBound > 0) ? bottomBound / 2 : Math.max(m.f, bottomBound);
+    m.f = (m.f >= 50) ? (bottomBound < 0) ? 50 : Math.max(50, bottomBound / 2) : (bottomBound > 0) ? bottomBound / 2 : Math.max(m.f, bottomBound);
     if (m.a <= maxZoom && m.a >= initialScale) {
         const transform = `matrix(${m.a},${m.b},${m.c},${m.d},${m.e},${m.f})`;
         zoomEl.setAttributeNS(null, 'transform', transform);
@@ -150,12 +151,13 @@ function zoomToCountry(e) {
     const country = e.getAttribute('data-name');
     const alpha2 = e.getAttribute('data-id');
     highlightCountry(country);
+    const windowHeight = window.innerHeight + 50;
     const initialMat = zoomEl.transform.baseVal.getItem(0).matrix;
-    const initialLimit = Math.min(window.innerWidth - (initialMat.a * pathBox.width), window.innerHeight - (initialMat.a * pathBox.height));
+    const initialLimit = Math.min(window.innerWidth - (initialMat.a * pathBox.width), windowHeight - (initialMat.a * pathBox.height));
     const limitSign = Math.sign(initialLimit);
     const centerBoundX = (pathBox.x * initialMat.a) - (window.innerWidth - (pathBox.width * initialMat.a)) / 2;
-    const centerBoundY = (pathBox.y * initialMat.a) - (window.innerHeight - (pathBox.height * initialMat.a)) / 2;
-    const finalScale = Math.min(Math.min(((window.innerHeight - 120) / pathBox.height), ((window.innerWidth - 20) / pathBox.width)), maxZoom);//120 for 60px header
+    const centerBoundY = (pathBox.y * initialMat.a) - (windowHeight - (pathBox.height * initialMat.a)) / 2;
+    const finalScale = Math.min(Math.min(((window.innerHeight - 170) / pathBox.height), ((window.innerWidth - 20) / pathBox.width)), maxZoom);//120 for 60px extra padding on top/bottom + 50px header
     panToCountry(initialMat, centerBoundX, centerBoundY);
     const scale = (limitSign === -1) ? 0.85 : 1.15;
     setTimeout(function zoomLoop() {
@@ -221,9 +223,10 @@ function zoomToCountryNoAnim(e, noPrevMat) {
     const country = e.getAttribute('data-name');
     const alpha2 = e.getAttribute('data-id');
     highlightCountry(country);
-    const scale = Math.min(Math.min(((window.innerHeight - 120) / pathBox.height), ((window.innerWidth - 20) / pathBox.width)), maxZoom);//120 for 60px header
+    const windowHeight = window.innerHeight + 50;
+    const scale = Math.min(Math.min(((window.innerHeight - 170) / pathBox.height), ((window.innerWidth - 20) / pathBox.width)), maxZoom);//120 for 60px header
     const centerBoundX = (pathBox.x * scale) - (window.innerWidth - (pathBox.width * scale)) / 2;
-    const centerBoundY = (pathBox.y * scale) - (window.innerHeight - (pathBox.height * scale)) / 2;
+    const centerBoundY = (pathBox.y * scale) - (windowHeight - (pathBox.height * scale)) / 2;
     const transform = `matrix(${scale},${0},${0},${scale},${-centerBoundX},${-centerBoundY})`;
     zoomEl.setAttributeNS(null, 'transform', transform);
     pathStrokeHandler();
@@ -240,8 +243,9 @@ function getPrevMatrix() {
 }
 //CENTER & RESIZE
 function centerMap() {
+    const windowHeight = window.innerHeight + 50;
     const rightBound = (window.innerWidth - (initialScale * VBWidth));
-    const bottomBound = window.innerHeight - (initialScale * VBHeight);
+    const bottomBound = windowHeight - (initialScale * VBHeight);
     const gMatrix = zoomEl.transform.baseVal.getItem(0).matrix;
     const p = svgEl.createSVGPoint();
     p.x = rightBound / 2;
@@ -267,11 +271,12 @@ function centerMap() {
 }
 function onResize() {
     const scaleX = window.innerWidth / VBWidth;
-    const scaleY = window.innerHeight / VBHeight;
+    const scaleY = (window.innerHeight - 50) / VBHeight;
     initialScale = Math.min(scaleX, scaleY);
     prevMatrix.scale = initialScale;
+    const windowHeight = window.innerHeight + 50;
     const posX = Math.abs((window.innerWidth - (initialScale * VBWidth)) / 2);
-    const posY = Math.abs((window.innerHeight - (initialScale * VBHeight)) / 2);
+    const posY = Math.abs((windowHeight - (initialScale * VBHeight)) / 2);
     prevMatrix.x = posX;
     prevMatrix.y = posY;
     const matrix = `matrix(${initialScale}, 0, 0, ${initialScale}, ${posX}, ${posY})`;

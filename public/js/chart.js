@@ -585,10 +585,10 @@ function onChartMove(e) {
             i++;
         });
         toolEl.innerHTML = popupHtml(record);
-        const xLimit = offX + toolEl.offsetWidth + 10;
+        const xLimit = record.x + toolEl.offsetWidth + 10;
         let x;
         if (window.innerWidth > 768) {
-            x = (xLimit > getBoundValues().xBound + 20 + labelMaxWidth) ? record.x - toolEl.offsetWidth + 15 + 'px' : record.x + 25 + 'px';
+            x = (xLimit > getBoundValues().xBound + labelMaxWidth) ? record.x - toolEl.offsetWidth + 15 + 'px' : record.x + 25 + 'px';
         }
         else {
             x = firstXTextWidth + 30 + 'px';//20 left padding + 10 initialXplot
