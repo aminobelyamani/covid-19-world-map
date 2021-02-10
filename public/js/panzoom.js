@@ -219,6 +219,7 @@ function zoomToCountryNoAnim(e, noPrevMat) {
     if (!noPrevMat) { getPrevMatrix(); }
     removeZoomTapListeners();
     removePopupListeners();
+    if (usOn) { removeUsStateListeners(); usOn = false; declareWorldZoomElems(); reassignProp(); }
     const pathBox = e.getBBox();
     const country = e.getAttribute('data-name');
     const alpha2 = e.getAttribute('data-id');
@@ -266,7 +267,6 @@ function centerMap() {
         addZoomTapListeners();
         removePopupListeners();
         addPopupListeners();
-        showGlInstructions();
     }
 }
 function onResize() {
@@ -285,7 +285,7 @@ function onResize() {
         globalHelpTip.style.top = "unset";
     }
     else {
-        globalHelpTip.style.top = (is_touch_device) ? "70px" : "50px";
+        globalHelpTip.style.top = (is_touch_device && !usOn) ? "70px" : "50px";
         if (resultsWrapper.innerText.length > 0) { expandSearch(); }
     }
     resultsTransform();
@@ -293,6 +293,7 @@ function onResize() {
     pathStrokeHandler();
     onLegendResize(globalRangeList);
     onToggleSVGResize();
+    showGlInstructions();
 }
 onResize();
 fadeIn(mapDiv);

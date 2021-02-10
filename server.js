@@ -30,7 +30,7 @@ app.use(express.static(path.join(__dirname, 'public')));//localhost
 const io = require('socket.io')(server);
 
 //DOWNLOAD DATA FILES
-var parsedFull, latestData, fetchData, parsedCsv, vaccineData, parsedLocationsCsv;
+var parsedFull, latestData, fetchData, parsedCsv, vaccineData, parsedLocationsCsv, parsedUsCsv, usVaccineData;
 function downloadFile(url, callback) {
     const filename = (path.extname(url) != '') ? path.basename(url) : path.basename(urlParser.parse(url).pathname) + '.json';
     const downloadReq = https.get(url, res => {
@@ -61,6 +61,7 @@ function downloadFile(url, callback) {
         console.log(err);
     });
 }
+
 //CRON JOB SCHEDULING FOR OWID AND WORLDOMETER DOWNLOADS
 const CronJob = require('cron').CronJob;
 const owidJob = new CronJob('10 3 * * *', function () {// 3:10 AM
@@ -109,15 +110,32 @@ const vaccJob = new CronJob('0 15 * * *', function () {// 3 PM
         }
     });
 }, null, true, 'America/New_York');
+const vaccUsJob = new CronJob('10 21 * * *', function () {// 3:10 AM
+    const url = 'https://covid.ourworldindata.org/data/vaccinations/us_state_vaccinations.csv';
+    downloadFile(url, (file) => {
+        if (file) {
+            console.log(`${file} FINISHED DOWNLOADING AT ${new Date()}`);
+            runUsCSV();
+        }
+        else {
+            console.log('FILE NOT FOUND');
+        }
+    });
+}, null, true, 'America/New_York');
 
 owidJob.start();
 worldometersJob.start();
 vaccJob.start();
+vaccUsJob.start();
 
 //LOAD FILES ON SERVER START
 const worldFile = fs.readFileSync(path.join(__dirname, 'world.json'));
 const countryCodes = JSON.parse(worldFile);
 console.log("parsed country codes...")
+
+const usFile = fs.readFileSync(path.join(__dirname, 'us-states.json'));
+const usCodes = JSON.parse(usFile);
+console.log("parsed us-state codes...")
 
 const runINITIAL = async () => {
     parsedFull = await loadFullData();
@@ -129,8 +147,14 @@ const runCSV = async () => {
     parsedLocationsCsv = await readCsv('locations.csv');
     vaccineData = getVaccineData();
 };
+const runUsCSV = async () => {
+    parsedUsCsv = await readCsv('us_state_vaccinations.csv');
+    usVaccineData = getUsVaccineData();
+};
+
 runINITIAL();
 runCSV();
+runUsCSV();
 
 function readCsv(file) {
     return new Promise(resolve => {
@@ -251,6 +275,27 @@ function getVaccineData() {
     }
 }
 
+function getUsVaccineData() {
+    if (parsedUsCsv.length === 0) { return false; }
+    else {
+        const dataList = [];
+        const propList = ['total_vaccinations', 'people_vaccinated', 'people_fully_vaccinated', 'people_vaccinated_per_hundred', 'people_fully_vaccinated_per_hundred'];
+        usCodes.forEach(state => {
+            const list = parsedUsCsv.filter(row => row.location === state.state);
+            if (list.length > 0) {
+                const values = [];
+                propList.forEach(prop => {
+                    const mapped = mapVaccineData(list, prop);
+                    const max = Math.max.apply(null, mapped);
+                    values.push(max);
+                });
+                dataList.push({ country: state.state, totalVaccinations: values[0], peopleVaccinated: values[1], peopleFullyVaccinated: values[2], percVacc: values[3], percFullyVacc: values[4] });
+            }
+        });
+        console.log("US-states vaccine data compiled...");
+        return dataList;
+    }
+}
 //CLIENT SERVER FUNCTIONS
 function getWorldData(alpha2) {
     if (parsedFull.length === 0) { return false; }
@@ -318,6 +363,9 @@ io.sockets.on('connection', (socket) => {
     });
     socket.on('getVaccineData', () => {
         socket.emit('getVaccineData', vaccineData);
+    });
+    socket.on('getUsVaccineData', () => {
+        socket.emit('getUsVaccineData', usVaccineData);
     });
     socket.on('getFetchFromServer', () => {
         socket.emit('getFetchFromServer', fetchData);

@@ -321,7 +321,7 @@ function makeChartDiv() {
             <div class="chart-options-wrapper" class="ease-out">
                 <div id="chartDropDown">
                     <span class="flex-span" id="chartOptionTitle">Daily Cases</span>
-                    <span class="flex-span bckg-sprite" id="chartOptionArrow"></span> 
+                    <span class="flex-span bckg-sprite dropDown-arrow" id="chartOptionArrow"></span> 
                 </div>
                 <div id="chartMenu">
                     <button type="button" class="chart-btns" data-chartprop="new_cases_smoothed">Daily Cases</button>
@@ -474,7 +474,7 @@ function removeChart() {
     const popup = chartWrapper.querySelector('.chart-popup');
     chartWrapper.removeChild(popup);
 }
-function onNoChartData(){
+function onNoChartData() {
     chartOn = false;
     propArr = [];
     propTitle = [];
@@ -492,7 +492,7 @@ function resetChart() {
         addChartListeners();
     }
     else {
-       onNoChartData();
+        onNoChartData();
     }
 }
 //LISTENERS

@@ -93,7 +93,7 @@
     </div>
     <div id="resultsWrapper">
     </div>
-    <div id="countryPopup" class="transform"> </div>
+    <div id="countryPopup" class="transform ease-in-out"> </div>
     <div id="overlay" class="overlay">
         <div id="loader"></div>
         <p id="overlayMsg">Fetching Data...</p>
@@ -182,7 +182,7 @@
     <!-- END LEGEND SECTION -->
     <!-- SIDEBAR DASHBOARD -->
     <div id="sideBar" class="transform">
-        <header>
+        <header class="sideBar-header">
             <span id="livePulse" class="pulse"></span><span class="pulse">Live</span>
             <p id="timeStamp" class="yellow"></p>
             <span id="closeDash" class="closeBtn" title="Close Dashboard">X</span>
@@ -208,10 +208,10 @@
                     <title>Toggle Vaccines</title></text>   
             </svg>
         </div>
-        <div id="optionsDiv" class="ease-out">
+        <div id="optionsDiv" class="options-div ease-out">
             <div id="dropDown">
                 <span class="flex-span" id="dropDownTitle">New Cases</span>
-                <span class="flex-span bckg-sprite" id="dropDownArrow"></span> 
+                <span class="flex-span bckg-sprite dropDown-arrow" id="dropDownArrow"></span> 
             </div>
             <div id="casesMenu">
                 <button type="button" class="cases-btns" data-category="cases" data-prop="casesPerMil">Cases/Million</button>
@@ -240,6 +240,24 @@
             <div id="worldStats"></div>
             <div id="worldList"></div>
         </div>
+    </div>
+    <div id="usSideBar" class="transform">
+        <div class="sideBar-header">
+            <h2>US Vaccinations</h2>
+            <span id="closeUsDash" class="closeBtn" title="Close Dashboard">X</span>
+        </div>
+        <div id="usOptionsDiv" class="options-div ease-out">
+            <div id="usDropDown">
+                <span class="flex-span" id="usDropDownTitle">Partially Vaccinated</span>
+                <span class="flex-span bckg-sprite dropDown-arrow" id="usDropDownArrow"></span> 
+            </div>
+            <div id="usVaccMenu">
+                <button type="button" class="vacc-btns" data-category="vaccines" data-us-prop="percVacc">Partially Vaccinated</button>
+                <button type="button" class="vacc-btns" data-category="vaccines" data-us-prop="percFullyVacc">Fully Vaccinated</button>
+                <button type="button" class="vacc-btns" data-category="vaccines" data-us-prop="totalVaccinations">Total Vaccinations</button>
+            </div>
+        </div>
+        <div id="usStatsWrapper"></div>
     </div>
     <!-- END SIDEBAR DASHBOARD -->
     <!-- MAIN MAP SECTION -->

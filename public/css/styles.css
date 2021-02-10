@@ -152,6 +152,12 @@
     -webkit-transition: 0.3s ease-out;
     transition: 0.3s ease-out;
 }
+.ease-in-out{
+    -o-transition:0.5s ease-in-out;
+    -moz-transition:0.5s ease-in-out;
+    -webkit-transition:0.5s ease-in-out;
+    transition:0.5s ease-in-out;
+}
 .no-hover{
     background-color: unset!important;
 }
@@ -223,6 +229,10 @@
     opacity: 1!important;
     margin:0!important;
     padding:0!important;
+    -o-transition:none!important;
+    -moz-transition:none!important;
+    -webkit-transition:none!important;
+    transition:none!important;
 }
 /* END GLOBALS */
 html, body{
@@ -271,7 +281,7 @@ body{
     justify-content: flex-start;
     background-color:#000;
     padding: 0 12px;
-    z-index: 10;
+    z-index: 12;
     box-shadow: 0px 0px 2px 0px black;
 }
 .light #header{
@@ -397,7 +407,7 @@ body{
     top:50px;
     border-radius: 0 0 8px 8px;
     padding:10px 0;
-    z-index: 9;
+    z-index: 10;
     background-color: #1b1b1b;
     visibility: hidden;
 }
@@ -483,10 +493,6 @@ body{
     padding:0px 10px;
     background-color:#282828;
     z-index: 8;
-    -o-transition:0.5s ease-in-out;
-    -moz-transition:0.5s ease-in-out;
-    -webkit-transition:0.5s ease-in-out;
-    transition:0.5s ease-in-out;
     opacity: 0.9;
 }
 .light #countryPopup{
@@ -514,19 +520,22 @@ body{
     color:#000;
 }
 .us-btn{
-    text-decoration: underline;
+    text-decoration: none;
     position: relative;
     top:10px;
-    font-size: 2em;
+    font-size: 1.5em;
     font-weight: 100;
     text-transform: uppercase;
-    color:#000;
-    background-color: #4fbbde;
-    padding:5px 20px;
-    border-radius: 8px;
+    color:#e9e9e9;
+    background-color: #a52432;
+    padding:5px 29px;
+    border-radius: 50px;
     white-space: nowrap;
     cursor: pointer;
 }
+.us-btn:hover, .us-btn:focus{
+    text-decoration: underline;
+} 
 .flag-big{
     width: 120px;
     height:120px;
@@ -667,8 +676,9 @@ body{
     display: none;
     opacity: 0;
     position: absolute;
-    top:18px;
+    top:calc(50% - 32px);
     left:calc(50% - 32px);
+    z-index: 99;
 }
 .chart-no-data{
     text-align: center;
@@ -972,7 +982,7 @@ body{
     text-align: center;
     line-height: 20px;
     cursor: pointer;
-    z-index: 7;
+    z-index: 8;
     background-color:#faebd7;
 }
 .light #toggleSideBar, .light #keyBtn, .light #centerBtn, .light #toggleDark{
@@ -1059,7 +1069,7 @@ body{
     background-color:#1d1d1d;
     visibility: hidden;
     color:#faebd7;
-    z-index: 7;
+    z-index: 8;
     /* -ms-touch-action:none;touch-action:none; */
 }
 #legendHelpTip{
@@ -1078,13 +1088,18 @@ body{
     border-radius: 7px;
 }
 #closeKeys:hover{
+    color:unset!important;
     background-color: #3b3a38;
 }
 .light #closeKeys:hover{
+    color:unset!important;
     background-color: #cacaca;
 }
 #closeKeys{
     float: right;  
+}
+.light #closeKeys{
+    color:#000;
 }
 h2{
     margin: 0;
@@ -1175,14 +1190,14 @@ h2{
     -webkit-transition:transform 0.3s ease-in-out;
     transition:transform 0.3s ease-in-out;
     visibility: hidden;
-    z-index: 8;
+    z-index: 11;
     padding-bottom: 50px;
     /* -ms-touch-action:none;touch-action:none; */
 }
 .light #sideBar{
     background-color: #002b6b;
 }
-header{
+.sideBar-header{
     display: -webkit-box;
     display: -ms-flexbox;
     display: flex;
@@ -1190,15 +1205,15 @@ header{
     padding:0px 12px;
     border-bottom:1px solid #fff;
 }
-#closeDash{
+.closeBtn{
     -webkit-box-flex:1; -ms-flex:1; flex:1;
     color:#fff;
     text-align: end;
 }
-#closeDash:hover{
+.closeBtn:hover{
     color:#626262;
 }
-.light #closeDash:hover{
+.light .closeBtn:hover{
     color:#cacaca;
 }
 #livePulse{
@@ -1245,16 +1260,19 @@ header{
 }
 /* end switch */
 /* begin dropdown */
-#optionsDiv{
+.options-div{
     width: auto;
     height: auto;
     height: 40px;
     overflow-x: hidden;
     overflow-y: scroll;
     padding:0px;
-    margin-bottom:20px;
+    margin-bottom:-1px;
 }
-#dropDown{
+#usOptionsDiv{
+    margin-bottom:10px;
+}
+#dropDown, #usDropDown{
     position: -webkit-sticky;
     position: sticky; 
     top:-1px;
@@ -1269,7 +1287,7 @@ header{
     border-bottom:1px solid #1d1d1d;
     cursor: pointer;
 }
-.light #dropDown{
+.light #dropDown, .light #usDropDown{
     box-shadow: 0px 0px 3px 0px black;
     background-color:#fff; 
 }
@@ -1277,7 +1295,7 @@ header{
     -ms-flex-item-align: center;-ms-grid-row-align: center;align-self: center;
     margin-left:15px;
 }
-#dropDownTitle{
+#dropDownTitle, #usDropDownTitle{
     font-weight: 400;
     color:#282828;
 }
@@ -1287,7 +1305,7 @@ header{
 .light #chartOptionArrow{
     filter:none;
 }
-#dropDownArrow, #chartOptionArrow{
+.dropDown-arrow{
     width:30px;
     height:30px;
     background-position: 0px 0px;
@@ -1299,7 +1317,7 @@ header{
     -webkit-transition:0.1s ease-in;  
     transition:0.1s ease-in;
 }
-#dropDownArrow:hover, #dropDownArrow:active, #dropDownArrow:focus, #chartOptionArrow:hover, #chartOptionArrow:active, #chartOptionArrow:focus{
+.dropDown-arrow:hover, .dropDown-arrow:active, .dropDown-arrow:focus{
     opacity: 1;
 }
 #testsMenu, #deathsMenu, #vaccMenu{
@@ -1513,6 +1531,40 @@ svg{
     stroke:#000;
 }
 /* end map */
+/* begin usMap elements */
+#usSideBar{
+    visibility: hidden;
+    display:-webkit-box; display:-ms-flexbox; display:flex;
+    -webkit-box-orient: vertical; -webkit-box-direction: normal; -ms-flex-direction: column; flex-direction: column;
+    width: 300px;
+    height: 100%;
+    position: fixed;
+    top:50px;
+    background-color: #1b1b1b;
+    opacity: 0.9;
+    z-index: 15;
+    overflow-y: hidden;
+    padding-bottom:55px;
+    -o-transition:transform 0.3s ease-in-out;
+    -moz-transition:transform 0.3s ease-in-out;
+    -webkit-transition:transform 0.3s ease-in-out;
+    transition:transform 0.3s ease-in-out;
+}
+#usSideBar .sideBar-header {
+    height:50px;
+}
+#usSideBar h2{
+    font-weight: 100;
+    color:#faebd7;
+}
+#usStatsWrapper{
+    -webkit-box-flex: 1; -ms-flex: 1; flex: 1;
+    overflow-y: scroll;
+}
+#usStatsWrapper h2, #usStatsWrapper .ranks-title{
+    padding:0px 12px;
+}
+/* end usMap elements */
 /* begin popup */
 #popup{
     position: absolute;
@@ -1524,6 +1576,12 @@ svg{
     display: none;
     -ms-touch-action:none;touch-action:none;
     opacity: 0.9;
+    pointer-events: none;
+}
+.popup-flex{
+    display: -webkit-box; display: -ms-flexbox; display: flex;
+    -webkit-box-align: center; -ms-flex-align: center; align-items: center;
+    -webkit-box-pack: justify; -ms-flex-pack: justify; justify-content: space-between;
 }
 .popup-big, .popup-small, .country{
     display: block;
@@ -1532,9 +1590,11 @@ svg{
 .popup-big{
     font-size: 1.5em;
     font-weight: 400;
+    margin-left: 15px;
 }
 .country{
     font-size: 1.5em;
+    margin-bottom:10px;
 }
 .flag{
     display: block;
@@ -1845,7 +1905,7 @@ svg{
         -moz-transition:transform 0.3s ease-out;
         -webkit-transition:transform 0.3s ease-out;
         transition:transform 0.3s ease-out;
-        z-index: 9;
+        z-index: 11;
     }
     .light #mobileNav{
         background-color: #fff;
@@ -1859,11 +1919,12 @@ svg{
     }
     #toggleSideBar, #centerBtn, #keyBtn, #toggleDark{
         background-color: unset!important;
-        top:53.5px;
+        top:53.5px!important;
         box-shadow: 0px 0px 2px 0px black;
+        z-index: 9;
     }
     #keys{
-        top:unset;right:unset;
+        top:unset!important;right:unset!important;
         bottom:0px;
         width:100%;
         padding:5px 10px 10px;
@@ -1959,7 +2020,7 @@ svg{
         width:100%;
         top:0px;
         opacity: 1;
-        z-index: 11;
+        z-index: 15;
     }
     #toggleSideBar{
         left:5px;
@@ -1972,7 +2033,6 @@ svg{
         height:41px;
         top:50px;
         right:0;
-        z-index: 6;
     }
     #globalHelpTip{
         position: absolute;
@@ -2048,6 +2108,12 @@ svg{
     }
     .chart-text, .chart-label{
         font-size: 2vw;
+    }
+    #usSideBar{
+        width:100%;
+        top:0px;
+        opacity: 1;
+        padding-bottom: 0px;
     }
 }
 @media(max-width:520px){
