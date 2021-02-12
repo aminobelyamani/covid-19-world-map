@@ -175,12 +175,12 @@
     -ms-transform:translateY(-178px);
     transform:translateY(-178px);
 }
-.transform-y-220{
-    -o-transform:translateY(-220px);
-    -moz-transform:translateY(-220px);
-    -webkit-transform:translateY(-220px);
-    -ms-transform:translateY(-220px);
-    transform:translateY(-220px);
+.transform-y-260{
+    -o-transform:translateY(-260px);
+    -moz-transform:translateY(-260px);
+    -webkit-transform:translateY(-260px);
+    -ms-transform:translateY(-260px);
+    transform:translateY(-260px);
 }
 .transform-y-30{
     -o-transform:translateY(-30px);
@@ -310,8 +310,11 @@ body{
 .light .menu-btns{
     color:#000;
 }
-#mapBtn, #mapBtnMobile{
+#worldBtn, #worldBtnMobile{
     color:#54cbf2;
+}
+#usBtn{
+    margin-left:20px;
 }
 #aboutBtn{
     text-decoration: none;
@@ -1030,7 +1033,7 @@ body{
     display:-webkit-box; display:-ms-flexbox; display:flex;
     top:60px;
     right:52px;
-    z-index: 8;
+    z-index: 9;
 }
 #globalHelpTip{
     left:10px;
@@ -1263,16 +1266,13 @@ h2{
 .options-div{
     width: auto;
     height: auto;
-    height: 40px;
+    height: 39px;
     overflow-x: hidden;
     overflow-y: scroll;
     padding:0px;
-    margin-bottom:-1px;
+    margin-bottom:0px;
 }
-#usOptionsDiv{
-    margin-bottom:10px;
-}
-#dropDown, #usDropDown{
+#dropDown{
     position: -webkit-sticky;
     position: sticky; 
     top:-1px;
@@ -1287,7 +1287,7 @@ h2{
     border-bottom:1px solid #1d1d1d;
     cursor: pointer;
 }
-.light #dropDown, .light #usDropDown{
+.light #dropDown{
     box-shadow: 0px 0px 3px 0px black;
     background-color:#fff; 
 }
@@ -1295,7 +1295,7 @@ h2{
     -ms-flex-item-align: center;-ms-grid-row-align: center;align-self: center;
     margin-left:15px;
 }
-#dropDownTitle, #usDropDownTitle{
+#dropDownTitle{
     font-weight: 400;
     color:#282828;
 }
@@ -1531,40 +1531,6 @@ svg{
     stroke:#000;
 }
 /* end map */
-/* begin usMap elements */
-#usSideBar{
-    visibility: hidden;
-    display:-webkit-box; display:-ms-flexbox; display:flex;
-    -webkit-box-orient: vertical; -webkit-box-direction: normal; -ms-flex-direction: column; flex-direction: column;
-    width: 300px;
-    height: 100%;
-    position: fixed;
-    top:50px;
-    background-color: #1b1b1b;
-    opacity: 0.9;
-    z-index: 15;
-    overflow-y: hidden;
-    padding-bottom:55px;
-    -o-transition:transform 0.3s ease-in-out;
-    -moz-transition:transform 0.3s ease-in-out;
-    -webkit-transition:transform 0.3s ease-in-out;
-    transition:transform 0.3s ease-in-out;
-}
-#usSideBar .sideBar-header {
-    height:50px;
-}
-#usSideBar h2{
-    font-weight: 100;
-    color:#faebd7;
-}
-#usStatsWrapper{
-    -webkit-box-flex: 1; -ms-flex: 1; flex: 1;
-    overflow-y: scroll;
-}
-#usStatsWrapper h2, #usStatsWrapper .ranks-title{
-    padding:0px 12px;
-}
-/* end usMap elements */
 /* begin popup */
 #popup{
     position: absolute;
@@ -2033,6 +1999,7 @@ svg{
         height:41px;
         top:50px;
         right:0;
+        z-index: 8;
     }
     #globalHelpTip{
         position: absolute;
@@ -2108,12 +2075,6 @@ svg{
     }
     .chart-text, .chart-label{
         font-size: 2vw;
-    }
-    #usSideBar{
-        width:100%;
-        top:0px;
-        opacity: 1;
-        padding-bottom: 0px;
     }
 }
 @media(max-width:520px){
