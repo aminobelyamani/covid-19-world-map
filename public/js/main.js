@@ -185,7 +185,7 @@ function socketListeners(socket) {
     });
     socket.on('getLatestData', payload => {
         if (payload.latest && closePopup.getAttribute('data-country') === payload.country) {
-            const percObj = getLatestData(payload);
+            const percObj = getYestData(payload);
             const perc = percObj.perc;
             const percDeaths = percObj.percDeaths;
             if (perc && perc != 0) {
@@ -196,10 +196,11 @@ function socketListeners(socket) {
             }
         }
     });
-    socket.on('getLatestWorldData', data => {
-        if (data.latest) {
-            //console.log(data);
-            const percObj = getLatestData(data, true);
+    socket.on('getLatestWorldData', payload => {
+        if (payload.latest) {
+            const world = (payload.country === 'World') ? true : false;
+            const usa = (payload.country === 'USA') ? true : false;
+            const percObj = getYestData(payload, world, usa);
             const perc = percObj.perc;
             const percDeaths = percObj.percDeaths;
             if (switchValue === 'cases') {
@@ -207,7 +208,7 @@ function socketListeners(socket) {
                     addPercNewWorld(perc);
                 }
             }
-            else {
+            else if (switchValue === 'deaths') {
                 if (percDeaths && percDeaths != 0) {
                     addPercNewWorld(percDeaths);
                 }
@@ -368,7 +369,7 @@ function worldData(data) {
     const percPartialVacc = roundVal((world.totalPartialVacc / world.totalPop) * 100, 1);
     const percPplFlVacc = roundVal((world.totalPplFlVacc / world.totalPop) * 100, 1);
     let worldStats = _('worldStats');
-    const alpha2 = 'OWID_WRL';
+    const alpha2 = (!usOn) ? 'World' : 'USA';
     const title = (!usOn) ? 'Global' : 'US';
     if (switchValue === "cases") {
         worldStats.innerHTML = `
@@ -405,7 +406,7 @@ function worldData(data) {
             </div>
             <p class='stats white'>${world.totalCases.commaSplit()}</p>
             <p class='stats-titles gray'>Confirmed Cases</p>`;
-        if (!usOn) { socket.emit('getLatestWorldData', alpha2); }
+        socket.emit('getLatestWorldData', alpha2);
     }
     else if (switchValue === 'tests') {
         worldStats.innerHTML = `
@@ -454,7 +455,7 @@ function worldData(data) {
                 </div>
                 ${getPiePerc(percDeaths, 'totalDeaths', true)}
             </div>`;
-        if (!usOn) { socket.emit('getLatestWorldData', alpha2); }
+        socket.emit('getLatestWorldData', alpha2);
     }
 }
 function buttonsHandler(property) {
@@ -725,7 +726,6 @@ worldList.addEventListener('mouseup', function (e) {
 });
 //POPUP
 function addPopupListeners() {
-    console.log("add POPUP");
     countryAnim = false;
     for (let i = 0; i < pathCountries.length; i++) {
         if (pathCountries[i].getAttribute('data-name')) {//avoid including centerBtn SVG in loop
@@ -739,7 +739,6 @@ function addPopupListeners() {
     }
 }
 function removePopupListeners() {
-    console.log("remove POPUP");
     countryAnim = true;
     for (let i = 0; i < pathCountries.length; i++) {
         if (pathCountries[i].getAttribute('data-name')) {//avoid including centerBtn SVG in loop
@@ -952,8 +951,8 @@ function showCountryPopup(country, alpha2) {
     setTimeout(() => {
         resultsTransform();
     }, 300);
-    const propList = ["newCasesPerMil", "newDeathsPerMil", "percDeaths", "percRecovered", "percActive", "percCritical", "testsPerMil", "percVacc", "percFullyVacc", "totalVaccinations"];
-    const propTitles = ["Daily New Cases", "Daily New Deaths", "Case Fatality Rate", "Recovered", "Active", "Critical", "Tests", "Partially Vaccinated", "Fully Vaccinated", "Vaccinations"];
+    const propList = (!usOn) ? ["newCasesPerMil", "newDeathsPerMil", "percDeaths", "percRecovered", "percActive", "percCritical", "testsPerMil", "percVacc", "percFullyVacc", "totalVaccinations"] : ["newCasesPerMil", "newDeathsPerMil", "percDeaths", "percRecovered", "percActive", "testsPerMil", "percVacc", "percFullyVacc", "totalVaccinations"];
+    const propTitles = (!usOn) ? ["Daily New Cases", "Daily New Deaths", "Case Fatality Rate", "Recovered", "Active", "Critical", "Tests", "Partially Vaccinated", "Fully Vaccinated", "Vaccinations"] : ["Daily New Cases", "Daily New Deaths", "Case Fatality Rate", "Recovered", "Active", "Tests", "Partially Vaccinated", "Fully Vaccinated", "Vaccinations"] ;
     const svgList = (!usOn) ? dataSVG : usSVG;
     const flagId = svgList.find(path => path.country === country).id;
     const flagUrl = (flagId === 'ic') ? `images/ic.png` : (flagId === 'us-dc') ? `images/us-dc.png` : `https://flagcdn.com/h240/${flagId}.png`;
@@ -971,7 +970,7 @@ function showCountryPopup(country, alpha2) {
         const title = rawTotalSwitch(item).title;
         const totalProp = rawTotalSwitch(item).totalProp;
         const colorClass = rawTotalSwitch(item).colorClass;
-        const flexClass = (item === 'totalVaccinations') ? 'stats-column-flex-100' : '';
+        const flexClass = (item === 'totalVaccinations' && !usOn) ? 'stats-column-flex-100' : '';
         const helpText = dropDownSwitch(item);
         html += `
             <div class='stats-column-flex ${flexClass}'>
@@ -1015,8 +1014,9 @@ function showCountryPopup(country, alpha2) {
     //CHART
     const loader = dynLoader('chartLoader');
     _('chart').appendChild(loader);
-    const payload = { alpha2: alpha2, country: country };
-    if (!usOn) { fadeIn(_('chartLoader')); socket.emit('getCountryData', alpha2); socket.emit('getLatestData', payload); }
+    const payload = { alpha2: alpha2, country: country, usOn: usOn };
+    socket.emit('getLatestData', payload);
+    if (!usOn) { fadeIn(_('chartLoader')); socket.emit('getCountryData', alpha2); }
     setTimeout(() => { addHeader(); }, 300);
     countryPopup.addEventListener('scroll', onCountryPopupScroll, false);
 }
@@ -1025,25 +1025,18 @@ function onCountryPopupScroll() {
         addHeader();
     }
 }
-function getLatestData(payload, world) {
-    //console.log(payload);
-    let perc, percDeaths;
-    const record = (world) ? dataAPI.find(data => data.country === "World") : sortList(countriesList, 'newCases').find(data => data.country === payload.country);
-    let date = (payload.latest.data1.new_cases != record.newCases && payload.latest.data1.new_cases != 0) ? 'data1' : (payload.latest.data2 && payload.latest.data2.new_cases != record.newCases && payload.latest.data2.new_cases != 0) ? 'data2' : false;
-    if (date) {
-        const factor1 = (payload.latest[date].new_cases > 0) ? payload.latest[date].new_cases : 1;
-        perc = ((record.newCases - (payload.latest[date].new_cases || 0)) / factor1) * 100;
-        perc = roundVal(perc, 2);
-    }
-    else { perc = false; }
-    date = (payload.latest.data1.new_deaths != record.newDeaths && payload.latest.data1.new_deaths != 0) ? 'data1' : (payload.latest.data2 && payload.latest.data2.new_deaths != record.newDeaths && payload.latest.data2.new_deaths != 0) ? 'data2' : false;
-    if (date) {
-        const factor2 = (payload.latest[date].new_deaths > 0) ? payload.latest[date].new_deaths : 1;
-        percDeaths = ((record.newDeaths - (payload.latest[date].new_deaths || 0)) / factor2) * 100;
-        percDeaths = roundVal(percDeaths, 2);
-    }
-    else { percDeaths = false; }
-    return { perc: perc, percDeaths: percDeaths };
+function getYestData(payload, world, usa) {
+    const dataset = (!usOn || usa) ? countriesList : usData;
+    const percArray = [];
+    const record = (world) ? dataAPI.find(data => data.country === "World") : sortList(dataset, 'newCases').find(data => data.country === payload.country);
+    const propList = ['newCases', 'newDeaths'];
+    propList.forEach(p => {
+        const factor = (payload.latest[p] > 0) ? payload.latest[p] : 1;
+        let value = ((record[p] - (payload.latest[p] || 0)) / factor) * 100;
+        value = roundVal(value, 2);
+        percArray.push(value);
+    });
+    return { perc: percArray[0], percDeaths: percArray[1] };
 }
 function addPercNew(perc, deaths) {
     const childNum = (deaths) ? 2 : 1;
@@ -1124,11 +1117,11 @@ function getRecord(country, property, propTitle, totalProp) {
             </div> `;
         }
         else {
-            totalText = `
+            totalText = (!usOn) ? `
             <div class='flex-stat'>
                 <p class='stats text-center font-vw'>${record.vaccines}</p>
                 <p class='stats-titles dark-gray text-center'>Vaccines</p>
-            </div> `;
+            </div> ` : '';
         }
         let perc;
         switch (property) {
@@ -1223,7 +1216,7 @@ function appendUsStates() {
             fadeIn(_('mapLoader'));
         }
         mapDiv.appendChild(xhr.responseXML.documentElement);
-        console.log("US Map Loaded...");
+        //console.log("US Map Loaded...");
         declareUsZoomElems();
     }
     xhr.send('');
@@ -1244,14 +1237,13 @@ function appendWorld() {
             mapDiv.appendChild(dynLoader('mapLoader'));
         }
         mapDiv.appendChild(xhr.responseXML.documentElement);
-        console.log("World Map Loaded...");
+        //console.log("World Map Loaded...");
         declareWorldZoomElems();
     }
     xhr.send('');
 }
 //GLOBAL LISTENERS
 function addZoomTapListeners() {
-    console.log("add ZOOM");
     if (!is_touch_device) {
         svgEl.addEventListener('mousedown', onMouseDown, false);
         svgEl.addEventListener('dblclick', tapZoomHandler, false);
@@ -1273,7 +1265,6 @@ function addZoomTapListeners() {
     centerBtn.addEventListener('click', centerMap, false);
 }
 function removeZoomTapListeners() {
-    console.log("remove ZOOM");
     if (!is_touch_device) {
         svgEl.removeEventListener('mousedown', onMouseDown);
         svgEl.removeEventListener('dblclick', tapZoomHandler);
@@ -1296,7 +1287,6 @@ function removeZoomTapListeners() {
 }
 //LEGEND HOVER LISTENERS
 function addLegendListeners() {
-    console.log("add LEGEND");
     const colors = legendColors.querySelectorAll('.color');
     const keyRanges = keys.querySelectorAll('.data-range');
     for (let i = 0; i < colors.length; i++) {
@@ -1317,7 +1307,6 @@ function addLegendListeners() {
     }
 }
 function removeLegendListeners() {
-    console.log("remove LEGEND");
     const keyRanges = keys.querySelectorAll('.data-range');
     const colors = legendColors.querySelectorAll('.color');
     for (let i = 0; i < colors.length; i++) {
@@ -1675,7 +1664,6 @@ function onDocTap(e) {
     }
 }
 function touchEvents(newHammer) {
-    console.log("touch");
     //GLOBAL
     if (newHammer) { hammertime.off('doubletap').destroy(); presstime.off('doubletap').destroy(); }
     taptime = new Hammer(document);

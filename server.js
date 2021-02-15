@@ -31,7 +31,7 @@ app.use(express.static(path.join(__dirname, 'public')));//localhost
 const io = require('socket.io')(server);
 
 //DOWNLOAD DATA FILES
-var parsedFull, latestData, fetchData, parsedCsv, vaccineData, parsedLocationsCsv, parsedUsCsv, usVaccineData, usData;
+var parsedFull, fetchData, parsedCsv, vaccineData, parsedLocationsCsv, parsedUsCsv, usVaccineData, usData, yestData, yestUsData;
 function downloadFile(url, callback) {
     var filename;
     if (url === 'https://api.apify.com/v2/key-value-stores/SmuuI0oebnTWjRTUh/records/LATEST?disableRedirect=true') {
@@ -39,6 +39,9 @@ function downloadFile(url, callback) {
     }
     else if (url === 'https://www.worldometers.info/coronavirus/country/us/') {
         filename = 'us-scrape.html';
+    }
+    else if (url === 'https://www.worldometers.info/coronavirus/') {
+        filename = 'world-scrape.html';
     }
     else {
         filename = (path.extname(url) != '') ? path.basename(url) : path.basename(urlParser.parse(url).pathname) + '.json';
@@ -72,21 +75,43 @@ function downloadFile(url, callback) {
     });
 }
 //WORLDOMETERS SCRAPING
-function parseUSScrape() {
+function parseScrape(usa) {
     return new Promise(resolve => {
-        const file = fs.readFileSync(path.join(__dirname, 'us-scrape.html'));
+        const filename = (usa) ? 'us-scrape.html' : 'world-scrape.html';
+        const file = fs.readFileSync(path.join(__dirname, filename));
         const $ = cheerio.load(file, null, false);
         var rows = [];
-        $("#usa_table_countries_today > tbody > tr").each((index, element) => {
+        const wrapper = (usa) ? '#usa_table_countries_today' : '#main_table_countries_today';
+        const count = (usa) ? 12 : 13;
+        $(`${wrapper} > tbody > tr`).each((index, element) => {
             var props = [];
-            for (let i = 1; i <= 12; i++) {
+            for (let i = 1; i <= count; i++) {
                 prop = ($($(element).find('td')[i]).text());
                 prop = prop.replace(/,/g, '').trim();
                 if (prop === 'New York') { prop = 'New York State'; }
                 else if (prop === 'District Of Columbia') { prop = 'District of Columbia'; }
                 props.push(prop);
             }
-            if (index > 0 && index <= 51) {
+            if (usa) {
+                if (index > 0 && index <= 51) {
+                    rows.push({
+                        country: props[0],
+                        totalCases: Number(props[1]),
+                        newCases: Number(props[2]),
+                        totalDeaths: Number(props[3]),
+                        newDeaths: Number(props[4]),
+                        totalRecovered: Number(props[5]),
+                        activeCases: Number(props[6]),
+                        seriousCritical: null,
+                        casesPerMil: Number(props[7]),
+                        deathsPerMil: Number(props[8]),
+                        totalTests: Number(props[9]),
+                        testsPerMil: Number(props[10]),
+                        population: Number(props[11])
+                    });
+                }
+            }
+            else {
                 rows.push({
                     country: props[0],
                     totalCases: Number(props[1]),
@@ -95,20 +120,58 @@ function parseUSScrape() {
                     newDeaths: Number(props[4]),
                     totalRecovered: Number(props[5]),
                     activeCases: Number(props[6]),
-                    seriousCritical: null,
-                    casesPerMil: Number(props[7]),
-                    deathsPerMil: Number(props[8]),
-                    totalTests: Number(props[9]),
-                    testsPerMil: Number(props[10]),
-                    population: Number(props[11])
+                    seriousCritical: Number(props[7]),
+                    casesPerMil: Number(props[8]),
+                    deathsPerMil: Number(props[9]),
+                    totalTests: Number(props[10]),
+                    testsPerMil: Number(props[11]),
+                    population: Number(props[12])
                 });
             }
         });
-        console.log('US Data Scraping parsed...');
+        const output = (usa) ? 'US' : 'WORLD';
+        console.log(`${output} Data Scraping parsed...`);
         resolve(rows);
     });
 };
-
+function parseYesterdayScrape(usa) {
+    return new Promise(resolve => {
+        const filename = (usa) ? 'us-scrape.html' : 'world-scrape.html';
+        const file = fs.readFileSync(path.join(__dirname, filename));
+        const $ = cheerio.load(file, null, false);
+        var rows = [];
+        const wrapper = (usa) ? '#usa_table_countries_yesterday' : '#main_table_countries_yesterday';
+        $(`${wrapper} > tbody > tr`).each((index, element) => {
+            var props = [];
+            for (let i = 1; i <= 5; i += 2) {
+                prop = ($($(element).find('td')[i]).text());
+                prop = prop.replace(/,/g, '').trim();
+                if (prop === 'New York') { prop = 'New York State'; }
+                else if (prop === 'District Of Columbia') { prop = 'District of Columbia'; }
+                props.push(prop);
+            }
+            if (usa) {
+                if (index > 0 && index <= 51) {
+                    rows.push({
+                        country: props[0],
+                        newCases: Number(props[1]),
+                        newDeaths: Number(props[2])
+                    });
+                }
+            }
+            else {
+                rows.push({
+                    country: props[0],
+                    newCases: Number(props[1]),
+                    newDeaths: Number(props[2])
+                });
+            }
+        });
+        const output = (usa) ? 'US' : 'WORLD';
+        console.log(`${output} Yesterday Data Scraping parsed...`);
+        resolve(rows);
+    });
+}
 //CRON JOB SCHEDULING FOR OWID AND WORLDOMETER DOWNLOADS
 const CronJob = require('cron').CronJob;
 const owidJob = new CronJob('0 3 * * *', function () {// 3 AM
@@ -117,7 +180,6 @@ const owidJob = new CronJob('0 3 * * *', function () {// 3 AM
         if (file) {
             console.log(`${file} FINISHED DOWNLOADING AT ${new Date()}`);
             parsedFull = await loadFullData();
-            latestData = getLatestData();
         }
         else {
             console.log('FILE NOT FOUND');
@@ -181,12 +243,25 @@ const usJob = new CronJob('*/5 * * * *', function () {// EVERY 5 MINUTES
         }
     });
 }, null, true, 'America/New_York');
+const yesterdayJob = new CronJob('0 0 * * *', function () {// MIDNIGHT 
+    const url = 'https://www.worldometers.info/coronavirus/';
+    downloadFile(url, file => {
+        if (file) {
+            console.log(`${file} FINISHED DOWNLOADING AT ${new Date()}`);
+            runYest();
+        }
+        else {
+            console.log(`COULD NOT SCRAPE FILE: ${url}`);
+        }
+    });
+}, null, true, 'America/New_York');
 
 owidJob.start();
 worldometersJob.start();
 vaccJob.start();
 vaccUsJob.start();
 usJob.start();
+yesterdayJob.start();
 
 //LOAD FILES ON SERVER START
 const worldFile = fs.readFileSync(path.join(__dirname, 'world.json'));
@@ -199,7 +274,6 @@ console.log("parsed us-state codes...")
 
 const runINITIAL = async () => {
     parsedFull = await loadFullData();
-    latestData = getLatestData();
     fetchData = await parseFetchData();
 };
 const runCSV = async () => {
@@ -210,13 +284,17 @@ const runCSV = async () => {
 const runUsCSV = async () => {
     parsedUsCsv = await readCsv('us_state_vaccinations.csv');
     usVaccineData = await getUsVaccineData();
-    usData = await parseUSScrape();
+    usData = await parseScrape(true);
     usData = compileUsData(usData);
 };
-
+const runYest = async () => {
+    yestData = await parseYesterdayScrape();
+    yestUsData = await parseYesterdayScrape(true);
+};
 runINITIAL();
 runCSV();
 runUsCSV();
+runYest();
 
 function readCsv(file) {
     return new Promise(resolve => {
@@ -250,33 +328,6 @@ async function loadFullData() {
             return parsedFull;
         }
     }
-}
-
-function getLatestData() {
-    const dataList = [];
-    countryCodes.forEach(country => {
-        const countryData = loadCountryData(country.alpha2).data;
-        if (countryData) {
-            let lastIndex = false;
-            let count = countryData.length - 1;
-            while (lastIndex === false && count != -1) {
-                if (countryData[count].hasOwnProperty('new_cases') && countryData[count].hasOwnProperty('new_deaths')) {
-                    lastIndex = true;
-                }
-                else {
-                    count--;
-                }
-            }
-            if (count === 0) {
-                dataList.push({ country: country.alpha2, data1: countryData[count], data2: false });
-            }
-            else if (count > 0) {
-                dataList.push({ country: country.alpha2, data1: countryData[count], data2: countryData[count - 1] });
-            }
-        }
-    });
-    console.log("latest data compiled...")
-    return dataList;
 }
 
 async function parseFetchData() {
@@ -378,30 +429,6 @@ function compileUsData(data) {
     return results;
 }
 //CLIENT SERVER FUNCTIONS
-function getWorldData(alpha2) {
-    if (parsedFull.length === 0) { return false; }
-    else {
-        const data = (parsedFull[alpha2]) ? parsedFull[alpha2].data : false;
-        if (data) {
-            let payload = [];
-            let lastIndex = false;
-            let count = data.length - 1;
-            while (lastIndex === false && count != -1) {
-                if (data[count].hasOwnProperty('new_cases') && data[count].hasOwnProperty('new_deaths')) {
-                    lastIndex = true;
-                }
-                else {
-                    count--;
-                }
-            }
-            payload = (count === 0) ? { country: 'world', data1: data[count], data2: false } : (count > 0) ? { country: 'world', data1: data[count], data2: data[count - 1] } : false;
-            return payload;
-        }
-        else {
-            return false;
-        }
-    }
-}
 
 function loadCountryData(country) {
     if (parsedFull.length === 0) { return false; }
@@ -436,12 +463,12 @@ function loadCountryData(country) {
     }
 }
 
-function getCountryLatest(country) {
-    const record = latestData.find(record => record.country.toLowerCase() === country.toLowerCase());
+function getCountryLatest(country, usOn) {
+    const dataset = (usOn) ? yestUsData : yestData;
+    const record = dataset.find(record => record.country.toLowerCase() === country.toLowerCase());
     const latest = (record) ? record : false;
     return latest;
 }
-
 //SOCKET LISTENERS
 io.sockets.on('connection', (socket) => {
     socket.on('getCountryCodes', () => {
@@ -452,13 +479,13 @@ io.sockets.on('connection', (socket) => {
         socket.emit('getCountryData', data);
     });
     socket.on('getLatestData', payload => {
-        const latest = getCountryLatest(payload.alpha2);
+        const latest = getCountryLatest(payload.country, payload.usOn);
         const newPayload = { latest: latest, country: payload.country };
         socket.emit('getLatestData', newPayload);
     });
-    socket.on('getLatestWorldData', alpha2 => {
-        const data = getWorldData(alpha2);
-        const newPayload = { latest: data, country: 'world' };
+    socket.on('getLatestWorldData', country => {
+        const latest = getCountryLatest(country);
+        const newPayload = { latest: latest, country: country };
         socket.emit('getLatestWorldData', newPayload);
     });
     socket.on('getVaccineData', () => {
