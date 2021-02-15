@@ -616,6 +616,10 @@ function onChartLabelHover(e) {
     lines.forEach(line => {
         if (line.getAttribute('stroke') != color) {
             line.classList.add('stroke-gray');
+            line.style.strokeWidth = '2px';
+        }
+        else{
+            line.style.strokeWidth = '4px';
         }
     });
     labels.forEach(label => {
@@ -631,6 +635,7 @@ function onChartLabelOut(e) {
     const labels = chart.querySelectorAll('.chart-label');
     lines.forEach(line => {
         line.classList.remove('stroke-gray');
+        line.style.strokeWidth = '2px';
     });
     labels.forEach(label => {
         label.classList.remove('fill-gray');

@@ -1261,7 +1261,7 @@ h2{
     width: auto;
     height: 39px;
     overflow-x: hidden;
-    overflow-y: scroll;
+    overflow-y: hidden;
     padding:0px;
     margin-bottom:0px;
 }

@@ -227,8 +227,7 @@ function socketListeners(socket) {
     socket.on('getUsData', async data => {
         if (data) {
             if (onLoad) {
-                fadeOut(_('mapLoader'));
-                mapDiv.removeChild(_('mapLoader'));
+                if (_('mapLoader')) { fadeOut(_('mapLoader')); mapDiv.removeChild(_('mapLoader')); }
                 onLoad = false;
             }
             usData = await calcUsData(data);
@@ -940,7 +939,7 @@ function resultsTransform() {
     resultsWrapper.style.OTransform = `translateX(${getOffsets(searchWrapper).left}px)`;
     resultsWrapper.style.transform = `translateX(${getOffsets(searchWrapper).left}px)`;
 }
-function showCountryPopup(country, alpha2) {
+async function showCountryPopup(country, alpha2) {
     let usBtn = (alpha2.toLowerCase() === 'us') ? '<span class="us-btn" onMouseUp="onMenuBtn();">USA MAP</span>' : '';
     countryPopup.scrollTo(0, 0);
     countryPopup.classList.remove('transform');
@@ -952,7 +951,7 @@ function showCountryPopup(country, alpha2) {
         resultsTransform();
     }, 300);
     const propList = (!usOn) ? ["newCasesPerMil", "newDeathsPerMil", "percDeaths", "percRecovered", "percActive", "percCritical", "testsPerMil", "percVacc", "percFullyVacc", "totalVaccinations"] : ["newCasesPerMil", "newDeathsPerMil", "percDeaths", "percRecovered", "percActive", "testsPerMil", "percVacc", "percFullyVacc", "totalVaccinations"];
-    const propTitles = (!usOn) ? ["Daily New Cases", "Daily New Deaths", "Case Fatality Rate", "Recovered", "Active", "Critical", "Tests", "Partially Vaccinated", "Fully Vaccinated", "Vaccinations"] : ["Daily New Cases", "Daily New Deaths", "Case Fatality Rate", "Recovered", "Active", "Tests", "Partially Vaccinated", "Fully Vaccinated", "Vaccinations"] ;
+    const propTitles = (!usOn) ? ["Daily New Cases", "Daily New Deaths", "Case Fatality Rate", "Recovered", "Active", "Critical", "Tests", "Partially Vaccinated", "Fully Vaccinated", "Vaccinations"] : ["Daily New Cases", "Daily New Deaths", "Case Fatality Rate", "Recovered", "Active", "Tests", "Partially Vaccinated", "Fully Vaccinated", "Vaccinations"];
     const svgList = (!usOn) ? dataSVG : usSVG;
     const flagId = svgList.find(path => path.country === country).id;
     const flagUrl = (flagId === 'ic') ? `images/ic.png` : (flagId === 'us-dc') ? `images/us-dc.png` : `https://flagcdn.com/h240/${flagId}.png`;
@@ -1012,11 +1011,11 @@ function showCountryPopup(country, alpha2) {
                 <div id="chart"></div>
             </div>`;
     //CHART
-    const loader = dynLoader('chartLoader');
-    _('chart').appendChild(loader);
+    const loader = await dynLoader('chartLoader');
+    if (loader) { _('chart').appendChild(loader); fadeIn(_('chartLoader')); }
     const payload = { alpha2: alpha2, country: country, usOn: usOn };
     socket.emit('getLatestData', payload);
-    if (!usOn) { fadeIn(_('chartLoader')); socket.emit('getCountryData', alpha2); }
+    if (!usOn) { socket.emit('getCountryData', alpha2); }
     setTimeout(() => { addHeader(); }, 300);
     countryPopup.addEventListener('scroll', onCountryPopupScroll, false);
 }
@@ -1198,49 +1197,36 @@ function declareWorldZoomElems() {
     touchTrail.x = touchTrail.y = prevP.x = prevP.y = 0;
     if (is_touch_device) { touchEvents(true); }
 }
-function showUsMap() {
-    usOn = true;
-    appendUsStates();
+async function showUsMap() {
+    const xhr = await appendMap('us.svg');
+    usOn = (xhr) ? true : false;
+    return xhr;
 }
-function appendUsStates() {
-    mapDiv.innerHTML = ``;
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", "us.svg", false);
-    // Following line is just to be on the safe side;
-    // not needed if your server delivers SVG with correct MIME type
-    xhr.overrideMimeType("image/svg+xml");
-    xhr.onload = function (e) {
-        // You might also want to check for xhr.readyState/xhr.status here
-        if (onLoad) {
-            mapDiv.appendChild(dynLoader('mapLoader'));
-            fadeIn(_('mapLoader'));
+async function showWorldMap() {
+    const xhr = await appendMap('world.svg');
+    return xhr;
+}
+function appendMap(file) {
+    return new Promise(resolve => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", file);
+        xhr.overrideMimeType("image/svg+xml"); // not needed if your server delivers SVG with correct MIME type
+        xhr.onload = async function (e) {
+            if (this.status === 200 && this.responseXML.documentElement) {
+                mapDiv.innerHTML = ``;
+                if (onLoad) {
+                    const loader = await dynLoader('mapLoader');
+                    if (loader) { mapDiv.appendChild(loader); fadeIn(_('mapLoader')); }
+                }
+                mapDiv.appendChild(this.responseXML.documentElement);
+                if (file === 'us.svg') { declareUsZoomElems(); }
+                else { declareWorldZoomElems(); }
+                resolve(true);
+            }
+            else { resolve(false); }
         }
-        mapDiv.appendChild(xhr.responseXML.documentElement);
-        //console.log("US Map Loaded...");
-        declareUsZoomElems();
-    }
-    xhr.send('');
-}
-function showWorldMap() {
-    appendWorld();
-}
-function appendWorld() {
-    mapDiv.innerHTML = ``;
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", "world.svg", false);
-    // Following line is just to be on the safe side;
-    // not needed if your server delivers SVG with correct MIME type
-    xhr.overrideMimeType("image/svg+xml");
-    xhr.onload = function (e) {
-        // You might also want to check for xhr.readyState/xhr.status here
-        if (onLoad) {
-            mapDiv.appendChild(dynLoader('mapLoader'));
-        }
-        mapDiv.appendChild(xhr.responseXML.documentElement);
-        //console.log("World Map Loaded...");
-        declareWorldZoomElems();
-    }
-    xhr.send('');
+        xhr.send('');
+    });
 }
 //GLOBAL LISTENERS
 function addZoomTapListeners() {
@@ -2195,9 +2181,9 @@ function clearPopup() {
         countryPopup.classList.add('transform');
         closePopup.style.marginLeft = "-30px";
         countryPopup.style.overflow = '';
-        countryPopup.innerHTML = '';
     }, 10);
     setTimeout(() => {
+        countryPopup.innerHTML = '';
         closePopup.style.visibility = 'hidden';
         resultsTransform();
     }, 500);
@@ -2208,28 +2194,28 @@ function setPrevMapState() {
     pathStrokeHandler();
 }
 //PAGE SWITCHING
-function onWorldPage() {
+function onResetPage() {
     if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); chartOn = false; }
     removeZoomTapListeners();
     removePopupListeners();
     clearPopup();
-    showWorldMap();
     addZoomTapListeners();
     addPopupListeners();
     showPage();
-    if (usOn) { usOn = false; }
     reassignProp();
 }
-function onUsPage() {
-    if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); chartOn = false; }
-    removeZoomTapListeners();
-    removePopupListeners();
-    clearPopup();
-    showUsMap();
-    addZoomTapListeners();
-    addPopupListeners();
-    showPage();
-    reassignProp();
+async function onWorldPage() {
+    const resolve = await showWorldMap();
+    if (resolve) {
+        if (usOn) { usOn = false; }
+        onResetPage();
+    }
+    else { alert("Network Error: Check your internet connection"); }
+}
+async function onUsPage() {
+    const resolve = await showUsMap();
+    if (resolve) { onResetPage(); }
+    else { alert("Network Error: Check your internet connection"); }
 }
 document.querySelectorAll('.menu-btns').forEach(btn => {
     btn.addEventListener('mouseup', onMenuBtn, false);
@@ -2268,16 +2254,21 @@ function onMenuBtn(e) {
 }
 //LOADER
 function dynLoader(id) {
-    var loader;
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", "loader.svg", false);
-    xhr.overrideMimeType("image/svg+xml");
-    xhr.onload = function (e) {
-        loader = xhr.responseXML.documentElement;
-        loader.setAttribute('id', id);
-    }
-    xhr.send('');
-    return loader;
+    return new Promise(resolve => {
+        var loader;
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", "loader.svg");
+        xhr.overrideMimeType("image/svg+xml");
+        xhr.onload = function (e) {
+            if (this.status === 200 && this.responseXML.documentElement) {
+                loader = xhr.responseXML.documentElement;
+                loader.setAttribute('id', id);
+                resolve(loader);
+            }
+            else { resolve(false); }
+        }
+        xhr.send('');
+    });
 }
 //FADE IN/FADE OUT
 function fadeOut(e) {
