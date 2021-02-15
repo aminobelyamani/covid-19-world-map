@@ -1,7 +1,6 @@
-<svg id='chartLoader'
-    xmlns:svg="http://www.w3.org/2000/svg"
+<svg xmlns:svg="http://www.w3.org/2000/svg"
     xmlns="http://www.w3.org/2000/svg"
-    xmlns:xlink="http://www.w3.org/1999/xlink" version="1.0" width="64px" height="64px" viewBox="0 0 128 128" xml:space="preserve">
+    xmlns:xlink="http://www.w3.org/1999/xlink" version="1.0" width="64px" height="64px" viewBox="0 0 128 128" xml:space="preserve" class="loader">
     <g>
         <path d="M122.5 69.25H96.47a33.1 33.1 0 0 0 0-10.5h26.05a5.25 5.25 0 0 1 0 10.5z" fill="#000000" fill-opacity="1"/>
         <path d="M112.04 97.83L89.47 84.8a33.1 33.1 0 0 0 5.25-9.1l22.57 13.03a5.25 5.25 0 0 1-5.28 9.1z" fill="#b2b2b2" fill-opacity="0.3"/>

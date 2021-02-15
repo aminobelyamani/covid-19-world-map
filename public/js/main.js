@@ -16,7 +16,8 @@ var currentTitle = "Cases/Million";
 const rangeLimit = 6;
 var switchValue = "cases";
 var mode = "dark";
-var chartOn = false,
+var dropDownOn = false,
+    chartOn = false,
     usOn = false;
 //global DOM elements
 var html = _('html');
@@ -118,9 +119,7 @@ function onDOMLoaded() {
                 countriesList = await getData(dataAPI);
                 countriesList = await calcData(countriesList);
                 timeStamp.innerText = `Updated at ${formatTime()} EST`;
-                buttonsHandler(prop);
-                worldData(dataAPI);
-                getMinMax(countriesList, prop);
+                execProp();
                 socket.emit('getVaccineData');
                 socket.emit('getUsData');
                 onPageLoad();
@@ -145,36 +144,47 @@ function socketListeners(socket) {
     });
     socket.on('getCountryData', data => {
         if (data) {
-            const chart = _('chart');
-            fadeOut(_('chartLoader'));
-            chart.style.minHeight = '350px';
-            chart.style.height = '70vh';
-            dataHist = data;
-            propArr = ['new_cases_smoothed'];
-            currentProp = 'new_cases_smoothed';
-            propTitle = ['Daily Cases'];
-            chartArray = createChartArray(dataHist, currentProp);
-            if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); }
-            makeChartDiv();
-            addGlobalChartListeners();
-            if (chartArray.length > 1) {
-                makeChart();
-                addChartListeners();
-                chartOn = true;
-            }
-            else {
-                onNoChartData();
+            if (closePopup.getAttribute('data-alpha2').toLowerCase() === data.country.toLowerCase()) {//in case they left page before socket response
+                if (data.data) {
+                    const chart = _('chart');
+                    if (_('chartLoader')) { fadeOut(_('chartLoader')); }
+                    chart.style.minHeight = '350px';
+                    chart.style.height = '70vh';
+                    dataHist = data.data;
+                    propArr = ['new_cases_smoothed'];
+                    currentProp = 'new_cases_smoothed';
+                    propTitle = ['Daily Cases'];
+                    chartArray = createChartArray(dataHist, currentProp);
+                    if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); }
+                    makeChartDiv();
+                    addGlobalChartListeners();
+                    if (chartArray.length > 1) {
+                        makeChart();
+                        addChartListeners();
+                        chartOn = true;
+                    }
+                    else {
+                        onNoChartData();
+                    }
+                }
+                else {
+                    chartOn = false;
+                    const chart = _('chart');
+                    if (_('chartLoader')) { fadeOut(_('chartLoader')); }
+                    chart.innerHTML = "<h2 class='chart-no-data yellow-test'>NO CHART DATA</h2>";
+                }
             }
         }
         else {
             chartOn = false;
             const chart = _('chart');
-            fadeOut(_('chartLoader'));
+            if (_('chartLoader')) { fadeOut(_('chartLoader')); }
             chart.innerHTML = "<h2 class='chart-no-data yellow-test'>NO CHART DATA</h2>";
         }
+
     });
     socket.on('getLatestData', payload => {
-        if (payload.latest) {
+        if (payload.latest && closePopup.getAttribute('data-country') === payload.country) {
             const percObj = getLatestData(payload);
             const perc = percObj.perc;
             const percDeaths = percObj.percDeaths;
@@ -199,7 +209,7 @@ function socketListeners(socket) {
             }
             else {
                 if (percDeaths && percDeaths != 0) {
-                    addPercNewWorld(percDeaths, true);
+                    addPercNewWorld(percDeaths);
                 }
             }
         }
@@ -210,27 +220,30 @@ function socketListeners(socket) {
             countriesList = await getData(dataAPI);
             countriesList = await calcData(countriesList);
             timeStamp.innerText = `Updated at ${formatTime()} EST`;
-            buttonsHandler(prop);
-            worldData(dataAPI);
-            const dataset = (!usOn) ? countriesList : usData;
-            getMinMax(dataset, prop);
+            execProp();
         }
     });
     socket.on('getUsData', async data => {
         if (data) {
             if (onLoad) {
-                fadeOut(_('chartLoader'));
-                mapDiv.removeChild(_('chartLoader'));
+                fadeOut(_('mapLoader'));
+                mapDiv.removeChild(_('mapLoader'));
                 onLoad = false;
             }
             usData = await calcUsData(data);
             usData = await calcData(usData);
-            buttonsHandler(prop);
-            worldData(dataAPI);
-            const dataset = (!usOn) ? countriesList : usData;
-            getMinMax(dataset, prop);
+            execProp();
         }
     });
+}
+async function execProp() {
+    const dataset = (!usOn) ? countriesList : usData;
+    buttonsHandler(prop);
+    worldData(dataAPI);
+    globalRangeList = await getMinMax(dataset, prop);
+    makeLegend(globalRangeList);
+    matchData(dataset, prop, globalRangeList);
+    showSortedList(dataset);
 }
 function calcUsData(data) {
     return new Promise(resolve => {
@@ -243,10 +256,7 @@ function calcUsData(data) {
     });
 }
 function reassignProp() {
-    buttonsHandler(prop);
-    worldData(dataAPI);
-    const dataset = (!usOn) ? countriesList : usData;
-    getMinMax(dataset, prop);
+    execProp();
     statsWrapper.scrollTop = 0;
     globalHelpTipHandler();
     const placeholder = (!usOn) ? 'Search by Country' : 'Search by State';
@@ -465,15 +475,15 @@ function buttonsHandler(property) {
     keyTitle.innerText = rawTotalSwitch(property).title;
 }
 function getMinMax(data, property) {
-    const list = mapData(data, property);
-    var max = (property != 'casesPerMil') ? Math.max.apply(null, list) : list[1];//andorra is highest cases/mil
-    var min = (Math.min.apply(null, list.filter(Boolean)) > 1) ? 1 : Math.min.apply(null, list.filter(Boolean));
-    const minDecimal = min.countDecimals();
-    min = (min < 1) ? 1 / Math.pow(10, minDecimal) : min;
-    globalRangeList = (property === 'percRecovered' || property === 'percActive' || property === 'percCritical' || property === 'percVacc' || property === 'percFullyVacc') ? getPercRangeList(max, min) : getRangeList(max, min);
-    makeLegend(globalRangeList);
-    matchData(data, property, globalRangeList);
-    showSortedList(data);
+    return new Promise(resolve => {
+        const list = mapData(data, property);
+        var max = (property != 'casesPerMil') ? Math.max.apply(null, list) : list[1];//andorra is highest cases/mil
+        var min = (Math.min.apply(null, list.filter(Boolean)) > 1) ? 1 : Math.min.apply(null, list.filter(Boolean));
+        const minDecimal = min.countDecimals();
+        min = (min < 1) ? 1 / Math.pow(10, minDecimal) : min;
+        const range = (property === 'percRecovered' || property === 'percActive' || property === 'percCritical' || property === 'percVacc' || property === 'percFullyVacc') ? getPercRangeList(max, min) : getRangeList(max, min);
+        resolve(range);
+    });
 }
 function mapData(data, property) {
     const list = data.map(item => {
@@ -937,6 +947,7 @@ function showCountryPopup(country, alpha2) {
     countryPopup.classList.remove('transform');
     closePopup.style.visibility = 'visible';
     closePopup.style.marginLeft = "-5px";
+    closePopup.setAttribute('data-alpha2', alpha2);
     closePopup.setAttribute('data-country', country);
     setTimeout(() => {
         resultsTransform();
@@ -956,7 +967,6 @@ function showCountryPopup(country, alpha2) {
         //rankMax.push(list[list.length - 1].rankMax);
     });
     var html = "";
-    const loader = chartLoader();
     propList.forEach((item, index) => {
         const title = rawTotalSwitch(item).title;
         const totalProp = rawTotalSwitch(item).totalProp;
@@ -1000,9 +1010,11 @@ function showCountryPopup(country, alpha2) {
             </div>
             <div class='flex-stats-container'>
                 ${html}
-                <div id="chart">${loader}</div>
+                <div id="chart"></div>
             </div>`;
     //CHART
+    const loader = dynLoader('chartLoader');
+    _('chart').appendChild(loader);
     const payload = { alpha2: alpha2, country: country };
     if (!usOn) { fadeIn(_('chartLoader')); socket.emit('getCountryData', alpha2); socket.emit('getLatestData', payload); }
     setTimeout(() => { addHeader(); }, 300);
@@ -1036,32 +1048,38 @@ function getLatestData(payload, world) {
 function addPercNew(perc, deaths) {
     const childNum = (deaths) ? 2 : 1;
     const cases = countryPopup.querySelector(`.flex-stats-container .stats-column-flex:nth-child(${childNum})`);
-    const div = document.createElement('div');
-    div.setAttribute('class', 'flex-stat');
-    div.setAttribute('style', 'opacity:0;');
-    const color = (Math.sign(perc) === 1) ? (mode === 'dark') ? '#f6584C' : '#B13507' : (mode === 'dark') ? '#6dff71' : '#209222';
-    const arrow = (Math.sign(perc) === -1) ? '▼' : '▲';
-    const plus = (Math.sign(perc) === 1) ? '+' : '';
-    let html = `
+    if (cases.childElementCount === 5) {
+        const div = document.createElement('div');
+        div.setAttribute('class', 'flex-stat');
+        div.setAttribute('style', 'opacity:0;');
+        const color = (Math.sign(perc) === 1) ? (mode === 'dark') ? '#f6584C' : '#B13507' : (mode === 'dark') ? '#6dff71' : '#209222';
+        const arrow = (Math.sign(perc) === -1) ? '▼' : '▲';
+        const plus = (Math.sign(perc) === 1) ? '+' : '';
+        let html = `
         <p class='stats' style='color: ${color};font-size:1em;'>${arrow}</p>
         <p class='stats-titles' style='color: ${color};'>${plus + perc}%</p>`;
-    div.innerHTML = html;
-    cases.appendChild(div);
-    fadeIn(div, true);
+        div.innerHTML = html;
+        cases.appendChild(div);
+        fadeIn(div, true);
+    }
 }
-function addPercNewWorld(perc, deaths) {
+function addPercNewWorld(perc) {
     const childNum = 0;
     const wrapper = worldStats.querySelectorAll(`.worldStats-flex`)[childNum];
-    const div = wrapper.querySelector('.flex-stat');
-    div.style.opacity = 0;
-    const color = (Math.sign(perc) === 1) ? '#f6584C' : '#6dff71';
-    const arrow = (Math.sign(perc) === -1) ? '▼' : '▲';
-    const plus = (Math.sign(perc) === 1) ? '+' : '';
-    let html = `
-        <p class='stats' style='color: ${color}; font-size:1em;'>${arrow}</p>
-        <p class='stats-titles' style='color: ${color};'>${plus + perc}%</p>`;
-    div.innerHTML = html;
-    fadeIn(div, true);
+    if (wrapper) {
+        const div = wrapper.querySelector('.flex-stat');
+        if (div) {
+            div.style.opacity = 0;
+            const color = (Math.sign(perc) === 1) ? '#f6584C' : '#6dff71';
+            const arrow = (Math.sign(perc) === -1) ? '▼' : '▲';
+            const plus = (Math.sign(perc) === 1) ? '+' : '';
+            let html = `
+            <p class='stats' style='color: ${color}; font-size:1em;'>${arrow}</p>
+            <p class='stats-titles' style='color: ${color};'>${plus + perc}%</p>`;
+            div.innerHTML = html;
+            fadeIn(div, true);
+        }
+    }
 }
 function getPiePerc(perc, property, world) {
     const radius = (world) ? 25 : 30;
@@ -1159,7 +1177,6 @@ function onClosePopup(e) {
     addPopupListeners();
     addZoomTapListeners();
     if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); chartOn = false; }
-    countryPopup.classList.add('ease-in-out');
     clearHighlights();
 }
 //US STATES COUNTRY POPUP
@@ -1190,8 +1207,6 @@ function declareWorldZoomElems() {
 }
 function showUsMap() {
     usOn = true;
-    countryAnim = false;
-    if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); chartOn = false; }
     appendUsStates();
 }
 function appendUsStates() {
@@ -1204,8 +1219,8 @@ function appendUsStates() {
     xhr.onload = function (e) {
         // You might also want to check for xhr.readyState/xhr.status here
         if (onLoad) {
-            mapDiv.innerHTML = chartLoader();
-            fadeIn(_('chartLoader'));
+            mapDiv.appendChild(dynLoader('mapLoader'));
+            fadeIn(_('mapLoader'));
         }
         mapDiv.appendChild(xhr.responseXML.documentElement);
         console.log("US Map Loaded...");
@@ -1214,8 +1229,6 @@ function appendUsStates() {
     xhr.send('');
 }
 function showWorldMap() {
-    countryAnim = false;
-    if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); chartOn = false; }
     appendWorld();
 }
 function appendWorld() {
@@ -1228,7 +1241,7 @@ function appendWorld() {
     xhr.onload = function (e) {
         // You might also want to check for xhr.readyState/xhr.status here
         if (onLoad) {
-            mapDiv.innerHTML = chartLoader();
+            mapDiv.appendChild(dynLoader('mapLoader'));
         }
         mapDiv.appendChild(xhr.responseXML.documentElement);
         console.log("World Map Loaded...");
@@ -1653,8 +1666,12 @@ function onPress(e) {
 }
 function onDocTap(e) {
     if (e.tapCount >= 1) {
-        clearLegendHover();
-        popup.style.display = "none";
+        if (e.target.parentNode != _('legendColors')) {
+            clearLegendHover();
+        }
+        else if (e.target.parentNode != zoomEl) {
+            popup.style.display = "none";
+        }
     }
 }
 function touchEvents(newHammer) {
@@ -1671,10 +1688,6 @@ function touchEvents(newHammer) {
     //PAN
     //PRESS FOR COUNTRY POPUP
     presstime = new Hammer(zoomEl);
-    /* popuptime = new Hammer(popup);
-    popuptime.on('tap', function (e) {
-        popup.style.display = "none";
-    }); */
     if (window.innerWidth <= 768) {
         closeSideBar();
     }
@@ -1810,47 +1823,66 @@ switchToggle.addEventListener('mouseup', function (e) {
             switchValue = cat;
             const color = toggleSwitchCases(cat).color;
             switchG.setAttribute('fill', color);
-            const cx = toggleSwitchCases(cat).cx;
-            const cy = toggleSwitchCases(cat).cy;
             const x = parseInt(switchCircle.getAttribute('cx'));
             const y = parseInt(switchCircle.getAttribute('cy'));
-            switchCircle.setAttribute('cx', 32);
-            switchCircle.setAttribute('cy', 32);
-            if (x === cx || y === cy) {//if destination is on same axis
-                switchCircle.setAttribute('cx', cx);
-                switchCircle.setAttribute('cy', cy);
-            }
-            else {
-                setTimeout(() => {
-                    switchCircle.setAttribute('cx', cx);
-                    switchCircle.setAttribute('cy', cy);
-                }, 200);
-            }
+            const animCX = _('animateCX');
+            const animCY = _('animateCY');
+            animCX.setAttribute('from', x);
+            animCX.setAttribute('to', 32);
+            animCY.setAttribute('from', y);
+            animCY.setAttribute('to', 32);
+            animCX.beginElement();
+            animCY.beginElement();
+            animCX.addEventListener('endEvent', onAnimCXMid, false);
+            animCY.addEventListener('endEvent', onAnimCYMid, false);
             const titles = switchToggle.querySelectorAll('.switch-titles');
             for (let i = 0; i < titles.length; i++) {
                 titles[i].style.opacity = (titles[i].getAttribute('data-cat') === cat) ? 1 : 0.4;
             }
-            const menu = toggleSwitchCases(cat).menu;
-            handleOptionsMenu(menu);
             currentData.style.backgroundColor = color;
             prop = toggleSwitchCases(cat).property;
             currentTitle = toggleSwitchCases(cat).title;
-            changeLegendColors(cat);
-            buttonsHandler(prop);
-            worldData(dataAPI);
-            const dataset = (!usOn) ? countriesList : usData;
-            getMinMax(dataset, prop);
-            statsWrapper.scrollTop = 0;
-            removeLegendListeners();
-            addLegendListeners();
-            const height = toggleSwitchCases(cat).height;
-            if (optionsDiv.offsetHeight > 40) {
-                optionsDiv.style.height = height;
-            }
-            globalHelpTipHandler();
         }
     }
 });
+function onAnimCXMid(e) {
+    this.removeEventListener('endEvent', onAnimCXMid);
+    const cx = toggleSwitchCases(switchValue).cx;
+    this.setAttribute('from', 32);
+    this.setAttribute('to', cx);
+    this.beginElement();
+    this.addEventListener('endEvent', onAnimCXEnd);
+}
+function onAnimCYMid(e) {
+    this.removeEventListener('endEvent', onAnimCYMid);
+    const cy = toggleSwitchCases(switchValue).cy;
+    this.setAttribute('from', 32);
+    this.setAttribute('to', cy);
+    this.beginElement();
+    this.addEventListener('endEvent', onAnimCYEnd);
+}
+function onAnimCXEnd(e) {
+    this.removeEventListener('endEvent', onAnimCXEnd);
+    const cx = toggleSwitchCases(switchValue).cx;
+    switchCircle.setAttribute('cx', cx);
+}
+function onAnimCYEnd(e) {
+    this.removeEventListener('endEvent', onAnimCYEnd);
+    const cy = toggleSwitchCases(switchValue).cy;
+    switchCircle.setAttribute('cy', cy);
+    const menu = toggleSwitchCases(switchValue).menu;
+    removeLegendListeners();
+    changeLegendColors(switchValue);
+    handleOptionsMenu(menu);
+    execProp();
+    addLegendListeners();
+    globalHelpTipHandler();
+    if (dropDownOn) {
+        const height = toggleSwitchCases(switchValue).height;
+        optionsDiv.style.height = height;
+    }
+    statsWrapper.scrollTop = 0;
+}
 function handleOptionsMenu(e) {
     const menus = [casesMenu, testsMenu, deathsMenu, vaccMenu];
     for (let i = 0; i < menus.length; i++) {
@@ -1865,6 +1897,7 @@ function openDropDown() {
     optionsDiv.style.height = height;
     toggle.classList.add('transform-rotate');
     sideBar.style.height = "100%";
+    dropDownOn = true;
 }
 function closeDropDown() {
     const toggle = _('dropDownArrow');
@@ -1872,6 +1905,7 @@ function closeDropDown() {
     optionsDiv.style.height = "39px";
     optionsDiv.style.overflowY = "hidden";
     toggle.classList.remove('transform-rotate');
+    dropDownOn = false;
 }
 dropDown.addEventListener('click', (e) => {
     statsWrapper.style.overflowY = 'hidden';
@@ -1920,10 +1954,10 @@ function dropDownSwitch(property) {
             p = `The Case Fatality rate (CFR) represents the proportion of cases who eventually die from the disease. This statistic for each country is imperfect, since it is based on both the total number of reported cases and deaths, both of which depend on the respective countries' reporting criteria. Globally, the WHO has estimated the coronavirus' CFR at <strong>2%</strong>. For comparison, the CFR for SARS was <strong>10%</strong>, and for MERS <strong>34%</strong>.`;
             break;
         case 'percVacc':
-            p = 'This is the percent of population that received at least one vaccine dose, but has <strong>NOT</strong> received all doses presribed by the vaccination protocol.';
+            p = 'This is the percent of population that received at least one vaccine dose, but has <strong>NOT</strong> received all doses presribed by the vaccination protocol. This metric is not being made available by all reporting countries, so a 0 result does <strong>NOT</strong> necessarily mean there are no people vaccinated in the respective country.';
             break;
         case 'percFullyVacc':
-            p = 'This is the percent of population that received all doses prescribed by the vaccination protocol.';
+            p = 'This is the percent of population that received <strong>ALL</strong> doses prescribed by the vaccination protocol. This metric is not being made available by all reporting countries, so a 0 result does <strong>NOT</strong> necessarily mean there are no people vaccinated in the respective country.';
             break;
         case 'totalVaccinations':
             p = 'This figure represents the total number of doses administered, it does <strong>NOT</strong> represent the total number of people vaccinated.';
@@ -1972,7 +2006,7 @@ for (let i = 0; i < buttons.length; i++) {
                 globalHelpTipHandler();
                 currentData.innerText = dropDownTitle.innerText = currentTitle;
                 keyTitle.innerText = rawTotalSwitch(prop).title;
-                getMinMax(dataset, prop);
+                execProp();
                 if (window.innerWidth <= 768) {
                     if (sideBar.classList.length > 0) {// handle when dropdown is open and fixed to top
                         statsWrapper.style.overflowY = 'hidden';
@@ -2045,7 +2079,6 @@ function changeNavColor() {
     _('aboutBtnMobile').style.color = otherColor;
 }
 function onToggleDark(e) {
-    const dataset = (!usOn) ? countriesList : usData;
     if (mode === "dark") {//LIGHT
         mode = "light";
         this.setAttribute('title', 'Toggle Dark Mode');
@@ -2056,7 +2089,6 @@ function onToggleDark(e) {
             searchWrapper.style.backgroundColor = '#e6e6e6';
         }
         buttonsHandler(prop);
-        getMinMax(dataset, prop);
     }
     else {//DARK
         mode = "dark";
@@ -2068,7 +2100,6 @@ function onToggleDark(e) {
             searchWrapper.style.backgroundColor = '#282828';
         }
         buttonsHandler(prop);
-        getMinMax(dataset, prop);
     }
     changeNavColor();
 }
@@ -2170,10 +2201,13 @@ function clearPopup() {
     countryPopup.scrollTo(0, 0);
     countryPopup.removeEventListener('scroll', onCountryPopupScroll);
     closePopup.removeEventListener('mouseup', onClosePopup);
+    closePopup.setAttribute('data-alpha2', '');
+    closePopup.setAttribute('data-country', '');
     setTimeout(() => {
         countryPopup.classList.add('transform');
         closePopup.style.marginLeft = "-30px";
         countryPopup.style.overflow = '';
+        countryPopup.innerHTML = '';
     }, 10);
     setTimeout(() => {
         closePopup.style.visibility = 'hidden';
@@ -2245,8 +2279,17 @@ function onMenuBtn(e) {
     popup.style.display = "none";
 }
 //LOADER
-function chartLoader() {
-    return `<svg id='chartLoader' xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.0" width="64px" height="64px" viewBox="0 0 128 128" xml:space="preserve"><g><path d="M122.5 69.25H96.47a33.1 33.1 0 0 0 0-10.5h26.05a5.25 5.25 0 0 1 0 10.5z" fill="#000000" fill-opacity="1"/><path d="M112.04 97.83L89.47 84.8a33.1 33.1 0 0 0 5.25-9.1l22.57 13.03a5.25 5.25 0 0 1-5.28 9.1z" fill="#b2b2b2" fill-opacity="0.3"/><path d="M88.68 117.35L75.65 94.78a33.1 33.1 0 0 0 9.1-5.25l13.02 22.57a5.25 5.25 0 1 1-9.1 5.25z" fill="#b2b2b2" fill-opacity="0.3"/><path d="M58.7 122.57V96.5a33.1 33.1 0 0 0 10.5 0v26.07a5.25 5.25 0 0 1-10.5 0z" fill="#b2b2b2" fill-opacity="0.3"/><path d="M30.1 112.1l13.04-22.57a33.1 33.1 0 0 0 9.1 5.25L39.2 117.35a5.25 5.25 0 1 1-9.1-5.25z" fill="#b2b2b2" fill-opacity="0.3"/><path d="M10.6 88.74L33.16 75.7a33.1 33.1 0 0 0 5.25 9.1L15.88 97.83a5.25 5.25 0 1 1-5.25-9.1z" fill="#b2b2b2" fill-opacity="0.3"/><path d="M5.37 58.75h26.06a33.1 33.1 0 0 0 0 10.5H5.37a5.25 5.25 0 0 1 0-10.5z" fill="#999999" fill-opacity="0.4"/><path d="M15.85 30.17L38.4 43.2a33.1 33.1 0 0 0-5.24 9.1L10.6 39.25a5.25 5.25 0 1 1 5.25-9.1z" fill="#7f7f7f" fill-opacity="0.5"/><path d="M39.2 10.65l13.03 22.57a33.1 33.1 0 0 0-9.1 5.25l-13-22.57a5.25 5.25 0 1 1 9.1-5.25z" fill="#666666" fill-opacity="0.6"/><path d="M69.2 5.43V31.5a33.1 33.1 0 0 0-10.5 0V5.42a5.25 5.25 0 1 1 10.5 0z" fill="#4c4c4c" fill-opacity="0.7"/><path d="M97.77 15.9L84.75 38.47a33.1 33.1 0 0 0-9.1-5.25l13.03-22.57a5.25 5.25 0 1 1 9.1 5.25z" fill="#333333" fill-opacity="0.8"/><path d="M117.3 39.26L94.7 52.3a33.1 33.1 0 0 0-5.25-9.1l22.57-13.03a5.25 5.25 0 0 1 5.25 9.1z" fill="#191919" fill-opacity="0.9"/><animateTransform attributeName="transform" type="rotate" values="0 64 64;30 64 64;60 64 64;90 64 64;120 64 64;150 64 64;180 64 64;210 64 64;240 64 64;270 64 64;300 64 64;330 64 64" calcMode="discrete" dur="1080ms" repeatCount="indefinite"></animateTransform></g></svg>`;
+function dynLoader(id) {
+    var loader;
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", "loader.svg", false);
+    xhr.overrideMimeType("image/svg+xml");
+    xhr.onload = function (e) {
+        loader = xhr.responseXML.documentElement;
+        loader.setAttribute('id', id);
+    }
+    xhr.send('');
+    return loader;
 }
 //FADE IN/FADE OUT
 function fadeOut(e) {

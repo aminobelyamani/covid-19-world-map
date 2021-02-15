@@ -204,7 +204,10 @@
                         rx="10" height="20" />
                     <rect class="switch-rect" stroke-linejoin="round" stroke-linecap="round" y="22" x="0" width="64"
                         rx="10" height="20" transform="rotate(90 32,32)" />
-                    <circle id="switchCircle" r='8' cx='10' cy='32' fill='#1e1e1e'></circle>
+                    <circle id="switchCircle" r='8' cx='10' cy='32' fill='#1e1e1e'>
+                        <animate id='animateCX' attributeType='XML' attributeName='cx' dur='0.1s' begin="indefinite" fill='freeze'></animate>
+                        <animate id='animateCY' attributeType='XML' attributeName='cy' dur='0.1s' begin="indefinite" fill='freeze'></animate>
+                    </circle>
                     <circle class="switch-target-circles" r='8' cx='10' cy='32' fill='#000' data-cat="cases">
                         <title>Toggle Cases</title>
                     </circle>
@@ -285,7 +288,7 @@
     <!-- END SIDEBAR DASHBOARD -->
     <!-- MAIN MAP SECTION -->
     <div id="mapDiv" class="map-div">
-        <svg id='chartLoader' xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg"
+        <svg id='mapLoader' class="loader" xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg"
             xmlns:xlink="http://www.w3.org/1999/xlink" version="1.0" width="64px" height="64px" viewBox="0 0 128 128"
             xml:space="preserve">
             <g>

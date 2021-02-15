@@ -67,7 +67,7 @@ function downloadFile(url, callback) {
         }
     });
     downloadReq.on('error', (err) => {
-        console.log(`ERROR DOWNLOADING FILE: ${filename}`);
+        console.log(`ERROR DOWNLOADING FILE: ${filename} AT ${new Date()}`);
         console.log(err);
     });
 }
@@ -124,7 +124,7 @@ const owidJob = new CronJob('0 3 * * *', function () {// 3 AM
         }
     });
 }, null, true, 'America/New_York');
-const worldometersJob = new CronJob('0 2 * * *', function () {// 2 AM
+const worldometersJob = new CronJob('0 20 * * *', function () {// 8 PM
     const url = 'https://api.apify.com/v2/key-value-stores/SmuuI0oebnTWjRTUh/records/LATEST?disableRedirect=true';
     downloadFile(url, async (file) => {
         if (file) {
@@ -136,7 +136,7 @@ const worldometersJob = new CronJob('0 2 * * *', function () {// 2 AM
         }
     });
 }, null, true, 'America/New_York');
-const vaccJob = new CronJob('0 15 * * *', function () {// 3 PM
+const vaccJob = new CronJob('0 */1 * * *', function () {// EVERY HOUR
     const url = 'https://covid.ourworldindata.org/data/vaccinations/vaccinations.csv';
     downloadFile(url, (file) => {
         if (file) {
@@ -157,7 +157,7 @@ const vaccJob = new CronJob('0 15 * * *', function () {// 3 PM
         }
     });
 }, null, true, 'America/New_York');
-const vaccUsJob = new CronJob('10 21 * * *', function () {// 3:10 AM
+const vaccUsJob = new CronJob('0 */1 * * *', function () {// EVERY HOUR
     const url = 'https://covid.ourworldindata.org/data/vaccinations/us_state_vaccinations.csv';
     downloadFile(url, (file) => {
         if (file) {
@@ -169,7 +169,7 @@ const vaccUsJob = new CronJob('10 21 * * *', function () {// 3:10 AM
         }
     });
 }, null, true, 'America/New_York');
-const usJob = new CronJob('*/5 * * * *', function () {// every 5 min  
+const usJob = new CronJob('*/5 * * * *', function () {// EVERY 5 MINUTES  
     const url = 'https://www.worldometers.info/coronavirus/country/us/';
     downloadFile(url, file => {
         if (file) {
@@ -255,7 +255,7 @@ async function loadFullData() {
 function getLatestData() {
     const dataList = [];
     countryCodes.forEach(country => {
-        const countryData = loadCountryData(country.alpha2);
+        const countryData = loadCountryData(country.alpha2).data;
         if (countryData) {
             let lastIndex = false;
             let count = countryData.length - 1;
@@ -408,8 +408,27 @@ function loadCountryData(country) {
     else {
         const alpha3 = countryCodes.find(record => record.alpha2.toLowerCase() === country.toLowerCase()).alpha3.toUpperCase();
         if (alpha3) {
-            const data = (parsedFull[alpha3]) ? parsedFull[alpha3].data : false;
-            return data;
+            const raw = (parsedFull[alpha3]) ? parsedFull[alpha3].data : false;
+            if (raw) {
+                const data = {};
+                data.country = country;
+                data.data = [];
+                const propList = ['new_cases', 'new_deaths', 'new_cases_smoothed', 'new_deaths_smoothed', 'new_tests_smoothed', 'new_vaccinations_smoothed', 'stringency_index'];
+                raw.forEach(row => {
+                    const payload = {};
+                    payload.date = row.date;
+                    propList.forEach(prop => {
+                        if (row.hasOwnProperty(prop)) {
+                            payload[prop] = row[prop];
+                        }
+                    });
+                    data.data.push(payload);
+                });
+                return data;
+            }
+            else {
+                return false;
+            }
         }
         else {
             return false;

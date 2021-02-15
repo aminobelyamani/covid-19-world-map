@@ -675,7 +675,7 @@ body{
     background-color:#000;
     opacity: 1;
 }
-#chartLoader{
+.loader{
     display: none;
     opacity: 0;
     position: absolute;
@@ -1248,12 +1248,6 @@ h2{
     opacity: 0.4;
     cursor:pointer;
 }
-#switchCircle, .switch-rect, .switch-titles{
-    -o-transition: 0.2s ease-in;
-    -moz-transition: 0.2s ease-in;
-    -webkit-transition: 0.2s ease-in;
-    transition: 0.2s ease-in;
-}
 .switch-target-circles{
     opacity: 0;
     cursor: pointer;
@@ -1265,7 +1259,6 @@ h2{
 /* begin dropdown */
 .options-div{
     width: auto;
-    height: auto;
     height: 39px;
     overflow-x: hidden;
     overflow-y: scroll;
