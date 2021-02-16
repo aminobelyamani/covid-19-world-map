@@ -1476,6 +1476,7 @@ function onResultClick(e) {
     const svgList = (!usOn) ? dataSVG : usSVG;
     const path = svgList.find(path => path.path.getAttribute('data-name') === country);
     zoomToCountryNoAnim(path.path, true);
+    onCloseSearch();
 }
 searchInput.addEventListener('keyup', function (e) {
     e.preventDefault();
@@ -1790,73 +1791,47 @@ function toggleSwitchCases(cat) {
     }
     return { cx: cx, cy: cy, color: color, menu: menu, property: property, title: title, height: height, btns: btns, colors: colors };
 }
-switchToggle.addEventListener('mouseup', function (e) {
+function onSwitchClick(e) {
     if (e.target.className.baseVal === 'switch-titles' || e.target.className.baseVal === 'switch-target-circles') {
         const cat = e.target.getAttribute('data-cat');
         if (switchValue != cat) {
             switchValue = cat;
+            prop = toggleSwitchCases(cat).property;
             const color = toggleSwitchCases(cat).color;
             switchG.setAttribute('fill', color);
             const x = parseInt(switchCircle.getAttribute('cx'));
             const y = parseInt(switchCircle.getAttribute('cy'));
-            const animCX = _('animateCX');
-            const animCY = _('animateCY');
-            animCX.setAttribute('from', x);
-            animCX.setAttribute('to', 32);
-            animCY.setAttribute('from', y);
-            animCY.setAttribute('to', 32);
-            animCX.beginElement();
-            animCY.beginElement();
-            animCX.addEventListener('endEvent', onAnimCXMid, false);
-            animCY.addEventListener('endEvent', onAnimCYMid, false);
+            const cx = toggleSwitchCases(switchValue).cx;
+            const cy = toggleSwitchCases(switchValue).cy;
+            switchCircle.setAttribute('cx', 32);
+            switchCircle.setAttribute('cy', 32);
+            setTimeout(() => {
+                switchCircle.setAttribute('cx', cx);
+                switchCircle.setAttribute('cy', cy);
+            }, 150);
             const titles = switchToggle.querySelectorAll('.switch-titles');
             for (let i = 0; i < titles.length; i++) {
                 titles[i].style.opacity = (titles[i].getAttribute('data-cat') === cat) ? 1 : 0.4;
             }
+            const menu = toggleSwitchCases(switchValue).menu;
+            removeLegendListeners();
             currentData.style.backgroundColor = color;
-            prop = toggleSwitchCases(cat).property;
             currentTitle = toggleSwitchCases(cat).title;
+            changeLegendColors(switchValue);
+            handleOptionsMenu(menu);
+            execProp();
+            addLegendListeners();
+            globalHelpTipHandler();
+            if (dropDownOn) {
+                const height = toggleSwitchCases(switchValue).height;
+                optionsDiv.style.height = height;
+                optionsDiv.style.minHeight = height;
+            }
+            statsWrapper.scrollTop = 0;
         }
     }
-});
-function onAnimCXMid(e) {
-    this.removeEventListener('endEvent', onAnimCXMid);
-    const cx = toggleSwitchCases(switchValue).cx;
-    this.setAttribute('from', 32);
-    this.setAttribute('to', cx);
-    this.beginElement();
-    this.addEventListener('endEvent', onAnimCXEnd);
 }
-function onAnimCYMid(e) {
-    this.removeEventListener('endEvent', onAnimCYMid);
-    const cy = toggleSwitchCases(switchValue).cy;
-    this.setAttribute('from', 32);
-    this.setAttribute('to', cy);
-    this.beginElement();
-    this.addEventListener('endEvent', onAnimCYEnd);
-}
-function onAnimCXEnd(e) {
-    this.removeEventListener('endEvent', onAnimCXEnd);
-    const cx = toggleSwitchCases(switchValue).cx;
-    switchCircle.setAttribute('cx', cx);
-}
-function onAnimCYEnd(e) {
-    this.removeEventListener('endEvent', onAnimCYEnd);
-    const cy = toggleSwitchCases(switchValue).cy;
-    switchCircle.setAttribute('cy', cy);
-    const menu = toggleSwitchCases(switchValue).menu;
-    removeLegendListeners();
-    changeLegendColors(switchValue);
-    handleOptionsMenu(menu);
-    execProp();
-    addLegendListeners();
-    globalHelpTipHandler();
-    if (dropDownOn) {
-        const height = toggleSwitchCases(switchValue).height;
-        optionsDiv.style.height = height;
-    }
-    statsWrapper.scrollTop = 0;
-}
+switchToggle.addEventListener('mouseup', onSwitchClick, false);
 function handleOptionsMenu(e) {
     const menus = [casesMenu, testsMenu, deathsMenu, vaccMenu];
     for (let i = 0; i < menus.length; i++) {
@@ -1869,6 +1844,7 @@ function openDropDown() {
     const toggle = _('dropDownArrow');
     optionsDiv.style.overflowY = "scroll";
     optionsDiv.style.height = height;
+    optionsDiv.style.minHeight = height;
     toggle.classList.add('transform-rotate');
     sideBar.style.height = "100%";
     dropDownOn = true;
@@ -1877,6 +1853,7 @@ function closeDropDown() {
     const toggle = _('dropDownArrow');
     optionsDiv.scrollTo(0, 0);
     optionsDiv.style.height = "39px";
+    optionsDiv.style.minHeight = "39px";
     optionsDiv.style.overflowY = "hidden";
     toggle.classList.remove('transform-rotate');
     dropDownOn = false;

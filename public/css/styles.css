@@ -1255,11 +1255,24 @@ h2{
 #casesTitle{
     opacity: 1;
 }
+.switch-rect, .switch-titles{
+    -o-transition:0.15s ease-in;  
+    -moz-transition:0.15s ease-in;  
+    -webkit-transition:0.15s ease-in;  
+    transition:0.15s ease-in;
+}
+#switchCircle{
+    -o-transition:0.15s ease-in-out;  
+    -moz-transition:0.15s ease-in-out;  
+    -webkit-transition:0.15s ease-in-out;  
+    transition:0.15s ease-in-out;
+}
 /* end switch */
 /* begin dropdown */
 .options-div{
     width: auto;
     height: 39px;
+    min-height: 39px;
     overflow-x: hidden;
     overflow-y: hidden;
     padding:0px;
@@ -1384,7 +1397,6 @@ h2{
     -ms-flex-direction: column;
     flex-direction: column;
     -ms-flex-negative: 1000;
-    flex-shrink: 1000;
     -webkit-box-align: start;
     -ms-flex-align: start;
     align-items: flex-start;
