@@ -309,6 +309,7 @@ function appendHoverG() {
 }
 function makeChartDiv() {
     const chart = _('chart');
+    const stringency = (!usOn) ? '<button type="button" class="chart-btns" data-chartprop="stringency_index">Stringency Index</button>' : '';
     let html = `
         <div class='chart-header'>
             <h2>CHART: NO DATA</h2>
@@ -327,7 +328,7 @@ function makeChartDiv() {
                     <button type="button" class="chart-btns" data-chartprop="new_cases_smoothed">Daily Cases</button>
                     <button type="button" class="chart-btns" data-chartprop="new_deaths_smoothed">Daily Deaths</button>
                     <button type="button" class="chart-btns" data-chartprop="new_vaccinations_smoothed">Vaccinations</button>
-                    <button type="button" class="chart-btns" data-chartprop="stringency_index">Stringency Index</button>
+                    ${stringency}  
                 </div>
             </div> 
         </div>
@@ -374,7 +375,8 @@ function updateChartInfo() {
     const svg = _('svgChart');
     const header = chart.querySelector('.chart-header');
     const menu = document.querySelector('.chart-options-wrapper');
-    headerHeight = (menu.style.height === '150px') ? header.offsetHeight - 120 : header.offsetHeight;//subtract 210(30 less than menu height, 30 is dropdown height) when dropdown menu is open to avoid negative yBound values
+    const height = (!usOn) ? 150 : 120;
+    headerHeight = (menu.style.height === `${height}px`) ? header.offsetHeight - (height - 30) : header.offsetHeight;//subtract 30 less than menu height (30 is dropdown height) when dropdown menu is open to avoid negative yBound values
     svg.setAttribute('style', `height:calc(100% - ${headerHeight}px)`);
     svg.style.top = headerHeight + 'px';
 }
@@ -447,7 +449,8 @@ function onChartDropDown() {
 function openChartDropDown() {
     const toggle = _('chartOptionArrow');
     const menu = document.querySelector('.chart-options-wrapper');
-    menu.style.height = '150px';
+    const height = (!usOn) ? '150px' : '120px';
+    menu.style.height = height;
     toggle.classList.add('transform-rotate');
 }
 function closeChartDropDown() {
@@ -618,7 +621,7 @@ function onChartLabelHover(e) {
             line.classList.add('stroke-gray');
             line.style.strokeWidth = '2px';
         }
-        else{
+        else {
             line.style.strokeWidth = '4px';
         }
     });

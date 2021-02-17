@@ -4,9 +4,6 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
-const urlParser = require('url');
-const csv = require('csv-parser');
-const cheerio = require('cheerio');
 
 //SERVER START
 const server = http.createServer();
@@ -29,23 +26,39 @@ app.use(express.static(path.join(__dirname, 'public')));//localhost
 
 //OTHER PACKAGES
 const io = require('socket.io')(server);
+const csv = require('csv-parser');
+const cheerio = require('cheerio');
 
 //DOWNLOAD DATA FILES
-var parsedFull, fetchData, parsedCsv, vaccineData, parsedLocationsCsv, parsedUsCsv, usVaccineData, usData, yestData, yestUsData;
+var parsedFull, fetchData, parsedCsv, vaccineData, parsedLocationsCsv, parsedUsCsv, usVaccineData, usData, yestData, yestUsData, usDataHist;
+function switchDir(url) {
+    let filename = '';
+    switch (url) {
+        case 'https://www.worldometers.info/coronavirus/country/us/':
+            filename = 'data/scrape/us-scrape.html';
+            break;
+        case 'https://covid.ourworldindata.org/data/vaccinations/vaccinations.csv':
+            filename = 'data/owid/vaccinations.csv';
+            break;
+        case 'https://covid.ourworldindata.org/data/vaccinations/locations.csv':
+            filename = 'data/owid/locations.csv';
+            break;
+        case 'https://covid.ourworldindata.org/data/vaccinations/us_state_vaccinations.csv':
+            filename = 'data/owid/us_state_vaccinations.csv';
+            break;
+        case 'https://api.apify.com/v2/key-value-stores/SmuuI0oebnTWjRTUh/records/LATEST?disableRedirect=true':
+            filename = 'data/scrape/LATEST.json';
+            break;
+        case 'https://www.worldometers.info/coronavirus/':
+            filename = 'data/scrape/world-scrape.html';
+            break;
+        case 'https://covid.ourworldindata.org/data/owid-covid-data.json':
+            filename = 'data/owid/owid-covid-data.json';
+    }
+    return filename;
+}
 function downloadFile(url, callback) {
-    var filename;
-    if (url === 'https://api.apify.com/v2/key-value-stores/SmuuI0oebnTWjRTUh/records/LATEST?disableRedirect=true') {
-        filename = 'LATEST.json';
-    }
-    else if (url === 'https://www.worldometers.info/coronavirus/country/us/') {
-        filename = 'us-scrape.html';
-    }
-    else if (url === 'https://www.worldometers.info/coronavirus/') {
-        filename = 'world-scrape.html';
-    }
-    else {
-        filename = (path.extname(url) != '') ? path.basename(url) : path.basename(urlParser.parse(url).pathname) + '.json';
-    }
+    var filename = switchDir(url);
     const downloadReq = https.get(url, res => {
         if (res.statusCode >= 200 && res.statusCode < 304) {
             const filestream = fs.createWriteStream(filename);
@@ -54,7 +67,7 @@ function downloadFile(url, callback) {
                 console.log(`DOWNLOAD ${filename} BEGIN AT ${new Date()}`);
             });
             filestream.on('error', (err) => {
-                console.log("ERROR WRITING STREAM");
+                console.log(`ERROR WRITING STREAM FOR: ${filename}`);
                 console.log(err)
             });
             filestream.on('finish', () => {
@@ -72,13 +85,14 @@ function downloadFile(url, callback) {
     downloadReq.on('error', (err) => {
         console.log(`ERROR DOWNLOADING FILE: ${filename} AT ${new Date()}`);
         console.log(err);
+        callback(false);
     });
 }
 //WORLDOMETERS SCRAPING
 function parseScrape(usa) {
     return new Promise(resolve => {
         const filename = (usa) ? 'us-scrape.html' : 'world-scrape.html';
-        const file = fs.readFileSync(path.join(__dirname, filename));
+        const file = fs.readFileSync(path.join(__dirname, `data/scrape/${filename}`));
         const $ = cheerio.load(file, null, false);
         var rows = [];
         const wrapper = (usa) ? '#usa_table_countries_today' : '#main_table_countries_today';
@@ -137,7 +151,7 @@ function parseScrape(usa) {
 function parseYesterdayScrape(usa) {
     return new Promise(resolve => {
         const filename = (usa) ? 'us-scrape.html' : 'world-scrape.html';
-        const file = fs.readFileSync(path.join(__dirname, filename));
+        const file = fs.readFileSync(path.join(__dirname, `data/scrape/${filename}`));
         const $ = cheerio.load(file, null, false);
         var rows = [];
         const wrapper = (usa) ? '#usa_table_countries_yesterday' : '#main_table_countries_yesterday';
@@ -168,7 +182,7 @@ function parseYesterdayScrape(usa) {
             }
         });
         const output = (usa) ? 'US' : 'WORLD';
-        console.log(`${output} Yesterday Data Scraping parsed...`);
+        console.log(`${output} YESTERDAY Data Scraping parsed...`);
         resolve(rows);
     });
 }
@@ -182,7 +196,7 @@ const owidJob = new CronJob('0 3 * * *', function () {// 3 AM
             parsedFull = await loadFullData();
         }
         else {
-            console.log('FILE NOT FOUND');
+            console.log(`FILE NOT FOUND: ${url}`);
         }
     });
 }, null, true, 'America/New_York');
@@ -194,7 +208,7 @@ const worldometersJob = new CronJob('0 20 * * *', function () {// 8 PM
             fetchData = await parseFetchData();
         }
         else {
-            console.log('FILE NOT FOUND');
+            console.log(`FILE NOT FOUND: ${url}`);
         }
     });
 }, null, true, 'America/New_York');
@@ -210,24 +224,24 @@ const vaccJob = new CronJob('0 */1 * * *', function () {// EVERY HOUR
                     runCSV();
                 }
                 else {
-                    console.log('FILE NOT FOUND');
+                    console.log(`FILE NOT FOUND: ${url2}`);
                 }
             });
         }
         else {
-            console.log('FILE NOT FOUND');
+            console.log(`FILE NOT FOUND: ${url}`);
         }
     });
 }, null, true, 'America/New_York');
-const vaccUsJob = new CronJob('0 */1 * * *', function () {// EVERY HOUR
+const vaccUsJob = new CronJob('2 */1 * * *', function () {// EVERY HOUR:2 min
     const url = 'https://covid.ourworldindata.org/data/vaccinations/us_state_vaccinations.csv';
     downloadFile(url, (file) => {
         if (file) {
             console.log(`${file} FINISHED DOWNLOADING AT ${new Date()}`);
-            runUsCSV();
+            runUsVaccHist();
         }
         else {
-            console.log('FILE NOT FOUND');
+            console.log(`FILE NOT FOUND: ${url}`);
         }
     });
 }, null, true, 'America/New_York');
@@ -243,7 +257,7 @@ const usJob = new CronJob('*/5 * * * *', function () {// EVERY 5 MINUTES
         }
     });
 }, null, true, 'America/New_York');
-const yesterdayJob = new CronJob('0 0 * * *', function () {// MIDNIGHT 
+const yesterdayJob = new CronJob('3 0 * * *', function () {// 12:03 AM
     const url = 'https://www.worldometers.info/coronavirus/';
     downloadFile(url, file => {
         if (file) {
@@ -255,47 +269,123 @@ const yesterdayJob = new CronJob('0 0 * * *', function () {// MIDNIGHT
         }
     });
 }, null, true, 'America/New_York');
-
-owidJob.start();
-worldometersJob.start();
-vaccJob.start();
-vaccUsJob.start();
-usJob.start();
-yesterdayJob.start();
-
 //LOAD FILES ON SERVER START
-const worldFile = fs.readFileSync(path.join(__dirname, 'world.json'));
+const worldFile = fs.readFileSync(path.join(__dirname, 'data/ref/world.json'));
 const countryCodes = JSON.parse(worldFile);
 console.log("parsed country codes...")
 
-const usFile = fs.readFileSync(path.join(__dirname, 'us-states.json'));
+const usFile = fs.readFileSync(path.join(__dirname, 'data/ref/us-states.json'));
 const usCodes = JSON.parse(usFile);
 console.log("parsed us-state codes...")
 
 const runINITIAL = async () => {
     parsedFull = await loadFullData();
     fetchData = await parseFetchData();
+    //usCSV
+    parsedUsCsv = await readCsv('data/owid/us_state_vaccinations.csv');
+    usVaccineData = await getUsVaccineData();
+    const rawUsData = await parseScrape(true);
+    usData = compileUsData(rawUsData);
+    //Yest
+    yestData = await parseYesterdayScrape();
+    yestUsData = await parseYesterdayScrape(true);
+    const parsedUsData = await parseUsDataHist();
+    const addedUsData = await addNewDataToHist(yestUsData, parsedUsData);
+    console.log('Added LATEST DATA to us-data-hist.json...');
+    compileUsDataHist(addedUsData);
+    //CRON JOBS
+    owidJob.start();
+    worldometersJob.start();
+    vaccJob.start();
+    vaccUsJob.start();
+    usJob.start();
+    yesterdayJob.start();
 };
 const runCSV = async () => {
-    parsedCsv = await readCsv('vaccinations.csv');
-    parsedLocationsCsv = await readCsv('locations.csv');
+    parsedCsv = await readCsv('data/owid/vaccinations.csv');
+    parsedLocationsCsv = await readCsv('data/owid/locations.csv');
     vaccineData = getVaccineData();
 };
 const runUsCSV = async () => {
-    parsedUsCsv = await readCsv('us_state_vaccinations.csv');
+    parsedUsCsv = await readCsv('data/owid/us_state_vaccinations.csv');
     usVaccineData = await getUsVaccineData();
-    usData = await parseScrape(true);
-    usData = compileUsData(usData);
+    const rawUsData = await parseScrape(true);
+    usData = compileUsData(rawUsData);
 };
 const runYest = async () => {
     yestData = await parseYesterdayScrape();
     yestUsData = await parseYesterdayScrape(true);
+    const parsedUsData = await parseUsDataHist();
+    const addedUsData = await addNewDataToHist(yestUsData, parsedUsData);
+    console.log('Added LATEST DATA to us-data-hist.json...');
+    compileUsDataHist(addedUsData);
 };
+const runUsVaccHist = async () => {
+    parsedUsCsv = await readCsv('data/owid/us_state_vaccinations.csv');
+    const rawData = await parseUsDataHist();
+    compileUsDataHist(rawData);
+};
+
 runINITIAL();
 runCSV();
-runUsCSV();
-runYest();
 
+//SERVER FUNCTIONS
+function compileUsDataHist(data) {
+    usCodes.forEach(state => {
+        const parsedStateList = parsedUsCsv.filter(row => row.location.toLowerCase() === state.state.toLowerCase());
+        const histIndex = data.findIndex(row => row.country.toLowerCase() === state.state.toLowerCase());
+        const histList = (histIndex != -1) ? data[histIndex].data : false;
+        if (histList) {
+            parsedStateList.forEach(row => {
+                const finalIndex = histList.findIndex(record => record.date.toString() === row.date.toString());
+                if (finalIndex != -1) {
+                    const dailyVacc = row.daily_vaccinations || 0;
+                    data[histIndex].data[finalIndex].new_vaccinations_smoothed = dailyVacc;
+                }
+            })
+        }
+    });
+    fs.writeFile(path.join(__dirname, 'data/nyt/us-data-hist.json'), JSON.stringify(data), async (err) => {
+        if (!err) { console.log('Added VACCINE DATA to us-data-hist.json...'); usDataHist = await parseUsDataHist(); }
+    });
+}
+function getYestDate() {
+    const today = new Date();
+    var yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday = yesterday.toISOString().slice(0, 10);
+    return yesterday;
+}
+function addNewDataToHist(data, parsedData) {
+    return new Promise(resolve => {
+        const date = getYestDate();
+        data.forEach(row => {
+            const record = parsedData.find(record => record.country === row.country);
+            const index = parsedData.findIndex(record => record.country === row.country);
+            const i = record.data.length - 1;
+            if (record && record.data[i].date != date) {
+                let caseSum = row.newCases, deathSum = row.newDeaths;
+                for (k = 1; k <= 6; k++) {
+                    caseSum += record.data[i - k].new_cases_smoothed;
+                    deathSum += record.data[i - k].new_deaths_smoothed;
+                }
+                const caseAvg = roundVal((caseSum / 7), 2);
+                const deathAvg = roundVal((deathSum / 7), 2);
+                const payload = {
+                    date: date,
+                    new_cases_smoothed: caseAvg,
+                    new_deaths_smoothed: deathAvg
+                }
+                parsedData[index].data.push(payload);
+            }
+        });
+        resolve(parsedData);
+    });
+}
+function roundVal(value, precision) {
+    const multiplier = Math.pow(10, precision || 0);
+    return Math.ceil(value * multiplier) / multiplier;
+}
 function readCsv(file) {
     return new Promise(resolve => {
         const results = [];
@@ -307,17 +397,16 @@ function readCsv(file) {
                 resolve(results);
             });
         filestream.on('error', (err) => {
-            console.log(`${file} could not be read...`);
+            console.log(`${file} could NOT be read...`);
             console.error(err);
             resolve(results);
         });
     });
 }
-
 async function loadFullData() {
     try {
         var parsed;
-        const rawData = fs.readFileSync(path.join(__dirname, 'owid-covid-data.json'));
+        const rawData = fs.readFileSync(path.join(__dirname, 'data/owid/owid-covid-data.json'));
         parsed = JSON.parse(rawData);
         console.log("parsed owid data...")
         return await parsed;
@@ -329,10 +418,9 @@ async function loadFullData() {
         }
     }
 }
-
 async function parseFetchData() {
     try {
-        const rawData = fs.readFileSync(path.join(__dirname, 'LATEST.json'));
+        const rawData = fs.readFileSync(path.join(__dirname, 'data/scrape/LATEST.json'));
         var parsed;
         parsed = JSON.parse(rawData);
         console.log("parsed fetch data...")
@@ -345,6 +433,21 @@ async function parseFetchData() {
         }
     }
 }
+async function parseUsDataHist() {
+    try {
+        const rawData = fs.readFileSync(path.join(__dirname, 'data/nyt/us-data-hist.json'));
+        var parsed;
+        parsed = JSON.parse(rawData);
+        console.log("parsed us-data-hist.json...")
+        return await parsed;
+    }
+    catch (err) {
+        if (err) {
+            console.log(err);
+            return usDataHist;
+        }
+    }
+}
 //VACCINE FUNCTIONS
 function mapVaccineData(data, prop) {
     const valList = data.map(item => {
@@ -352,7 +455,6 @@ function mapVaccineData(data, prop) {
     });
     return valList;
 }
-
 function getVaccineData() {
     if (parsedCsv.length === 0 || parsedLocationsCsv.length === 0) { return false; }
     else {
@@ -383,11 +485,10 @@ function getVaccineData() {
             });
             dataList.push({ country: 'OWID_WRL', totalVaccinations: values[0], peopleVaccinated: values[1], peopleFullyVaccinated: values[2] });
         }
-        console.log("vaccine data compiled...");
+        console.log("WORLD vaccine data compiled...");
         return dataList;
     }
 }
-
 function getUsVaccineData() {
     return new Promise(resolve => {
         if (parsedUsCsv.length === 0) { resolve(false); }
@@ -406,12 +507,11 @@ function getUsVaccineData() {
                     dataList.push({ country: state.state, totalVaccinations: values[0], peopleVaccinated: values[1], peopleFullyVaccinated: values[2], percVacc: values[3], percFullyVacc: values[4] });
                 }
             });
-            console.log("US-states vaccine data compiled...");
+            console.log("US vaccine data compiled...");
             resolve(dataList);
         }
     });
 }
-
 function compileUsData(data) {
     const results = [];
     usVaccineData.forEach(row => {
@@ -429,7 +529,6 @@ function compileUsData(data) {
     return results;
 }
 //CLIENT SERVER FUNCTIONS
-
 function loadCountryData(country) {
     if (parsedFull.length === 0) { return false; }
     else {
@@ -462,12 +561,16 @@ function loadCountryData(country) {
         }
     }
 }
-
 function getCountryLatest(country, usOn) {
     const dataset = (usOn) ? yestUsData : yestData;
     const record = dataset.find(record => record.country.toLowerCase() === country.toLowerCase());
     const latest = (record) ? record : false;
     return latest;
+}
+function getStateData(country) {
+    const record = usDataHist.find(record => record.country.toLowerCase() === country.toLowerCase());
+    const data = (record) ? record : false;
+    return data;
 }
 //SOCKET LISTENERS
 io.sockets.on('connection', (socket) => {
@@ -493,6 +596,10 @@ io.sockets.on('connection', (socket) => {
     });
     socket.on('getUsData', () => {
         socket.emit('getUsData', usData);
+    });
+    socket.on('getStateData', country => {
+        const data = getStateData(country);
+        socket.emit('getStateData', data);
     });
     socket.on('getFetchFromServer', () => {
         socket.emit('getFetchFromServer', fetchData);

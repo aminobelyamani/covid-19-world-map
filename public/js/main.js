@@ -142,47 +142,6 @@ function socketListeners(socket) {
     socket.on('getCountryCodes', data => {
         countryCodes = data;
     });
-    socket.on('getCountryData', data => {
-        if (data) {
-            if (closePopup.getAttribute('data-alpha2').toLowerCase() === data.country.toLowerCase()) {//in case they left page before socket response
-                if (data.data) {
-                    const chart = _('chart');
-                    if (_('chartLoader')) { fadeOut(_('chartLoader')); }
-                    chart.style.minHeight = '350px';
-                    chart.style.height = '70vh';
-                    dataHist = data.data;
-                    propArr = ['new_cases_smoothed'];
-                    currentProp = 'new_cases_smoothed';
-                    propTitle = ['Daily Cases'];
-                    chartArray = createChartArray(dataHist, currentProp);
-                    if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); }
-                    makeChartDiv();
-                    addGlobalChartListeners();
-                    if (chartArray.length > 1) {
-                        makeChart();
-                        addChartListeners();
-                        chartOn = true;
-                    }
-                    else {
-                        onNoChartData();
-                    }
-                }
-                else {
-                    chartOn = false;
-                    const chart = _('chart');
-                    if (_('chartLoader')) { fadeOut(_('chartLoader')); }
-                    chart.innerHTML = "<h2 class='chart-no-data yellow-test'>NO CHART DATA</h2>";
-                }
-            }
-        }
-        else {
-            chartOn = false;
-            const chart = _('chart');
-            if (_('chartLoader')) { fadeOut(_('chartLoader')); }
-            chart.innerHTML = "<h2 class='chart-no-data yellow-test'>NO CHART DATA</h2>";
-        }
-
-    });
     socket.on('getLatestData', payload => {
         if (payload.latest && closePopup.getAttribute('data-country') === payload.country) {
             const percObj = getYestData(payload);
@@ -235,6 +194,59 @@ function socketListeners(socket) {
             execProp();
         }
     });
+    socket.on('getCountryData', data => {
+        if (data) {
+            if (closePopup.getAttribute('data-alpha2').toLowerCase() === data.country.toLowerCase()) {//in case they left page before socket response
+                onSocketChart(data);
+            }
+        }
+        else {
+            onSocketNoChart();
+        }
+    });
+    socket.on('getStateData', data => {
+        if (data) {
+            if (closePopup.getAttribute('data-country').toLowerCase() === data.country.toLowerCase()) {//in case they left page before socket response
+                onSocketChart(data);
+            }
+        }
+        else {
+            onSocketNoChart();
+        }
+    });
+}
+function onSocketChart(data) {
+    if (data.data) {
+        const chart = _('chart');
+        if (_('chartLoader')) { fadeOut(_('chartLoader')); }
+        chart.style.minHeight = '350px';
+        chart.style.height = '70vh';
+        dataHist = data.data;
+        propArr = ['new_cases_smoothed'];
+        currentProp = 'new_cases_smoothed';
+        propTitle = ['Daily Cases'];
+        chartArray = createChartArray(dataHist, currentProp);
+        if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); }
+        makeChartDiv();
+        addGlobalChartListeners();
+        if (chartArray.length > 1) {
+            makeChart();
+            addChartListeners();
+            chartOn = true;
+        }
+        else {
+            onNoChartData();
+        }
+    }
+    else {
+        onSocketNoChart();
+    }
+}
+function onSocketNoChart() {
+    chartOn = false;
+    const chart = _('chart');
+    if (_('chartLoader')) { fadeOut(_('chartLoader')); }
+    chart.innerHTML = "<h2 class='chart-no-data yellow-test'>NO CHART DATA</h2>";
 }
 async function execProp() {
     const dataset = (!usOn) ? countriesList : usData;
@@ -496,11 +508,13 @@ function getPercRangeList(max, min) {
     const rangeList = [];
     const factor = (min < 1) ? 5 : 6;
     max = (Math.floor(max / factor) >= 1) ? Math.floor(max / factor) : 1;
+    //max = (min < 1) ? 25 : 20;
     let item = min;
     for (let i = 0; i < rangeLimit; i++) {
         rangeList.push(item);
         item = (item < 1) ? 1 : (item === 1 && max >= 2) ? item + (max - 1) : item + max;
     }
+    //console.log(rangeList);
     return rangeList;
 }
 function getRangeList(max, min) {
@@ -1016,6 +1030,7 @@ async function showCountryPopup(country, alpha2) {
     const payload = { alpha2: alpha2, country: country, usOn: usOn };
     socket.emit('getLatestData', payload);
     if (!usOn) { socket.emit('getCountryData', alpha2); }
+    else { socket.emit('getStateData', country); }
     setTimeout(() => { addHeader(); }, 300);
     countryPopup.addEventListener('scroll', onCountryPopupScroll, false);
 }
