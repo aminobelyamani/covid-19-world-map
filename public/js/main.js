@@ -16,7 +16,8 @@ var currentTitle = "Cases/Million";
 const rangeLimit = 6;
 var switchValue = "cases";
 var mode = "dark";
-var dropDownOn = false,
+var onMaps = true,
+    dropDownOn = false,
     chartOn = false,
     usOn = false;
 //global DOM elements
@@ -94,7 +95,7 @@ function onPageLoad() {
     legendHelpTipHandler();
 }
 function showGlInstructions() {
-    if (is_touch_device) {
+    if (is_touch_device && onMaps) {
         globalInstructions.classList.remove('transform-y-260');
         const p = globalInstructions.querySelector('p');
         globalInstructions.style.display = "block";
@@ -143,6 +144,7 @@ function socketListeners(socket) {
         countryCodes = data;
     });
     socket.on('getLatestData', payload => {
+        //console.log(payload);
         if (payload.latest && closePopup.getAttribute('data-country') === payload.country) {
             const percObj = getYestData(payload);
             const perc = percObj.perc;
@@ -248,10 +250,10 @@ function onSocketNoChart() {
     if (_('chartLoader')) { fadeOut(_('chartLoader')); }
     chart.innerHTML = "<h2 class='chart-no-data yellow-test'>NO CHART DATA</h2>";
 }
-async function execProp() {
+async function execProp(noWorld) {
     const dataset = (!usOn) ? countriesList : usData;
     buttonsHandler(prop);
-    worldData(dataAPI);
+    if (!noWorld) { worldData(dataAPI); }//no need to refresh worldData when switching props on same switchValue
     globalRangeList = await getMinMax(dataset, prop);
     makeLegend(globalRangeList);
     matchData(dataset, prop, globalRangeList);
@@ -338,14 +340,14 @@ function calcData(data) {
             const newDeaths = (item.newDeaths / item.population) * 100;
             const percVacc = (item.partiallyVaccinated / item.population) * 100;
             const percFullyVacc = (item.peopleFullyVaccinated / item.population) * 100;
-            item.newCasesPerMil = roundVal(newCases * 10000, 2);
-            item.newDeathsPerMil = roundVal(newDeaths * 10000, 2);
+            item.newCasesPerMil = roundVal(newCases * 10000, 1);
+            item.newDeathsPerMil = roundVal(newDeaths * 10000, 1);
             item.percDeaths = percVar[0];
             item.percRecovered = percVar[1];
             item.percActive = percVar[2];
             item.percCritical = (item.seriousCritical === null) ? null : (item.activeCases != null && item.activeCases != 0) ? roundVal((item.seriousCritical / item.activeCases) * 100, 1) : 0;;
-            item.percVacc = roundVal(percVacc, 2);
-            item.percFullyVacc = roundVal(percFullyVacc, 2);
+            item.percVacc = roundVal(percVacc, 1);
+            item.percFullyVacc = roundVal(percFullyVacc, 1);
             results.push(item);
         });
         resolve(results);
@@ -362,8 +364,8 @@ function worldData(data) {
     const query = (!usOn) ? 'World' : 'USA';
     const world = data.find(data => data.country === query);
     const totalPop = (!usOn) ? totalOfProp('population') : world.population;
-    const newCasesPerMil = (!usOn) ? roundVal((world.newCases / totalPop) * 1000000, 2) : world.newCasesPerMil;
-    const newDeathsPerMil = (!usOn) ? roundVal((world.newDeaths / totalPop) * 1000000, 2) : world.newDeathsPerMil;
+    const newCasesPerMil = (!usOn) ? roundVal((world.newCases / totalPop) * 1000000, 1) : world.newCasesPerMil;
+    const newDeathsPerMil = (!usOn) ? roundVal((world.newDeaths / totalPop) * 1000000, 1) : world.newDeathsPerMil;
     const totalTests = (!usOn) ? totalOfProp('totalTests') : world.totalTests;
     const totalPartialVacc = (!usOn) ? totalOfProp('partiallyVaccinated') : world.partiallyVaccinated;
     const totalPplFlVacc = (!usOn) ? totalOfProp('peopleFullyVaccinated') : world.peopleFullyVaccinated;
@@ -505,16 +507,15 @@ function mapData(data, property) {
     return list.sort((a, b) => (a < b) ? 1 : -1);//sort by descending;
 }
 function getPercRangeList(max, min) {
+    if (max === 0) { return []; }
     const rangeList = [];
     const factor = (min < 1) ? 5 : 6;
-    max = (Math.floor(max / factor) >= 1) ? Math.floor(max / factor) : 1;
-    //max = (min < 1) ? 25 : 20;
+    max = (Math.ceil(max / factor) >= 1) ? Math.ceil(max / factor) : 1;
     let item = min;
     for (let i = 0; i < rangeLimit; i++) {
         rangeList.push(item);
         item = (item < 1) ? 1 : (item === 1 && max >= 2) ? item + (max - 1) : item + max;
     }
-    //console.log(rangeList);
     return rangeList;
 }
 function getRangeList(max, min) {
@@ -585,7 +586,7 @@ function onLegendResize(rangeList) {
     for (let count = 0; count < rangeList.length; count++) {
         const index = rangeElems.length - (3 + count);
         const decCount = rangeList[count].countDecimals();
-        const rangeMin = (rangeList[count] <= 1) ? 0 : (prop === 'percRecovered' || prop === 'percActive' || prop === 'percCritical' || prop === 'percDeaths' || prop === 'percVacc' || prop === 'percFullyVacc') ? 0.1 : 1;
+        const rangeMin = (rangeList[count] <= 1) ? 0 : (prop === 'newCasesPerMil' || prop === 'percRecovered' || prop === 'percActive' || prop === 'percCritical' || prop === 'newDeathsPerMil' || prop === 'percDeaths' || prop === 'percVacc' || prop === 'percFullyVacc') ? 0.1 : 1;
         const rangeMax = (rangeList[count] < 1 && rangeList[count + 1] === 1) ? 1 / Math.pow(10, decCount) : 0;
         rangeElems[index].classList.remove('no-display');
         colorElems[index].classList.remove('no-display');
@@ -635,24 +636,24 @@ function matchData(data, property, range) {
 function val2color(value, range) {
     const colors = toggleSwitchCases(switchValue).colors;
     let color = '';
-    for (let count = 0; count < range.length - 1; count++) {
-        if (value === 0) {
-            color = colors[0];
+    if (range.length === 0 || value === 0) { return colors[0]; }
+    range.forEach((limit, index) => {
+        if (index === 0) {
+            if (value >= limit && value <= range[index + 1]) {
+                color = colors[index + 1];
+            }
         }
-        if (count === 0) {
-            if (value >= (range[count]) && value <= (range[count + 1])) {
-                color = colors[count + 1];
+        else if (index === range.length - 1) {
+            if (value > range[range.length - 1]) {
+                color = colors[index + 1];
             }
         }
         else {
-            if (value > (range[count]) && value <= (range[count + 1])) {
-                color = colors[count + 1];
-            }
-            else if (value > (range[range.length - 1])) {
-                color = colors[count + 2];
+            if (value > limit && value <= range[index + 1]) {
+                color = colors[index + 1];
             }
         }
-    }
+    });
     return color;
 }
 function sortList(data, property) {
@@ -667,39 +668,10 @@ function sortList(data, property) {
         }
     });
     sortedList.sort((a, b) => (a[property] < b[property]) ? 1 : -1);//sort by property
-    let perc = 0;
     let count = 0;
     sortedList.forEach((value, index) => {
-        if (index > 0) {
-            if (sortedList[index][property] === sortedList[index - 1][property]) {
-                count = count;
-            }
-            else {
-                count++;
-            }
-        }
-        else {
-            count++
-        }
-        if (property != "casesPerMil" && property != "testsPerMil" && property != "deathsPerMil" && property != "population" && property != "percDeaths") {
-            perc = (value[property] / value.population) * 100;
-            if (perc >= 0.1) {
-                value.perc = roundVal(perc, 2);;
-                value.perMill = null;
-            }
-            else {
-                value.perMill = roundVal(perc * 10000, 2);
-                value.perc = null;
-            }
-        }
-        else {
-            value.perc = null;
-            value.perMill = null;
-        }
+        count = (index > 0) ? (sortedList[index][property] === sortedList[index - 1][property]) ? count : count + 1 : count + 1;
         value.rank = count;
-        /* if (index === sortedList.length - 1) {
-            value.rankMax = count;
-        } */
     });
     return sortedList;
 }
@@ -954,6 +926,7 @@ function resultsTransform() {
     resultsWrapper.style.transform = `translateX(${getOffsets(searchWrapper).left}px)`;
 }
 async function showCountryPopup(country, alpha2) {
+    onMaps = false;
     let usBtn = (alpha2.toLowerCase() === 'us') ? '<span class="us-btn" onMouseUp="onMenuBtn();">USA MAP</span>' : '';
     countryPopup.scrollTo(0, 0);
     countryPopup.classList.remove('transform');
@@ -1177,6 +1150,7 @@ function getRecord(country, property, propTitle, totalProp) {
     }
 }
 function onClosePopup(e) {
+    onMaps = true;
     onCloseSearch();
     clearPopup();
     setPrevMapState();
@@ -1364,10 +1338,15 @@ function getLegendTarget(e) {
     return { elem: legendColors.querySelectorAll('.color')[index], index: index };
 }
 function highlightRangeCountries(color) {
+    const zoom = zoomEl.transform.baseVal.getItem(0).matrix.a;
     for (let i = 0; i < pathCountries.length; i++) {
         if (pathCountries[i].getAttribute('data-name')) {//avoid including centerBtn SVG in loop
             if (pathCountries[i].style.fill != color) {
                 pathCountries[i].classList.add('dark-path');
+                pathCountries[i].style.setProperty('--zoom', zoom);
+            }
+            else {
+                pathCountries[i].style.setProperty('--zoom', zoom / 4);
             }
         }
     }
@@ -1657,7 +1636,7 @@ function onPress(e) {
 }
 function onDocTap(e) {
     if (e.tapCount >= 1) {
-        if (e.target.parentNode != _('legendColors')) {
+        if (e.target.parentNode != _('legendColors') && onMaps) {
             clearLegendHover();
         }
         else if (e.target.parentNode != zoomEl) {
@@ -1719,10 +1698,12 @@ function removeHover() {
     closeDash.classList.add('white');
 }
 function clearHighlights() {
+    const zoom = zoomEl.transform.baseVal.getItem(0).matrix.a;
     for (let i = 0; i < pathCountries.length; i++) {
         if (pathCountries[i].getAttribute('data-name')) {//avoid including centerBtn SVG in loop
             pathCountries[i].classList.remove('light-path');
             pathCountries[i].classList.remove('dark-path');
+            pathCountries[i].style.setProperty('--zoom', zoom);
         }
     }
 }
@@ -1957,8 +1938,8 @@ const buttons = document.querySelectorAll('button');
 for (let i = 0; i < buttons.length; i++) {
     if (buttons[i].dataset.prop) {
         buttons[i].addEventListener('mouseup', function (e) {
-            const dataset = (!usOn) ? countriesList : usData;
-            if (dataset.length != 0) {//wait for countriesList to fill with data
+            const data = (!usOn) ? countriesList : usData;
+            if (data.length != 0 && prop != this.dataset.prop) {//wait for countriesList to fill with data
                 prop = this.dataset.prop;
                 currentTitle = this.innerText;
                 const btnQuery = toggleSwitchCases(switchValue).btns;
@@ -1972,22 +1953,27 @@ for (let i = 0; i < buttons.length; i++) {
                 globalHelpTipHandler();
                 currentData.innerText = dropDownTitle.innerText = currentTitle;
                 keyTitle.innerText = rawTotalSwitch(prop).title;
-                execProp();
+                execProp(true);
                 if (window.innerWidth <= 768) {
                     if (sideBar.classList.length > 0) {// handle when dropdown is open and fixed to top
+                        sideBar.addEventListener('transitionend', onTransitionEnd, false);
                         statsWrapper.style.overflowY = 'hidden';
                         statsWrapper.removeEventListener('scroll', onStatsScroll);
                         sideBar.className = '';
-                        setTimeout(() => {
-                            closeSideBar();
-                            statsWrapper.style.overflowY = 'scroll';
-                            statsWrapper.addEventListener('scroll', onStatsScroll, false);
-                        }, 400);
                     }
                     else { closeSideBar(); }
                 }
             }
         });
+    }
+}
+
+function onTransitionEnd(e) {
+    if (e.propertyName === 'transform') {
+        this.removeEventListener('transitionend', onTransitionEnd, false);
+        closeSideBar();
+        statsWrapper.style.overflowY = 'scroll';
+        statsWrapper.addEventListener('scroll', onStatsScroll, false);
     }
 }
 //STATS DASHBOARD SCROLL
@@ -2224,6 +2210,7 @@ function onMenuBtn(e) {
     });
     e.style.color = thisColor;
     if (attr === "about") {
+        onMaps = false;
         if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); chartOn = false; }
         removeZoomTapListeners();
         removePopupListeners();
@@ -2233,10 +2220,12 @@ function onMenuBtn(e) {
         about.style.display = "block";
     }
     else if (attr === 'us') {
+        onMaps = true;
         onUsPage();
         about.style.display = "none";
     }
     else {
+        onMaps = true;
         onWorldPage();
         about.style.display = "none";
     }

@@ -269,6 +269,7 @@ function centerMap() {
     }
 }
 function onResize() {
+    document.querySelector(':root').style.setProperty('--vh', window.innerHeight / 100 + 'px');
     const scaleX = window.innerWidth / VBWidth;
     const scaleY = (window.innerHeight - 50) / VBHeight;
     initialScale = Math.min(scaleX, scaleY);

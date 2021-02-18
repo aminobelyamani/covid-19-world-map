@@ -257,7 +257,7 @@ const usJob = new CronJob('*/5 * * * *', function () {// EVERY 5 MINUTES
         }
     });
 }, null, true, 'America/New_York');
-const yesterdayJob = new CronJob('3 0 * * *', function () {// 12:03 AM
+const yesterdayJob = new CronJob('3 20 * * *', function () {// 8:03 PM
     const url = 'https://www.worldometers.info/coronavirus/';
     downloadFile(url, file => {
         if (file) {
@@ -350,7 +350,7 @@ function compileUsDataHist(data) {
     });
 }
 function getYestDate() {
-    const today = new Date();
+    const today = new Date().toUTCString();//get GMT timezone
     var yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     yesterday = yesterday.toISOString().slice(0, 10);
