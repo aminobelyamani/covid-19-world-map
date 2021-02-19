@@ -200,7 +200,7 @@ const owidJob = new CronJob('0 3 * * *', function () {// 3 AM
         }
     });
 }, null, true, 'America/New_York');
-const worldometersJob = new CronJob('0 20 * * *', function () {// 8 PM
+const worldometersJob = new CronJob('0 21 * * *', function () {// 9 PM
     const url = 'https://api.apify.com/v2/key-value-stores/SmuuI0oebnTWjRTUh/records/LATEST?disableRedirect=true';
     downloadFile(url, async (file) => {
         if (file) {
@@ -257,7 +257,7 @@ const usJob = new CronJob('*/5 * * * *', function () {// EVERY 5 MINUTES
         }
     });
 }, null, true, 'America/New_York');
-const yesterdayJob = new CronJob('3 20 * * *', function () {// 8:03 PM
+const yesterdayJob = new CronJob('3 21 * * *', function () {// 9:03 PM
     const url = 'https://www.worldometers.info/coronavirus/';
     downloadFile(url, file => {
         if (file) {

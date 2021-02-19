@@ -284,6 +284,7 @@ body{
     padding: 0 12px;
     z-index: 12;
     box-shadow: 0px 0px 2px 0px black;
+    -ms-touch-action:none;touch-action:none;
 }
 .light #header{
     background-color:#fff;
@@ -414,6 +415,7 @@ body{
     z-index: 10;
     background-color: #1b1b1b;
     visibility: hidden;
+    -ms-touch-action:none;touch-action:none;
 }
 .light #resultsWrapper{
     background-color: #e6e6e6;
@@ -457,6 +459,7 @@ body{
     opacity: 0.5;
     font-size: 0.8em;
     z-index: 2;
+    -ms-touch-action:none;touch-action:none;
 }
 #globalInstructions p{
     margin:5px 2px;
@@ -498,6 +501,7 @@ body{
     background-color:#282828;
     z-index: 8;
     opacity: 0.9;
+    -ms-touch-action:pan-y;touch-action:pan-y;
 }
 .light #countryPopup{
     background-color: #cacaca;
@@ -992,6 +996,7 @@ body{
     cursor: pointer;
     z-index: 8;
     background-color:#faebd7;
+    -ms-touch-action:none;touch-action:none;
 }
 .light #toggleSideBar, .light #keyBtn, .light #centerBtn, .light #toggleDark{
     background-color: #fff;
@@ -1039,6 +1044,7 @@ body{
     top:60px;
     right:52px;
     z-index: 9;
+    -ms-touch-action:none;touch-action:none;
 }
 #globalHelpTip{
     left:10px;
@@ -1078,7 +1084,7 @@ body{
     visibility: hidden;
     color:#faebd7;
     z-index: 8;
-    /* -ms-touch-action:none;touch-action:none; */
+    -ms-touch-action:none;touch-action:none;
 }
 #legendHelpTip{
     display: block;
@@ -1187,12 +1193,12 @@ h2{
     -ms-flex-direction: column;
     flex-direction: column;
     width:300px;
-    height: 100%;
+    height: calc(100 * var(--vh));
     background-color:#1b1b1b;
     opacity: 0.9;
     position: fixed;
     top:50px;
-    overflow-y: hidden;
+    overflow-y: scroll;
     -o-transition:transform 0.3s ease-in-out;
     -moz-transition:transform 0.3s ease-in-out;
     -webkit-transition:transform 0.3s ease-in-out;
@@ -1200,7 +1206,7 @@ h2{
     visibility: hidden;
     z-index: 11;
     padding-bottom: 50px;
-    /* -ms-touch-action:none;touch-action:none; */
+    -ms-touch-action:pan-y;touch-action:pan-y;
 }
 .light #sideBar{
     background-color: #002b6b;
@@ -1282,6 +1288,7 @@ h2{
     overflow-y: hidden;
     padding:0px;
     margin-bottom:0px;
+    -ms-touch-action:pan-y;touch-action:pan-y;
 }
 #dropDown{
     position: -webkit-sticky;
@@ -1392,6 +1399,7 @@ h2{
     -webkit-box-flex: 1;
     -ms-flex: 1;
     flex: 1;
+    -ms-touch-action:pan-y;touch-action:pan-y;
 }
 #worldStats, #worldList{
     display: -webkit-box;
@@ -1407,6 +1415,7 @@ h2{
     align-items: flex-start;
     overflow: auto;
     border-top:1px solid #fff;
+    -ms-touch-action:pan-y;touch-action:pan-y;
 }
 #worldStats{
     padding:15px 12px 25px;
@@ -1417,17 +1426,20 @@ h2{
     -webkit-box-pack: justify; -ms-flex-pack: justify; justify-content: space-between;
     -webkit-box-align: center; -ms-flex-align: center; align-items: center;
     width:100%;
+    -ms-touch-action:pan-y;touch-action:pan-y;
 }
 #worldList{
     padding:15px 0px 25px;
 }
 #worldList h2, #worldList .ranks-title{
     padding:0 12px;
+    -ms-touch-action:pan-y;touch-action:pan-y;
 }
 .global-cases-title, .global-deaths-title, .global-tests-title, .global-vacc-title{
     margin:0;
     text-transform: uppercase;
     font-weight: 100;
+    -ms-touch-action:pan-y;touch-action:pan-y;
 }
 .global-cases-title{
     color:#68d1f4;
@@ -1444,10 +1456,12 @@ h2{
 .stats{
     margin:15px 0 0 0;
     font-size: 2em;
+    -ms-touch-action:pan-y;touch-action:pan-y;
 }
 .stats-titles{
     margin:0;
     font-size: 1em;
+    -ms-touch-action:pan-y;touch-action:pan-y;
 }
 .stats-flex{
     width:100%;
@@ -1463,6 +1477,7 @@ h2{
     cursor: pointer;
     color:#faebd7;
     padding:0 12px;
+    -ms-touch-action:pan-y;touch-action:pan-y;
 }
 .stats-flex:hover{
     background-color: #79d7f4;
@@ -1473,6 +1488,7 @@ h2{
 .ranks-title{
     margin:0 0 20px 0;
     font-size: 1em;
+    -ms-touch-action:pan-y;touch-action:pan-y;
 }
 .inline-count{
     -webkit-box-flex:0;
@@ -1480,6 +1496,7 @@ h2{
     flex:0 0 30px;
     margin:0;
     font-size: 1em;
+    -ms-touch-action:pan-y;touch-action:pan-y;
 }
 .inline-flag{
     width:32px;
@@ -1487,6 +1504,7 @@ h2{
     -webkit-box-flex:0;
     -ms-flex:0 0 32px;
     flex:0 0 32px;
+    -ms-touch-action:pan-y;touch-action:pan-y;
 }
 .inline-p{
     font-size: 1em;
@@ -1494,10 +1512,12 @@ h2{
     -ms-flex:1 1 100%;
     flex:1 1 100%;
     margin:0 10px;
+    -ms-touch-action:pan-y;touch-action:pan-y;
 }
 .inline-stat{
     font-size: 1em;
     margin:0;
+    -ms-touch-action:pan-y;touch-action:pan-y;
 }
 /* end world stats */
 /* end sideBar */
@@ -1594,6 +1614,7 @@ svg{
     -moz-user-select: text;
     -ms-user-select: text;
     user-select: text;
+    -ms-touch-action:pan-y;touch-action:pan-y;
 }
 #aboutWrapper{
     display: -webkit-box;
@@ -1878,6 +1899,7 @@ svg{
         -webkit-transition:transform 0.3s ease-out;
         transition:transform 0.3s ease-out;
         z-index: 11;
+        -ms-touch-action:none;touch-action:none;
     }
     .light #mobileNav{
         background-color: #fff;

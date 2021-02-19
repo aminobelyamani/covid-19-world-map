@@ -54,6 +54,7 @@ function pathStrokeHandler() {
     }
 }
 function zoomHandler(e) {
+    e = e || window.event;
     const scale = getWheelDelta(e);
     const p = getCursorPt(e);
     const matrix = setMatrix(p, scale);
@@ -62,6 +63,7 @@ function zoomHandler(e) {
 var tapP;
 var maxScale;
 function tapZoomHandler(e) {
+    e = e || window.event;
     if (!countryAnim) {
         tapP = getCursorPt(e);
         maxScale = zoomEl.transform.baseVal.getItem(0).matrix.a * 2;
@@ -114,12 +116,9 @@ function onMouseDown(e) {
     document.body.addEventListener('mousemove', onMouseMove);
     document.body.addEventListener('mouseup', onMouseUp);
     svgEl.addEventListener('mouseleave', onMouseUp, false);
-    /* document.body.ondragstart = function (e) {
-        e.preventDefault();
-        return false;
-    }; */
 }
 function onMouseMove(e) {
+    e = e || window.event;
     mouseMove = true;
     const p = getPanPos(e);
     trail.x = p.x, trail.y = p.y;
@@ -127,6 +126,7 @@ function onMouseMove(e) {
     setCTM(zoomEl.getScreenCTM().multiply(matrix));
 }
 function onMouseUp(e) {
+    e = e || window.event;
     mouseMove = false;
     document.body.removeEventListener('mousemove', onMouseMove);
     document.body.removeEventListener('mouseup', onMouseUp);
@@ -144,7 +144,7 @@ function goToCountry(e) {
 function zoomToCountry(e) {
     clearPage();
     onCloseSearch();
-    trail.x = trail.y = touchTrail.x = touchTrail.y = 0;
+    fadeTrail.x = fadeTrail.y = trail.x = trail.y = touchTrail.x = touchTrail.y = 0;
     getPrevMatrix();
     removeZoomTapListeners();
     const pathBox = e.getBBox();
@@ -214,7 +214,7 @@ function panToCountry(m, x, y) {
     zoomEl.setAttributeNS(null, 'transform', transform);
 }
 function zoomToCountryNoAnim(e, noPrevMat) {
-    trail.x = trail.y = touchTrail.x = touchTrail.y = 0;
+    fadeTrail.x = fadeTrail.y = trail.x = trail.y = touchTrail.x = touchTrail.y = 0;
     cancelAnimationFrame(fadePan);
     if (!noPrevMat) { getPrevMatrix(); }
     removeZoomTapListeners();
@@ -269,7 +269,8 @@ function centerMap() {
     }
 }
 function onResize() {
-    document.querySelector(':root').style.setProperty('--vh', window.innerHeight / 100 + 'px');
+    vh = window.innerHeight / 100;
+    document.querySelector(':root').style.setProperty('--vh', vh + 'px');
     const scaleX = window.innerWidth / VBWidth;
     const scaleY = (window.innerHeight - 50) / VBHeight;
     initialScale = Math.min(scaleX, scaleY);

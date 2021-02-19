@@ -2,6 +2,7 @@ function _(x) {
     return document.getElementById(x);
 }
 //global variables
+var vh;
 var pathCountries = [];
 var countryCodes = [];
 var dataSVG = [];
@@ -144,7 +145,7 @@ function socketListeners(socket) {
         countryCodes = data;
     });
     socket.on('getLatestData', payload => {
-        //console.log(payload);
+        console.log(payload);
         if (payload.latest && closePopup.getAttribute('data-country') === payload.country) {
             const percObj = getYestData(payload);
             const perc = percObj.perc;
@@ -700,6 +701,7 @@ function showSortedList(data) {
 }
 //EVENT LISTENERS
 worldList.addEventListener('mouseup', function (e) {
+    e = e || window.event;
     if (e.target.parentNode.className === 'stats-flex') {
         let country = e.target.parentNode.dataset.country;
         clearPage();
@@ -877,7 +879,7 @@ function pathMove(e) {
         return;
     }
     var eventDoc, doc, body;
-    e = e || window.e; // IE-ism
+    e = e || window.event; // IE-ism
     if (is_touch_device) {
         e.pageX = e.center.x;
         e.pageY = e.center.y;
@@ -1171,7 +1173,8 @@ function declareUsZoomElems() {
     onResize();
     prevP = svgEl.createSVGPoint();
     touchTrail = svgEl.createSVGPoint();
-    touchTrail.x = touchTrail.y = prevP.x = prevP.y = 0;
+    fadeTrail = svgEl.createSVGPoint();
+    fadeTrail.x = fadeTrail.y = touchTrail.x = touchTrail.y = prevP.x = prevP.y = 0;
     if (is_touch_device) { touchEvents(true); }
 }
 function declareWorldZoomElems() {
@@ -1183,7 +1186,8 @@ function declareWorldZoomElems() {
     onResize();
     prevP = svgEl.createSVGPoint();
     touchTrail = svgEl.createSVGPoint();
-    touchTrail.x = touchTrail.y = prevP.x = prevP.y = 0;
+    fadeTrail = svgEl.createSVGPoint();
+    fadeTrail.x = fadeTrail.y = touchTrail.x = touchTrail.y = prevP.x = prevP.y = 0;
     if (is_touch_device) { touchEvents(true); }
 }
 async function showUsMap() {
@@ -1234,6 +1238,7 @@ function addZoomTapListeners() {
         hammertime.on('panstart', onPanStart);
         hammertime.on('pan', onPan);
         hammertime.on('panend', onPanEnd);
+        sidebartime.on('pan', onSideBarPan);
         currentData.addEventListener('touchend', addRemoveHeader, false);
     }
     addLegendListeners();
@@ -1255,6 +1260,7 @@ function removeZoomTapListeners() {
         hammertime.off('panstart', onPanStart);
         hammertime.off('pan', onPan);
         hammertime.off('panend', onPanEnd);
+        sidebartime.off('pan', onSideBarPan);
         currentData.removeEventListener('touchend', addRemoveHeader);
     }
     removeLegendListeners();
@@ -1313,6 +1319,7 @@ function clearLegendHover() {
     clearHighlights();
 }
 function onColorTouch(e) {
+    e = e || window.event;
     clearLegendHover();
     const elem = (e.target.className === 'color') ? this : getLegendTarget(this).elem;
     const keyRanges = keys.querySelectorAll('.data-range');
@@ -1323,6 +1330,7 @@ function onColorTouch(e) {
     highlightRangeCountries(elem.style.backgroundColor);
 }
 function onColorOver(e) {
+    e = e || window.event;
     this.addEventListener('mouseout', onColorOut, false);
     const elem = (e.target.className === 'color') ? this : getLegendTarget(this).elem;
     const keyRanges = keys.querySelectorAll('.data-range');
@@ -1473,6 +1481,7 @@ function onResultClick(e) {
     onCloseSearch();
 }
 searchInput.addEventListener('keyup', function (e) {
+    e = e || window.event;
     e.preventDefault();
     if (e.key != 'ArrowDown' && e.key != 'ArrowUp' && e.key != 'Enter' && e.key != 'ArrowLeft' && e.key != 'ArrowRight') {
         resultsWrapper.innerHTML = "";
@@ -1529,12 +1538,12 @@ function onCloseSearch() {
     closeSearch.removeEventListener('mouseup', onCloseSearch);
 }
 //TOUCH EVENT LISTENERS
-var hammertime;
-var presstime;
+var hammertime, presstime, sidebartime;
 var prevScale = 0;
 var prevP = worldMap.createSVGPoint();
 var touchTrail = worldMap.createSVGPoint();
-touchTrail.x = touchTrail.y = prevP.x = prevP.y = 0;
+var fadeTrail = worldMap.createSVGPoint();
+fadeTrail.x = fadeTrail.y = touchTrail.x = touchTrail.y = prevP.x = prevP.y = 0;
 function getTouchPoint(e) {
     const p = svgEl.createSVGPoint();
     p.x = e.center.x;
@@ -1588,40 +1597,47 @@ function onTapPopup(e) {
 }
 function onPanStart(e) {
     popup.style.display = "none";
-    touchTrail.x = touchTrail.y = prevP.x = prevP.y = 0;
+    fadeTrail.x = fadeTrail.y = touchTrail.x = touchTrail.y = prevP.x = prevP.y = 0;
     cancelAnimationFrame(fadeTouchPan);
 }
 function onPan(e) {
-    const initialMat = zoomEl.transform.baseVal.getItem(0).matrix;
-    let p = svgEl.createSVGPoint();
-    p.x = (e.deltaX - prevP.x) / initialMat.a;
-    p.y = (e.deltaY - prevP.y) / initialMat.d;
-    prevP.x = e.deltaX;
-    prevP.y = e.deltaY;
-    touchTrail.x = p.x;
-    touchTrail.y = p.y;
-    const matrix = setPanMatrix(p);
-    setCTM(zoomEl.getScreenCTM().multiply(matrix));
+    if (e.maxPointers === 1) {
+        const initialMat = zoomEl.transform.baseVal.getItem(0).matrix;
+        let p = svgEl.createSVGPoint();
+        p.x = (e.deltaX - prevP.x) / initialMat.a;
+        p.y = (e.deltaY - prevP.y) / initialMat.d;
+        prevP.x = e.deltaX;
+        prevP.y = e.deltaY;
+        touchTrail.x = p.x;
+        touchTrail.y = p.y;
+        const matrix = setPanMatrix(p);
+        setCTM(zoomEl.getScreenCTM().multiply(matrix));
+    }
 }
 function onPanEnd(e) {
     if (e.maxPointers > 1) {
-        touchTrail.x = touchTrail.y = prevP.x = prevP.y = 0;
+        fadeTrail.x = fadeTrail.y = touchTrail.x = touchTrail.y = prevP.x = prevP.y = 0;
         return;
     }
-    fadeTouchPan();
+    else {
+        fadeTrail.x = touchTrail.x;
+        fadeTrail.y = touchTrail.y;
+        fadeTouchPan();
+    }
 }
 function fadeTouchPan() {
+    touchTrail.x = touchTrail.y = 0;
     const rate = 0.06;//rate of decay
-    touchTrail.x = touchTrail.x * (1 - rate);
-    touchTrail.y = touchTrail.y * (1 - rate);
-    if (Math.floor(Math.abs(touchTrail.x)) != 0 || Math.floor(Math.abs(touchTrail.y)) != 0) {
-        const matrix = setPanMatrix(touchTrail);
+    fadeTrail.x = fadeTrail.x * (1 - rate);
+    fadeTrail.y = fadeTrail.y * (1 - rate);
+    if (Math.floor(Math.abs(fadeTrail.x)) != 0 || Math.floor(Math.abs(fadeTrail.y)) != 0) {
+        const matrix = setPanMatrix(fadeTrail);
         setCTM(zoomEl.getScreenCTM().multiply(matrix));
         requestAnimationFrame(fadeTouchPan);
     }
     else {
+        fadeTrail.x = fadeTrail.y = prevP.x = prevP.y = 0;
         cancelAnimationFrame;
-        touchTrail.x = touchTrail.y = prevP.x = prevP.y = 0;
     }
 }
 function onPress(e) {
@@ -1644,22 +1660,27 @@ function onDocTap(e) {
         }
     }
 }
+function onSideBarPan(e) {
+    if ((e.target.parentNode === switchWrapper || e.target.parentNode === switchToggle)) {
+        const delta = -(e.deltaY) / 4;
+        if (!Number.isNaN(delta)) { statsWrapper.scrollTop += delta; }
+    }
+}
 function touchEvents(newHammer) {
     //GLOBAL
-    if (newHammer) { hammertime.off('doubletap').destroy(); presstime.off('doubletap').destroy(); }
+    if (newHammer) { hammertime.off('doubletap').destroy(); presstime.off('doubletap').destroy(); sidebartime.off('pan').destroy(); }
     taptime = new Hammer(document);
-    /*  document.addEventListener("touchmove", function(e){
-         e.preventDefault();
-         },{passive: false}); */
-    //ZOOM
+    //ZOOM & PAN
     hammertime = new Hammer(svgEl);
     hammertime.get('pinch').set({ enable: true });
-    //PAN
     //PRESS FOR COUNTRY POPUP
     presstime = new Hammer(zoomEl);
     if (window.innerWidth <= 768) {
         closeSideBar();
     }
+    //SIDEBAR
+    sidebartime = new Hammer(sideBar);
+    sidebartime.get('pan').set({ direction: Hammer.DIRECTION_VERTICAL });
 }
 //DOM MANIP
 function addRemoveHeader() {
@@ -1788,10 +1809,13 @@ function toggleSwitchCases(cat) {
     return { cx: cx, cy: cy, color: color, menu: menu, property: property, title: title, height: height, btns: btns, colors: colors };
 }
 function onSwitchClick(e) {
+    e = e || window.event;
     if (e.target.className.baseVal === 'switch-titles' || e.target.className.baseVal === 'switch-target-circles') {
         const cat = e.target.getAttribute('data-cat');
         if (switchValue != cat) {
             switchValue = cat;
+            statsWrapper.removeEventListener('scroll', onStatsScroll);
+            statsWrapper.style.overflowY = 'hidden';
             prop = toggleSwitchCases(cat).property;
             const color = toggleSwitchCases(cat).color;
             switchG.setAttribute('fill', color);
@@ -1823,7 +1847,12 @@ function onSwitchClick(e) {
                 optionsDiv.style.height = height;
                 optionsDiv.style.minHeight = height;
             }
-            statsWrapper.scrollTop = 0;
+            setTimeout(() => {
+                statsWrapper.addEventListener('scroll', onStatsScroll, false);
+                statsWrapper.style.overflowY = 'scroll';
+                statsWrapper.scrollTop = 0;
+            }, 400);
+
         }
     }
 }
@@ -1842,7 +1871,7 @@ function openDropDown() {
     optionsDiv.style.height = height;
     optionsDiv.style.minHeight = height;
     toggle.classList.add('transform-rotate');
-    sideBar.style.height = "100%";
+    sideBar.style.height = "calc(100 * var(--vh))";
     dropDownOn = true;
 }
 function closeDropDown() {
@@ -1956,7 +1985,7 @@ for (let i = 0; i < buttons.length; i++) {
                 execProp(true);
                 if (window.innerWidth <= 768) {
                     if (sideBar.classList.length > 0) {// handle when dropdown is open and fixed to top
-                        sideBar.addEventListener('transitionend', onTransitionEnd, false);
+                        sideBar.addEventListener('transitionend', onMenuTrans, false);
                         statsWrapper.style.overflowY = 'hidden';
                         statsWrapper.removeEventListener('scroll', onStatsScroll);
                         sideBar.className = '';
@@ -1968,14 +1997,20 @@ for (let i = 0; i < buttons.length; i++) {
     }
 }
 
-function onTransitionEnd(e) {
+function onMenuTrans(e) {
+    e = e || window.event;
     if (e.propertyName === 'transform') {
-        this.removeEventListener('transitionend', onTransitionEnd, false);
+        this.removeEventListener('transitionend', onMenuTrans, false);
         closeSideBar();
         statsWrapper.style.overflowY = 'scroll';
         statsWrapper.addEventListener('scroll', onStatsScroll, false);
     }
 }
+sideBar.addEventListener('onwheel' in document ? 'wheel' : 'onmousewheel' in document ? 'mousewheel' : 'DOMMouseScroll', function (e) {
+    e = e || window.event;
+    const delta = (e.deltaY ? e.deltaY : e.wheelDeltaY ? e.wheelDeltaY : e.detail);
+    statsWrapper.scrollTop += delta;
+});
 //STATS DASHBOARD SCROLL
 var lastScrollTop = 0;
 statsWrapper.addEventListener('scroll', onStatsScroll, false);
@@ -1985,11 +2020,11 @@ function onStatsScroll(e) {
     if (st <= 0) {
         sideBar.className = "";
         if (st > lastScrollTop) {// downscroll code
-            sideBar.style.height = '100%';
+            sideBar.style.height = 'calc(100 * var(--vh))';
         }
         else {
             setTimeout(() => {//avoid wheel action on svg map
-                sideBar.style.height = '100%';
+                sideBar.style.height = 'calc(100 * var(--vh))';
             }, 300);
         }
     }

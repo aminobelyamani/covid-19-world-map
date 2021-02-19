@@ -501,6 +501,7 @@ function resetChart() {
 //LISTENERS
 //CHART DATA HOVER
 function onChartHover(e) {
+    e = e || window.event;
     getChartData(e);
 }
 function getChartData(e) {
@@ -558,6 +559,7 @@ function popupHtml(record) {
     return tooltip;
 }
 function onChartMove(e) {
+    e = e || window.event;
     var offX = e.layerX;
     const chartWrapper = _('chart');
     const chart = _('svgChart');
