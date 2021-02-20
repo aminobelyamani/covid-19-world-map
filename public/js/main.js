@@ -102,7 +102,8 @@ function showGlInstructions() {
         globalInstructions.classList.remove('transform-y-260');
         const p = globalInstructions.querySelector('p');
         globalInstructions.style.display = "block";
-        p.innerText = 'Tap country for info, press and hold for full country profile.';
+        const target = (!usOn) ? 'country' : 'state';
+        p.innerText = `Tap ${target} for info, press and hold for full ${target} profile.`;
     }
 }
 function onDOMLoaded() {
@@ -147,7 +148,7 @@ function socketListeners(socket) {
         countryCodes = data;
     });
     socket.on('getLatestData', payload => {
-        console.log(payload);
+        //console.log(payload);
         if (payload.latest && closePopup.getAttribute('data-country') === payload.country) {
             const percObj = getYestData(payload);
             const perc = percObj.perc;
@@ -696,7 +697,7 @@ function showSortedList(data) {
     });
     const title = rawTotalSwitch(prop).title;
     const rankTitle = (!usOn) ? 'Global Ranks' : 'US Ranks';
-    list.innerHTML = `
+    list.innerHTML = (usOn && prop === 'percCritical') ? '' : `
         <h2 id='rankTitle' class='global-cases-title' style='color:${color};'>${rankTitle}</h2>
         <p class='ranks-title gray'>${title}</p>
         ${html}`;
@@ -1196,6 +1197,7 @@ function declareWorldZoomElems() {
 async function showUsMap() {
     const xhr = await appendMap('us.svg');
     usOn = (xhr) ? true : false;
+    showGlInstructions();
     return xhr;
 }
 async function showWorldMap() {
@@ -2240,6 +2242,7 @@ async function onWorldPage() {
     const resolve = await showWorldMap();
     if (resolve) {
         if (usOn) { usOn = false; }
+        showGlInstructions();
         onResetPage();
     }
     else { alert("Network Error: Check your internet connection"); }

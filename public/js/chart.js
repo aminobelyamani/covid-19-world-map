@@ -293,7 +293,7 @@ function makeChartDiv() {
     let html = `
         <div class='chart-header'>
             <h2>CHART: NO DATA</h2>
-            <div class="help-tip"><p></p></div>
+            <div class="help-tip-chart help-tip-stats help-tip"><p></p></div>
             <div id='chartInfo'><p></p></div>
             <div id='testsCheckBoxWrapper' class='yellow-test'>
                 <input id='testsCheckBox' type='checkbox'></input>

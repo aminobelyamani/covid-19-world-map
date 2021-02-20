@@ -6,8 +6,8 @@ const http = require('http');
 const https = require('https');
 
 //SERVER START
-const server = http.createServer();
-server.on('request', (app));
+const server = http.createServer(app);
+//server.on('request', (app));
 //LOCALHOST
 server.listen(4000, '0.0.0.0', () => {
     console.log('Listening on port 4000...');
@@ -573,7 +573,7 @@ function getStateData(country) {
     return data;
 }
 //SOCKET LISTENERS
-io.sockets.on('connection', (socket) => {
+io.on('connection', (socket) => {
     socket.on('getCountryCodes', () => {
         socket.emit('getCountryCodes', countryCodes);
     });

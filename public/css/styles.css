@@ -628,6 +628,10 @@ body{
 .help-tip-stats p:after{
     height: 0;
 }
+.help-tip-chart{
+    top: -10px!important;;
+    right: -10px!important;
+}
 .flex-stat{
     display: -webkit-box;;
     display: -ms-flexbox;;
