@@ -98,6 +98,7 @@
             position: fixed;
             margin: 0 auto;
             z-index: 1;
+            opacity: 0;
         }
 
         svg {
@@ -599,6 +600,7 @@
         document.addEventListener("DOMContentLoaded", onDOMLoaded);
         function onDOMLoaded() {
             onResize();
+            fadeIn(_('mapDiv'));
             fadeIn(infoWrapper);
             window.addEventListener("resize", onResize, false);
         }

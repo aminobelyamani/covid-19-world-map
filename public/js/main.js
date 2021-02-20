@@ -108,6 +108,7 @@ function showGlInstructions() {
 }
 function onDOMLoaded() {
     socket = io();
+    //if (window.location.pathname === '/usa') { usOn = true; usaSocket = io('/usa'); usaSocketListeners(usaSocket); }
     socketListeners(socket);
     socket.emit('getCountryCodes');
     dataSVG = parseSVG();
@@ -138,6 +139,11 @@ function onDOMLoaded() {
         fetchAPI();
     }, 300000);
 }
+/* function usaSocketListeners(socket) {
+    socket.on('renderUsa', () => {
+        onMenuBtn();
+    });
+} */
 function socketListeners(socket) {
     socket.on('getFetchFromServer', data => {
         dataAPI = data.regionData;
@@ -965,7 +971,7 @@ async function showCountryPopup(country, alpha2) {
         const helpText = dropDownSwitch(item);
         html += `
             <div class='stats-column-flex ${flexClass}'>
-                <div class="help-tip-stats help-tip"><p>${helpText}</p></div>
+                <button class="help-tip-stats help-tip"><p>${helpText}</p></button>
                 <p class='prop-title ${colorClass}'>${propTitles[index]}</p>
                 ${getRecord(record.country, item, title, totalProp)}
             </div>`;

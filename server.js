@@ -604,3 +604,11 @@ io.on('connection', (socket) => {
         socket.emit('getFetchFromServer', fetchData);
     });
 });
+//SOCKET NAMESPACES
+/* const usaNamespace = io.of('/usa');
+usaNamespace.on('connection', (socket) => {
+    socket.emit('renderUsa');
+}); 
+app.get('/usa', (req, res) => {
+    res.sendFile(path.join(__dirname, '/public/index.html'));
+}); */

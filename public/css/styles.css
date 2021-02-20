@@ -285,6 +285,7 @@ body{
     z-index: 12;
     box-shadow: 0px 0px 2px 0px black;
     -ms-touch-action:none;touch-action:none;
+    pointer-events: none;
 }
 .light #header{
     background-color:#fff;
@@ -303,6 +304,9 @@ body{
 }
 .light #header h1{
     color:#000!important;
+}
+#nav{
+    pointer-events: all;
 }
 .menu-btns{
     cursor: pointer;
@@ -367,6 +371,7 @@ body{
     margin: 0px 20px;
     border-radius: 5px;
     background-color: #282828;
+    pointer-events: all;
 }
 #searchIcon{
     width:25px;
@@ -479,6 +484,7 @@ body{
     margin-left:-30px;
     margin-right:10px;
     visibility: hidden;
+    pointer-events: all;
 }
 #closePopup polyline {
     stroke:#fff;
@@ -551,10 +557,12 @@ body{
 .flag-big{
     width: 120px;
     height:120px;
+    pointer-events: none;
 }
 .country-big{
     font-size: 2em;
     margin:0;
+    pointer-events: none;
 }
 .stats-column{
     min-width:220px;
@@ -563,6 +571,7 @@ body{
     border-radius: 8px;
     border:1px solid #fff;
     background-color:#000;
+    pointer-events: none;
 }
 .prop-title, .prop-title-main{
     width:calc(100% - 40px);
@@ -571,6 +580,7 @@ body{
     text-transform: uppercase;
     font-weight: 100;
     color:#54cbf2;
+    pointer-events: none;
 }
 .light .prop-title, .light .prop-title-main .light .chart-header{
     color:#038ebc;
@@ -619,7 +629,6 @@ body{
     width:250px!important;
     right:-4px!important;
     left:unset!important;
-    /* pointer-events: none; */
 }
 .help-tip-stats p::before{
     right:10px!important;
@@ -631,6 +640,7 @@ body{
 .help-tip-chart{
     top: -10px!important;;
     right: -10px!important;
+    pointer-events: all;
 }
 .flex-stat{
     display: -webkit-box;;
@@ -648,6 +658,7 @@ body{
     justify-content: center;
     margin:0 20px;
     color:#faebd7;
+    pointer-events: none;
 }
 .light .flex-stat{
     color:#000;
@@ -655,6 +666,7 @@ body{
 .pie-wrapper{
     width:100px;
     height:100px;
+    pointer-events: none;
 }
 .circle{
     -o-transform:rotate(135deg);
@@ -687,6 +699,7 @@ body{
     border-radius: 8px;
     background-color:#000;
     opacity: 1;
+    pointer-events: none;
 }
 .loader{
     display: none;
@@ -719,6 +732,9 @@ body{
 }
 /* begin chart info tooltip */
 .help-tip{
+    font-family: 'Gill Sans', sans-serif;
+    border:none;
+    outline:none;
     display: inline-block;
     position: relative;
     top:-1px;
@@ -730,6 +746,7 @@ body{
     height: 24px;
     font-size: 14px;
     line-height: 24px;
+    padding:0!important;
     cursor: default;
 }
 .help-tip:before{
@@ -798,6 +815,7 @@ body{
     -webkit-box-align: center; -ms-flex-align: center; align-items: center;
     -ms-flex-item-align: start; align-self: flex-start;
     margin-top:5px;
+    pointer-events: all;
 }
 #testsCheckBox{
     cursor: pointer;
@@ -816,6 +834,7 @@ body{
     -moz-transition:height .3s ease-out;
     -webkit-transition:height .3s ease-out;
     transition:height .3s ease-out;
+    pointer-events: all;
 }
 .light .chart-options-wrapper{
     border:1px solid #000;
@@ -853,6 +872,7 @@ body{
     width:100%;
     -ms-flex-item-align: start; align-self: flex-start;
     margin:5px 0px 10px;
+    pointer-events: none;
 }
 #chartInfo p {
     width:100%;
@@ -878,6 +898,9 @@ body{
 }
 .light .chart-text{
     fill:#000;
+}
+.plot-lines{
+    pointer-events: all;
 }
 .polyline{
     fill: none;
@@ -1142,14 +1165,15 @@ h2{
     width:15px;
 }
 .color, .data-range{
+    font-family: 'Gill Sans', sans-serif;
+    border:none;
+    outline: none;
+    height:40px;
+    margin:0.5px 0px;  
     -o-transition:0.1s ease-out;
     -moz-transition:0.1s ease-out;
     -webkit-transition:0.1s ease-out;
     transition:0.1s ease-out;
-}
-.color, .data-range{
-    height:40px;
-    margin:0.5px 0px;  
 }
 .color:last-child{
     border-bottom-right-radius: 3px!important;
@@ -1162,7 +1186,6 @@ h2{
     -ms-transform:scale(1.2);
     -webkit-transform:scale(1.2);
     transform:scale(1.2);
-    /* border-radius: 0px!important; */
 }
 .light .on-color-hover{
     border:1px solid #000;
@@ -1180,8 +1203,14 @@ h2{
     -ms-flex-align: center;
     align-items: center;
     white-space: nowrap;
-    padding-left:15px;
+    padding:0 0 0 15px;
+    background-color: transparent;
+    color:#faebd7;
+    font-size: 1em;
 }  
+.light .data-range{
+    color:#000;
+}
 .data-line, .data-line-small{
     display: none;
 }
@@ -1463,11 +1492,13 @@ h2{
     margin:15px 0 0 0;
     font-size: 2em;
     -ms-touch-action:pan-y;touch-action:pan-y;
+    pointer-events: none;
 }
 .stats-titles{
     margin:0;
     font-size: 1em;
     -ms-touch-action:pan-y;touch-action:pan-y;
+    pointer-events: none;
 }
 .stats-flex{
     width:100%;
@@ -1853,6 +1884,7 @@ svg{
         position: absolute;
         top:7px;
         right:12px;
+        pointer-events: all;
     }
     #line1, #line2{
         margin:3px 0;
