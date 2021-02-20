@@ -7,22 +7,21 @@ const https = require('https');
 
 //SERVER START
 const server = http.createServer(app);
-//server.on('request', (app));
 //LOCALHOST
-server.listen(4000, '0.0.0.0', () => {
+/* server.listen(4000, '0.0.0.0', () => {
     console.log('Listening on port 4000...');
-});
+}); */
 //BLUEHOST VPS
-/* const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 server.listen(port, '162.214.173.250', () => {
     console.log(`Listening on port ${port}...`);
-}); */
+});
 
 //EXPRESS ROUTING
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'public')));//localhost
-//app.use(express.static(path.join(__dirname, '/../../public_html/worldmapcovid19')));//bluehost vps
+//app.use(express.static(path.join(__dirname, 'public')));//localhost
+app.use(express.static(path.join(__dirname, '/../../public_html/worldmapcovid19')));//bluehost vps
 
 //OTHER PACKAGES
 const io = require('socket.io')(server);
