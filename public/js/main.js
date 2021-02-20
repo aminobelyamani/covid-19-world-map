@@ -82,11 +82,13 @@ function onPageLoad() {
     fadeOut(_('overlayMsg'));
     is_touch_device = 'ontouchstart' in document.documentElement;
     if (is_touch_device) {
+        switchToggle.addEventListener('touchend', onSwitchTap, false);
         touchEvents();
         addZoomTapListeners();
         removeHover();
     }
     else {
+        switchToggle.addEventListener('mouseup', onSwitchClick, false);
         addZoomTapListeners();
     }
     openLegend();
@@ -223,7 +225,7 @@ function onSocketChart(data) {
         const chart = _('chart');
         if (_('chartLoader')) { fadeOut(_('chartLoader')); }
         chart.style.minHeight = '350px';
-        chart.style.height = '70vh';
+        chart.style.height = 'calc(calc(100 * var(--vh)) - 60px)';
         dataHist = data.data;
         propArr = ['new_cases_smoothed'];
         currentProp = 'new_cases_smoothed';
@@ -929,7 +931,7 @@ function resultsTransform() {
 }
 async function showCountryPopup(country, alpha2) {
     onMaps = false;
-    let usBtn = (alpha2.toLowerCase() === 'us') ? '<span class="us-btn" onMouseUp="onMenuBtn();">USA MAP</span>' : '';
+    let usBtn = (alpha2.toLowerCase() === 'us') ? '<button class="us-btn" onMouseUp="onMenuBtn();">50 STATE MAP</button>' : '';
     countryPopup.scrollTo(0, 0);
     countryPopup.classList.remove('transform');
     closePopup.style.visibility = 'visible';
@@ -1002,6 +1004,7 @@ async function showCountryPopup(country, alpha2) {
     //CHART
     const loader = await dynLoader('chartLoader');
     if (loader) { _('chart').appendChild(loader); fadeIn(_('chartLoader')); }
+    else { alert("Network Error: Check your internet connection"); }
     const payload = { alpha2: alpha2, country: country, usOn: usOn };
     socket.emit('getLatestData', payload);
     if (!usOn) { socket.emit('getCountryData', alpha2); }
@@ -1210,6 +1213,7 @@ function appendMap(file) {
                 if (onLoad) {
                     const loader = await dynLoader('mapLoader');
                     if (loader) { mapDiv.appendChild(loader); fadeIn(_('mapLoader')); }
+                    else { alert("Network Error: Check your internet connection"); }
                 }
                 mapDiv.appendChild(this.responseXML.documentElement);
                 if (file === 'us.svg') { declareUsZoomElems(); }
@@ -1370,26 +1374,24 @@ function onColorOut(e) {
     this.removeEventListener('mouseout', onColorOut);
 }
 //CHART LISTENERS
+var charttime;
 function addChartListeners() {
     const chart = _('svgChart');
-    const hoverG = chart.querySelector('.plot-lines');
-    const labels = chart.querySelectorAll('.chart-label');
-    for (let i = 0; i < labels.length; i++) {
-        labels[i].addEventListener('mouseover', onChartLabelHover, false);
+    if (is_touch_device) {
+        charttime = new Hammer(chart);
+        sidebartime.get('pan').set({ direction: Hammer.DIRECTION_HORIZONTAL });
+        charttime.on('pan', onChartMove);
+        charttime.on('tap', onChartMove);
     }
-    hoverG.addEventListener('mouseover', onChartHover, false);
-    document.addEventListener('mousemove', onChartMove, false);
+    else { document.addEventListener('mousemove', onChartMove, false); }
     window.addEventListener("resize", onChartResize, false);
 }
 function removeChartListeners() {
-    const chart = _('svgChart');
-    const hoverG = chart.querySelector('.plot-lines');
-    const labels = chart.querySelectorAll('.chart-label');
-    for (let i = 0; i < labels.length; i++) {
-        labels[i].removeEventListener('mouseover', onChartLabelHover);
+    if (is_touch_device) {
+        charttime.off('pan').destroy();
+        charttime.off('tap').destroy();
     }
-    hoverG.removeEventListener('mouseover', onChartHover);
-    document.removeEventListener('mousemove', onChartMove);
+    else { document.removeEventListener('mousemove', onChartMove); }
     window.removeEventListener("resize", onChartResize);
 }
 function addGlobalChartListeners() {
@@ -1812,51 +1814,68 @@ function onSwitchClick(e) {
     e = e || window.event;
     if (e.target.className.baseVal === 'switch-titles' || e.target.className.baseVal === 'switch-target-circles') {
         const cat = e.target.getAttribute('data-cat');
-        if (switchValue != cat) {
-            switchValue = cat;
-            statsWrapper.removeEventListener('scroll', onStatsScroll);
-            statsWrapper.style.overflowY = 'hidden';
-            prop = toggleSwitchCases(cat).property;
-            const color = toggleSwitchCases(cat).color;
-            switchG.setAttribute('fill', color);
-            const x = parseInt(switchCircle.getAttribute('cx'));
-            const y = parseInt(switchCircle.getAttribute('cy'));
-            const cx = toggleSwitchCases(switchValue).cx;
-            const cy = toggleSwitchCases(switchValue).cy;
-            switchCircle.setAttribute('cx', 32);
-            switchCircle.setAttribute('cy', 32);
-            setTimeout(() => {
-                switchCircle.setAttribute('cx', cx);
-                switchCircle.setAttribute('cy', cy);
-            }, 150);
-            const titles = switchToggle.querySelectorAll('.switch-titles');
-            for (let i = 0; i < titles.length; i++) {
-                titles[i].style.opacity = (titles[i].getAttribute('data-cat') === cat) ? 1 : 0.4;
-            }
-            const menu = toggleSwitchCases(switchValue).menu;
-            removeLegendListeners();
-            currentData.style.backgroundColor = color;
-            currentTitle = toggleSwitchCases(cat).title;
-            changeLegendColors(switchValue);
-            handleOptionsMenu(menu);
-            execProp();
-            addLegendListeners();
-            globalHelpTipHandler();
-            if (dropDownOn) {
-                const height = toggleSwitchCases(switchValue).height;
-                optionsDiv.style.height = height;
-                optionsDiv.style.minHeight = height;
-            }
-            setTimeout(() => {
-                statsWrapper.addEventListener('scroll', onStatsScroll, false);
-                statsWrapper.style.overflowY = 'scroll';
-                statsWrapper.scrollTop = 0;
-            }, 400);
-
+        executeSwitch(cat);
+    }
+}
+function onSwitchTap(e) {
+    e = e || window.event;
+    const list = [{ cat: "cases", x: 10, y: 32 }, { cat: "tests", x: 32, y: 10 }, { cat: "deaths", x: 54, y: 32 }, { cat: "vaccines", x: 32, y: 54 }];
+    const matrix = switchG.transform.baseVal.getItem(0).matrix;
+    const offX = e.layerX - matrix.e;
+    const offY = e.layerY - matrix.f - 22;
+    const record = list.find(circle => (offX - circle.x) < 22 && (offY - circle.y) < 12);
+    if (e.target.className.baseVal === 'switch-titles' || e.target.className.baseVal === 'switch-target-circles') {
+        const cat = e.target.getAttribute('data-cat');
+        executeSwitch(cat);
+    }
+    else {
+        if (record) {
+            const cat = record.cat;
+            executeSwitch(cat);
         }
     }
 }
-switchToggle.addEventListener('mouseup', onSwitchClick, false);
+function executeSwitch(cat) {
+    if (switchValue != cat) {
+        switchValue = cat;
+        statsWrapper.removeEventListener('scroll', onStatsScroll);
+        statsWrapper.style.overflowY = 'hidden';
+        prop = toggleSwitchCases(cat).property;
+        const color = toggleSwitchCases(cat).color;
+        switchG.setAttribute('fill', color);
+        const cx = toggleSwitchCases(switchValue).cx;
+        const cy = toggleSwitchCases(switchValue).cy;
+        switchCircle.setAttribute('cx', 32);
+        switchCircle.setAttribute('cy', 32);
+        setTimeout(() => {
+            switchCircle.setAttribute('cx', cx);
+            switchCircle.setAttribute('cy', cy);
+        }, 150);
+        const titles = switchToggle.querySelectorAll('.switch-titles');
+        for (let i = 0; i < titles.length; i++) {
+            titles[i].style.opacity = (titles[i].getAttribute('data-cat') === cat) ? 1 : 0.4;
+        }
+        const menu = toggleSwitchCases(switchValue).menu;
+        removeLegendListeners();
+        currentData.style.backgroundColor = color;
+        currentTitle = toggleSwitchCases(cat).title;
+        changeLegendColors(switchValue);
+        handleOptionsMenu(menu);
+        execProp();
+        addLegendListeners();
+        globalHelpTipHandler();
+        if (dropDownOn) {
+            const height = toggleSwitchCases(switchValue).height;
+            optionsDiv.style.height = height;
+            optionsDiv.style.minHeight = height;
+        }
+        setTimeout(() => {
+            statsWrapper.addEventListener('scroll', onStatsScroll, false);
+            statsWrapper.style.overflowY = 'scroll';
+            statsWrapper.scrollTop = 0;
+        }, 400);
+    }
+}
 function handleOptionsMenu(e) {
     const menus = [casesMenu, testsMenu, deathsMenu, vaccMenu];
     for (let i = 0; i < menus.length; i++) {

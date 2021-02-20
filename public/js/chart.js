@@ -121,36 +121,38 @@ function getXList(data) {
     const factor = (data.length > 1) ? Math.floor(length / 2) : 1;
     const numXElems = (window.innerWidth > 768) ? Math.min(6, factor) : Math.min(3, factor);
     const xIncrFactor = Math.floor(length / numXElems);
+    const dateFormat = (window.innerWidth > 768) ? false : true;
     for (i = 0; i <= numXElems; i++) {
-        value = (i === numXElems) ? formatDate(data[data.length - 1].date) : (i === 0) ? formatDate(data[i * xIncrFactor].date) : formatDate(data[i * xIncrFactor].date, true);
+        value = (i === numXElems) ? formatDate(data[data.length - 1].date, dateFormat) : (i === 0) ? formatDate(data[i * xIncrFactor].date, dateFormat) : formatDate(data[i * xIncrFactor].date, true);
         xList.push(value);
     }
-    const chart = _('svgChart');
-    const elem = document.createElementNS("http://www.w3.org/2000/svg", 'g');
-    elem.setAttribute('style', 'visibility:hidden');
-    let html = `<text class='chart-text' x='0', y='0' fill="none" dominant-baseline='middle' text-anchor='end'>${xList[0]}</text>`;
-    elem.innerHTML = html;
-    chart.appendChild(elem);
-    firstXTextWidth = Math.ceil(elem.getBBox().width);
-    return { xList: xList, xIncrFactor: xIncrFactor };
-}
-function getTextWidth(yList) {
     const chart = _('svgChart');
     const elem1 = document.createElementNS("http://www.w3.org/2000/svg", 'g');
     const elem2 = document.createElementNS("http://www.w3.org/2000/svg", 'g');
     elem1.setAttribute('style', 'visibility:hidden');
     elem2.setAttribute('style', 'visibility:hidden');
-    let html1 = `<text class='chart-text' x='0', y='0' fill="none" dominant-baseline='middle' text-anchor='end'>${yList[yList.length - 1]}</text>`;
-    let html2 = `<text class='chart-text' x='0', y='0' fill="none" dominant-baseline='middle' text-anchor='middle'>Stringency Index</text>`;
-    elem1.innerHTML = html1;
+    let html = `<text class='chart-text' x='0', y='0' fill="none" dominant-baseline='middle' text-anchor='middle'>${xList[0]}</text>`;
+    let html2 = `<text class='chart-text' x='0', y='0' fill="none" dominant-baseline='middle' text-anchor='middle'>${xList[xList.length - 1]}</text>`;
+    elem1.innerHTML = html;
     elem2.innerHTML = html2;
     chart.appendChild(elem1);
     chart.appendChild(elem2);
-    const maxWidth = Math.ceil(elem1.getBBox().width);
-    labelMaxWidth = Math.ceil(elem2.getBBox().width) + 10;//10px for position of first xPlot
-    firstXTextWidth = Math.max(maxWidth, firstXTextWidth / 2);
+    labelMaxWidth = Math.ceil(elem2.getBBox().width) / 2;
+    firstXTextWidth = Math.ceil(elem1.getBBox().width);
     chart.removeChild(elem1);
     chart.removeChild(elem2);
+    return { xList: xList, xIncrFactor: xIncrFactor };
+}
+function getTextWidth(yList) {
+    const chart = _('svgChart');
+    const elem1 = document.createElementNS("http://www.w3.org/2000/svg", 'g');
+    elem1.setAttribute('style', 'visibility:hidden');
+    let html1 = `<text class='chart-text' x='0', y='0' fill="none" dominant-baseline='middle' text-anchor='end'>${yList[yList.length - 1]}</text>`;
+    elem1.innerHTML = html1;
+    chart.appendChild(elem1);
+    const maxWidth = Math.ceil(elem1.getBBox().width);
+    firstXTextWidth = Math.max(maxWidth, firstXTextWidth / 2);
+    chart.removeChild(elem1);
     return firstXTextWidth;
 }
 function getBoundValues() {
@@ -166,43 +168,46 @@ function getBoundValues() {
     return bounds;
 }
 function makeXYAxis(data) {
-    const chart = _('svgChart');
-    const yList = getYList(data);
-    const xList = getXList(data).xList;
-    const elemY = document.createElementNS("http://www.w3.org/2000/svg", 'g');
-    const elemX = document.createElementNS("http://www.w3.org/2000/svg", 'g');
-    const elemLines = document.createElementNS("http://www.w3.org/2000/svg", 'g');
-    elemY.setAttribute('class', 'y-axis');
-    elemX.setAttribute('class', 'x-axis');
-    elemLines.setAttribute('class', 'horizontal-lines');
-    const maxWidth = getTextWidth(yList);
-    const yBound = getBoundValues().yBound;
-    const xBound = getBoundValues().xBound;
-    let yPlot = yBound;
-    let xPlot = maxWidth + 10;
-    initialX = xPlot;
-    const xIncr = getBoundValues().xIncr * getXList(data).xIncrFactor;
-    const yIncr = getBoundValues().yIncr;
-    let yText = '', yLines = '', xText = '';
-    for (let i = 0; i < yList.length; i++) {//y-axis labels + horizontal gridlines
-        yText += `<text class='chart-text' x='${maxWidth}', y='${yPlot}' dominant-baseline='middle' text-anchor='end'>${yList[i]}</text>`;
-        yLines += (i === 0) ? `<line class='chart-horiz-lines' x1="${maxWidth + 10}" x2="${xBound}" y1="${yPlot}" y2="${yPlot}"></line>` : `<line class='chart-horiz-lines' x1="${maxWidth + 10}" x2="${xBound}" y1="${yPlot}" y2="${yPlot}" stroke-dasharray='3,2'></line>`;
-        yPlot -= yIncr;
-    }
-    for (let i = 0; i < xList.length; i++) {//x-axis labels
-        xText += (i === xList.length - 1) ? `
-            <text class='chart-text' x='${xBound}', y='${yBound + xTextPadding}' dominant-baseline='middle' text-anchor='middle'>${xList[i]}</text>
-            <line class='chart-lines' x1="${xBound}" x2="${xBound}" y1="${yBound}" y2="${yBound + 4}"></line>` :
-            `<text class='chart-text' x='${xPlot}', y='${yBound + xTextPadding}' dominant-baseline='middle' text-anchor='middle'>${xList[i]}</text>
-            <line class='chart-lines' x1="${xPlot}" x2="${xPlot}" y1="${yBound}" y2="${yBound + 4}"></line>`;
-        xPlot += xIncr;
-    }
-    elemY.innerHTML = yText;
-    elemX.innerHTML = xText;
-    elemLines.innerHTML = yLines;
-    chart.appendChild(elemY);
-    chart.appendChild(elemX);
-    chart.appendChild(elemLines);
+    return new Promise(resolve => {
+        const chart = _('svgChart');
+        const yList = getYList(data);
+        const xList = getXList(data).xList;
+        const elemY = document.createElementNS("http://www.w3.org/2000/svg", 'g');
+        const elemX = document.createElementNS("http://www.w3.org/2000/svg", 'g');
+        const elemLines = document.createElementNS("http://www.w3.org/2000/svg", 'g');
+        elemY.setAttribute('class', 'y-axis');
+        elemX.setAttribute('class', 'x-axis');
+        elemLines.setAttribute('class', 'horizontal-lines');
+        const maxWidth = getTextWidth(yList);
+        const yBound = getBoundValues().yBound;
+        const xBound = getBoundValues().xBound;
+        let yPlot = yBound;
+        let xPlot = maxWidth + 10;
+        initialX = xPlot;
+        const xIncr = getBoundValues().xIncr * getXList(data).xIncrFactor;
+        const yIncr = getBoundValues().yIncr;
+        let yText = '', yLines = '', xText = '';
+        for (let i = 0; i < yList.length; i++) {//y-axis labels + horizontal gridlines
+            yText += `<text class='chart-text' x='${maxWidth}', y='${yPlot}' dominant-baseline='middle' text-anchor='end'>${yList[i]}</text>`;
+            yLines += (i === 0) ? `<line class='chart-horiz-lines' x1="${maxWidth + 10}" x2="${xBound}" y1="${yPlot}" y2="${yPlot}"></line>` : `<line class='chart-horiz-lines' x1="${maxWidth + 10}" x2="${xBound}" y1="${yPlot}" y2="${yPlot}" stroke-dasharray='3,2'></line>`;
+            yPlot -= yIncr;
+        }
+        for (let i = 0; i < xList.length; i++) {//x-axis labels
+            xText += (i === xList.length - 1) ? `
+                <text class='chart-text' x='${xBound}', y='${yBound + xTextPadding}' dominant-baseline='middle' text-anchor='middle'>${xList[i]}</text>
+                <line class='chart-lines' x1="${xBound}" x2="${xBound}" y1="${yBound}" y2="${yBound + 4}"></line>` :
+                `<text class='chart-text' x='${xPlot}', y='${yBound + xTextPadding}' dominant-baseline='middle' text-anchor='middle'>${xList[i]}</text>
+                <line class='chart-lines' x1="${xPlot}" x2="${xPlot}" y1="${yBound}" y2="${yBound + 4}"></line>`;
+            xPlot += xIncr;
+        }
+        elemY.innerHTML = yText;
+        elemX.innerHTML = xText;
+        elemLines.innerHTML = yLines;
+        chart.appendChild(elemY);
+        chart.appendChild(elemX);
+        chart.appendChild(elemLines);
+        resolve(true);
+    });
 }
 function plotData(data) {
     const chart = _('svgChart');
@@ -242,18 +247,11 @@ function plotData(data) {
     const yellow = (mode === 'dark') ? '#ffc82a' : '#967000';
     const color = propSwitch(currentProp);
     let plotHtml = `
-        <rect x='${initialX}' y='${0}' width='${xBound - initialX}' height='${yBound}' fill='#000' opacity='0'></rect>
+        <rect id='plotRect' x='${initialX}' y='${0}' width='${xBound - initialX}' height='${yBound}' fill='#000' opacity='0'></rect>
         <polyline class='polyline' stroke='${color}' points='${points1}'></polyline>
         <polyline class='polyline' stroke='${yellow}' points='${points2}'></polyline>`;
     plotEl.innerHTML = plotHtml;
     chart.appendChild(plotEl);
-}
-function getLastNonNull(data, y) {
-    let index = data.length - 1;
-    while (data[index][y] === null) {
-        index--;
-    }
-    return data[index][y];
 }
 function propSwitch(property) {
     let color;
@@ -272,37 +270,19 @@ function propSwitch(property) {
     }
     return color;
 }
-function makeChartLabels() {
-    const chart = _('svgChart');
-    const labels = document.createElementNS("http://www.w3.org/2000/svg", 'g');
-    labels.setAttribute('class', 'chart-labels');
-    const xPlot = xyPlots[xyPlots.length - 1].x + 10;//10 for margin between last xPlot and label
-    let yPlot1 = getLastNonNull(xyPlots, 'y1');
-    let yPlot2 = getLastNonNull(xyPlots, 'y2');
-    if (Math.abs(yPlot1 - yPlot2) < 20) {// 20 height of label
-        if (yPlot1 > yPlot2) {
-            yPlot2 -= 20;
-        }
-        else {
-            yPlot1 -= 20;
-        }
-    }
-    const yPlots = [yPlot1, yPlot2];
-    const color = propSwitch(currentProp);
-    const yellow = (mode === 'dark') ? '#ffc82a' : '#967000';
-    let html = '';
-    for (i = 0; i < propArr.length; i++) {
-        html += `<text class='chart-label' x='${xPlot}', y='${Math.max(yPlots[i], 10)}' fill="${(i === 0) ? color : yellow}" dominant-baseline='middle' text-anchor='start'>${propTitle[i]}</text>`;
-    }
-    labels.innerHTML = html;
-    chart.appendChild(labels);
-}
 function appendHoverG() {
     const chartWrapper = _('chart');
     const chart = _('svgChart');
     const hoverInfo = document.createElementNS("http://www.w3.org/2000/svg", 'g');
     hoverInfo.setAttribute('class', 'hover-info');
     chart.appendChild(hoverInfo);
+    //HOVER VERTICAL LINE + DOTS
+    const color = propSwitch(currentProp);
+    const yellow = (mode === 'dark') ? '#ffc82a' : '#967000';
+    let html = `<line class='hover-line' x1="0" x2="0" y1="0" y2="${getBoundValues().yBound}" stroke-width='1px'></line>`;
+    html += `<circle class='hover-dot' cx="0" cy="0" r="5" fill='${color}' style='visibility:hidden;'></circle>`;
+    html += `<circle class='hover-dot' cx="0" cy="0" r="5" fill='${yellow}' style='visibility:hidden;'></circle>`;
+    hoverInfo.innerHTML = html;
     const toolEl = document.createElement('div');
     toolEl.setAttribute('class', 'chart-popup');
     chartWrapper.appendChild(toolEl);
@@ -385,31 +365,33 @@ function onChartOptClick(e) {
     const checkBox = _('testsCheckBox');
     const text = this.innerText;
     const prop = this.dataset.chartprop;
-    currentProp = prop;
-    chartArray = createChartArray(dataHist, currentProp);
-    propArr = [], propTitle = [];
-    propArr.push(prop);
-    propTitle.push(text);
-    const wrapper = _('testsCheckBoxWrapper');
-    if (prop === 'stringency_index' || prop === 'new_vaccinations_smoothed') {
-        checkBox.disabled = true;
-        wrapper.style.opacity = '0.5';
-    }
-    else {
-        checkBox.disabled = false;
-        wrapper.style.opacity = '1';
-        const checked = (checkBox.checked) ? true : false;
-        if (checked) {
-            const testProp = testsSwitch(prop).testProp;
-            const testTitle = testsSwitch(prop).testTitle;
-            propArr.push(testProp);
-            propTitle.push(testTitle);
+    if (currentProp != prop) {
+        currentProp = prop;
+        chartArray = createChartArray(dataHist, currentProp);
+        propArr = [], propTitle = [];
+        propArr.push(prop);
+        propTitle.push(text);
+        const wrapper = _('testsCheckBoxWrapper');
+        if (prop === 'stringency_index' || prop === 'new_vaccinations_smoothed') {
+            checkBox.disabled = true;
+            wrapper.style.opacity = '0.5';
         }
+        else {
+            checkBox.disabled = false;
+            wrapper.style.opacity = '1';
+            const checked = (checkBox.checked) ? true : false;
+            if (checked) {
+                const testProp = testsSwitch(prop).testProp;
+                const testTitle = testsSwitch(prop).testTitle;
+                propArr.push(testProp);
+                propTitle.push(testTitle);
+            }
+        }
+        resetChart();
+        const title = _('chartOptionTitle');
+        title.innerText = text;
+        closeChartDropDown();
     }
-    resetChart();
-    const title = _('chartOptionTitle');
-    title.innerText = text;
-    closeChartDropDown();
 }
 function testsSwitch(property) {
     let testProp = '', testTitle = '';
@@ -460,13 +442,13 @@ function closeChartDropDown() {
     toggle.classList.remove('transform-rotate');
 }
 //RENDER/REMOVE CHART
-function makeChart() {
+async function makeChart() {
     const length = makePropList(chartArray);
     updateChartInfo();
-    makeXYAxis(chartArray);
+    await makeXYAxis(chartArray);
     plotData(chartArray);
-    makeChartLabels();
     appendHoverG();
+    const chartWrapper = _('chart');
 }
 function removeChart() {
     const chartWrapper = _('chart');
@@ -478,6 +460,9 @@ function removeChart() {
     chartWrapper.removeChild(popup);
 }
 function onNoChartData() {
+    const chartWrapper = _('chart');
+    chartWrapper.style.height = '115px';
+    chartWrapper.style.minHeight = '115px';
     chartOn = false;
     propArr = [];
     propTitle = [];
@@ -488,8 +473,11 @@ function onNoChartData() {
     wrapper.style.opacity = '0.5';
 }
 function resetChart() {
+    const chartWrapper = _('chart');
     if (chartOn) { removeChartListeners(); removeChart(); }
     if (chartArray.length > 1) {
+        chartWrapper.style.minHeight = '350px';
+        chartWrapper.style.height = 'calc(calc(100 * var(--vh)) - 60px)';
         chartOn = true;
         makeChart();
         addChartListeners();
@@ -497,36 +485,11 @@ function resetChart() {
     else {
         onNoChartData();
     }
+    chartWrapper.scrollTop = 0;
+    countryPopup.scrollTop = chartWrapper.offsetTop - 5;
 }
 //LISTENERS
-//CHART DATA HOVER
-function onChartHover(e) {
-    e = e || window.event;
-    getChartData(e);
-}
-function getChartData(e) {
-    var offX = e.layerX;
-    const chartWrapper = _('chart');
-    const chart = _('svgChart');
-    const hoverInfo = chart.querySelector('.hover-info');
-    const toolEl = chartWrapper.querySelector('.chart-popup');
-    const xGap = getBoundValues().xIncr;
-    let record = xyPlots.find(point => Math.abs(point.x - offX) <= xGap / 2);
-    record = (!record) ? xyPlots[xyPlots.length - 1] : record;
-    const color = propSwitch(currentProp);
-    const yellow = (mode === 'dark') ? '#ffc82a' : '#967000';
-    //HOVER VERTICAL LIGN + DOTS
-    let html = `<line class='hover-line' x1="${record.x}" x2="${record.x}" y1="${0}" y2="${getBoundValues().yBound}" stroke-width='1px'></line>`;
-    let visib = (record.y1 != null) ? 'visible' : 'hidden';
-    html += `<circle class='hover-dot' cx="${record.x}" cy="${(record.y1 != null) ? record.y1 : 0}" r="5" fill='${color}' style='visibility:${visib};'></circle>`;
-    visib = (record.y2 != null) ? 'visible' : 'hidden';
-    html += `<circle class='hover-dot' cx="${record.x}" cy="${(record.y2 != null) ? record.y2 : 0}" r="5" fill='${yellow}' style='visibility:${visib};'></circle>`;
-    hoverInfo.innerHTML = html;
-    //TOOLTIP
-    toolEl.innerHTML = popupHtml(record);
-    hoverInfo.style.display = 'none';
-    toolEl.style.display = 'none';
-}
+//CHART DATA HOVER/MOVE
 function popupHtml(record) {
     const varArr = ['value1', 'value2'];
     const color = propSwitch(currentProp);
@@ -560,46 +523,40 @@ function popupHtml(record) {
 }
 function onChartMove(e) {
     e = e || window.event;
-    var offX = e.layerX;
+    const offX = (!is_touch_device) ? e.layerX : e.srcEvent.layerX;
+    const offY = (!is_touch_device) ? e.layerY : e.srcEvent.layerY;
+    const path = (!is_touch_device) ? e.target : e.srcEvent.target;
     const chartWrapper = _('chart');
     const chart = _('svgChart');
-    const hoverG = chart.querySelector('.plot-lines');
     const hoverInfo = chart.querySelector('.hover-info');
     const line = chart.querySelector('.hover-line');
     const dot = chart.querySelectorAll('.hover-dot');
     const toolEl = chartWrapper.querySelector('.chart-popup');
-    if (e.target.parentNode === hoverG || e.target.parentNode === hoverInfo) {
+    const rect = _('plotRect');
+    if (path === rect && offX >= initialX && offX <= getBoundValues().xBound && offY >= 0 && offY <= getBoundValues().yBound) {
         const xGap = getBoundValues().xIncr;
         let record = xyPlots.find(point => Math.abs(point.x - offX) <= xGap / 2);
-        record = (!record) ? xyPlots[xyPlots.length - 1] : record;
-        hoverInfo.style.display = 'block';
-        toolEl.style.display = 'block';
-        line.setAttribute('x1', record.x);
-        line.setAttribute('x2', record.x);
-        const yArr = ['y1', 'y2'];
-        let i = 0;
-        dot.forEach(dot => {
-            dot.setAttribute('cx', record.x);
-            if (record[yArr[i]] != null) {
-                dot.setAttribute('cy', record[yArr[i]]);
-                dot.style.visibility = 'visible';
-            }
-            else {
-                dot.style.visibility = 'hidden';
-            }
-            i++;
-        });
-        toolEl.innerHTML = popupHtml(record);
-        const xLimit = record.x + toolEl.offsetWidth + 10;
-        let x;
-        if (window.innerWidth > 768) {
-            x = (xLimit > getBoundValues().xBound + labelMaxWidth) ? record.x - toolEl.offsetWidth + 15 + 'px' : record.x + 25 + 'px';
+        if (record) {
+            hoverInfo.style.display = 'block';
+            toolEl.style.display = 'block';
+            line.setAttribute('x1', record.x);
+            line.setAttribute('x2', record.x);
+            const yArr = ['y1', 'y2'];
+            let i = 0;
+            dot.forEach(dot => {
+                dot.setAttribute('cx', record.x);
+                const cy = (record[yArr[i]] != null) ? record[yArr[i]] : 0;
+                const visib = (record[yArr[i]] != null) ? 'visible' : 'hidden';
+                dot.setAttribute('cy', cy);
+                dot.style.visibility = visib;
+                i++;
+            });
+            toolEl.innerHTML = popupHtml(record);
+            const xLimit = record.x + toolEl.offsetWidth + 10;
+            const x = (xLimit > getBoundValues().xBound + labelMaxWidth) ? record.x - toolEl.offsetWidth + 15 + 'px' : record.x + 25 + 'px';
+            const y = (window.innerWidth > 768) ? headerHeight + 70 + 'px' : headerHeight + 30 + 'px';//20 top padding + 50 extra
+            toolEl.setAttribute('style', `-o-transform: translate(${x}, ${y}); -moz-transform: translate(${x}, ${y}); -ms-transform: translate(${x}, ${y}); -webkit-transform: translate(${x}, ${y}); transform: translate(${x}, ${y}); display: block;`);
         }
-        else {
-            x = firstXTextWidth + 30 + 'px';//20 left padding + 10 initialXplot
-        }
-        const y = (window.innerWidth > 768) ? headerHeight + 70 + 'px' : headerHeight + 30 + 'px';//20 top padding + 50 extra
-        toolEl.setAttribute('style', `-o-transform: translate(${x}, ${y}); -moz-transform: translate(${x}, ${y}); -ms-transform: translate(${x}, ${y}); -webkit-transform: translate(${x}, ${y}); transform: translate(${x}, ${y}); display: block;`);
     }
     else {
         hoverInfo.style.display = 'none';
@@ -609,41 +566,4 @@ function onChartMove(e) {
 //WINDOW RESIZE
 function onChartResize() {
     resetChart();
-}
-//LABEL HOVER
-function onChartLabelHover(e) {
-    this.addEventListener('mouseout', onChartLabelOut, false);
-    const chart = _('svgChart');
-    const hoverG = chart.querySelector('.plot-lines');
-    const lines = hoverG.querySelectorAll('polyline');
-    const labels = chart.querySelectorAll('.chart-label');
-    const color = this.getAttribute('fill');
-    lines.forEach(line => {
-        if (line.getAttribute('stroke') != color) {
-            line.classList.add('stroke-gray');
-            line.style.strokeWidth = '2px';
-        }
-        else {
-            line.style.strokeWidth = '4px';
-        }
-    });
-    labels.forEach(label => {
-        if (this != label) {
-            label.classList.add('fill-gray');
-        }
-    });
-}
-function onChartLabelOut(e) {
-    const chart = _('svgChart');
-    const hoverG = chart.querySelector('.plot-lines');
-    const lines = hoverG.querySelectorAll('polyline');
-    const labels = chart.querySelectorAll('.chart-label');
-    lines.forEach(line => {
-        line.classList.remove('stroke-gray');
-        line.style.strokeWidth = '2px';
-    });
-    labels.forEach(label => {
-        label.classList.remove('fill-gray');
-    });
-    this.removeEventListener('mouseout', onChartLabelOut);
 }

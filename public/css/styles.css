@@ -528,21 +528,25 @@ body{
     color:#000;
 }
 .us-btn{
+    border:none;
+    outline:none;
     text-decoration: none;
     position: relative;
     top:10px;
+    font-family: 'Gill Sans', sans-serif;
     font-size: 1.5em;
     font-weight: 100;
     text-transform: uppercase;
     color:#e9e9e9;
     background-color: #a52432;
-    padding:5px 29px;
-    border-radius: 50px;
-    white-space: nowrap;
+    box-shadow: 0px 0px 0px 2px rgb(228 215 197);
+    padding:5px 10px;
+    border-radius: 10px;
     cursor: pointer;
 }
 .us-btn:hover, .us-btn:focus{
     text-decoration: underline;
+    box-shadow: 0px 0px 0px 0px rgb(228 215 197);
 } 
 .flag-big{
     width: 120px;
@@ -858,13 +862,6 @@ body{
 #svgChart{
     position: relative;
 }
-.chart-label{
-    font-size: 1em;
-    -o-transition: 0.2s ease-out;
-    -moz-transition: 0.2s ease-out;
-    -webkit-transition: 0.2s ease-out;
-    transition: 0.2s ease-out;
-}
 .chart-text{
     fill:#faebd7;
     font-size: 1em;
@@ -893,6 +890,7 @@ body{
     stroke:#282828;
 }
 .hover-info{
+    display: none;
     pointer-events: none;
 }
 .light .hover-line, .light .chart-horiz-lines{
@@ -1273,10 +1271,14 @@ h2{
     transition:0.15s ease-in;
 }
 #switchCircle{
+    fill:#1e1e1e;
     -o-transition:0.15s ease-in-out;  
     -moz-transition:0.15s ease-in-out;  
     -webkit-transition:0.15s ease-in-out;  
     transition:0.15s ease-in-out;
+}
+.light #switchCircle{
+    fill: #002b6b;
 }
 /* end switch */
 /* begin dropdown */
@@ -2101,9 +2103,10 @@ svg{
         width:100%;
         margin:0!important;
     }
-    .chart-text, .chart-label{
-        font-size: 2vw;
-    }
+    .us-btn:hover, .us-btn:focus{
+        text-decoration: none;
+        box-shadow: 0px 0px 0px 2px rgb(228 215 197);
+    } 
 }
 @media(max-width:520px){
     #countryPopup{
