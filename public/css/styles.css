@@ -1097,19 +1097,19 @@ body{
     text-transform: uppercase;
 }
 #keys{
+    display: none;
     position: fixed;
     top:139px;
     right:11px;
     width: auto;
-    max-height: 0px;
     border-radius: 8px;
     padding:20px 10px 20px 20px;
     margin:0;
     background-color:#1d1d1d;
-    visibility: hidden;
     color:#faebd7;
     z-index: 8;
     -ms-touch-action:none;touch-action:none;
+    opacity: 0;
 }
 #legendHelpTip{
     display: block;
@@ -1960,7 +1960,6 @@ svg{
         bottom:0px;
         width:100%;
         padding:5px 10px 10px;
-        opacity: 0.9;
         border-bottom-left-radius: 0px;
         border-bottom-right-radius: 0px;
     }

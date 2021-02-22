@@ -187,7 +187,7 @@ function parseYesterdayScrape(usa) {
 }
 //CRON JOB SCHEDULING FOR OWID AND WORLDOMETER DOWNLOADS
 const CronJob = require('cron').CronJob;
-const owidJob = new CronJob('0 3 * * *', function () {// 3 AM
+const owidJob = new CronJob('52 2 * * *', function () {// 2:52 AM
     const url = 'https://covid.ourworldindata.org/data/owid-covid-data.json';
     downloadFile(url, async (file) => {
         if (file) {
@@ -199,7 +199,7 @@ const owidJob = new CronJob('0 3 * * *', function () {// 3 AM
         }
     });
 }, null, true, 'America/New_York');
-const worldometersJob = new CronJob('0 21 * * *', function () {// 9 PM
+const worldometersJob = new CronJob('33 21 * * *', function () {// 9:33 PM
     const url = 'https://api.apify.com/v2/key-value-stores/SmuuI0oebnTWjRTUh/records/LATEST?disableRedirect=true';
     downloadFile(url, async (file) => {
         if (file) {
@@ -604,11 +604,59 @@ io.on('connection', (socket) => {
         socket.emit('getFetchFromServer', fetchData);
     });
 });
-//SOCKET NAMESPACES
-/* const usaNamespace = io.of('/usa');
-usaNamespace.on('connection', (socket) => {
-    socket.emit('renderUsa');
-}); 
-app.get('/usa', (req, res) => {
-    res.sendFile(path.join(__dirname, '/public/index.html'));
-}); */
+//APP EXPRESS ROUTES
+function switchUrl(url) {
+    let newUrl = '';
+    switch (url) {
+        case 'reunion':
+            newUrl = 'réunion';
+            break;
+        case 'curacao':
+            newUrl = 'curaçao';
+            break;
+        case 'timor-leste':
+            newUrl = 'timor-leste';
+            break;
+        case 'guinea-bissau':
+            newUrl = 'guinea-bissau';
+            break;
+        case 's-korea':
+            newUrl = 's. korea';
+            break;
+        case 'st-vincent-grenadines':
+            newUrl = 'st. vincent grenadines';
+    }
+    return newUrl;
+}
+//ABOUT PAGE
+app.get('/about', (req, res) => {
+    res.sendFile(path.join(__dirname, `/public/index.html`));
+});
+//WORLD COUNTRIES
+app.get('/:country', (req, res) => {
+    var url = req.params.country;
+    url = (url === 'reunion' || url === 'curacao' || url === 'timor-leste' || url === 'guinea-bissau' || url === 's-korea' || url === 'st-vincent-grenadines') ? switchUrl(url) : url.replace(/-/g, ' ');
+    const countryIndex = countryCodes.findIndex(row => row.country.toLowerCase() === url);
+    if (countryIndex != -1) {
+        res.sendFile(path.join(__dirname, '/public/index.html'));
+    }
+    else {
+        res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));
+    }
+});
+//USA STATES
+app.get('/usa/:country', (req, res) => {
+    var url = req.params.country;
+    url = url.replace(/-/g, ' ');
+    const usaIndex = usCodes.findIndex(row => row.state.toLowerCase() === url);
+    if (usaIndex != -1) {
+        res.sendFile(path.join(__dirname, `/public/index.html`));
+    }
+    else {
+        res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));
+    }
+});
+//404 PAGE
+app.use(function (req,res,next){
+	res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));
+});

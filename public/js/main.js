@@ -69,7 +69,7 @@ var closePopup = _('closePopup');
 var popup = _('popup');
 var is_touch_device;
 let socket;
-var onLoad = true;
+var onLoad = true, onUsURL = false;
 function onPageLoad() {
     statsWrapper.scrollTop = 0;
     _('overlay').style.display = "none";
@@ -84,15 +84,15 @@ function onPageLoad() {
     if (is_touch_device) {
         switchToggle.addEventListener('touchend', onSwitchTap, false);
         touchEvents();
-        addZoomTapListeners();
+        if (!onUsURL) { addZoomTapListeners(); }
         removeHover();
     }
     else {
         switchToggle.addEventListener('mouseup', onSwitchClick, false);
-        addZoomTapListeners();
+        if (!onUsURL) { addZoomTapListeners(); }
     }
     openLegend();
-    addPopupListeners();
+    if (!onUsURL) { addPopupListeners(); }
     showGlInstructions();
     globalHelpTipHandler();
     legendHelpTipHandler();
@@ -106,12 +106,11 @@ function showGlInstructions() {
         p.innerText = `Tap ${target} for info, press and hold for full ${target} profile.`;
     }
 }
-function onDOMLoaded() {
+async function onDOMLoaded() {
     socket = io();
-    //if (window.location.pathname === '/usa') { usOn = true; usaSocket = io('/usa'); usaSocketListeners(usaSocket); }
     socketListeners(socket);
     socket.emit('getCountryCodes');
-    dataSVG = parseSVG();
+    dataSVG = await parseSVG();
     pathStrokeHandler();
     fetch('https://api.apify.com/v2/key-value-stores/SmuuI0oebnTWjRTUh/records/LATEST?disableRedirect=true')
         .then(response => {
@@ -125,10 +124,22 @@ function onDOMLoaded() {
                 countriesList = await getData(dataAPI);
                 countriesList = await calcData(countriesList);
                 timeStamp.innerText = `Updated at ${formatTime()} EST`;
-                execProp();
-                socket.emit('getVaccineData');
-                socket.emit('getUsData');
-                onPageLoad();
+                if (window.location.pathname.includes('/usa/')) {
+                    onUsURL = true;
+                    onPageLoad();
+                    const res = await onMenuBtn('us');
+                    if (res) {
+                        socket.emit('getVaccineData');
+                        socket.emit('getUsData');
+                    }
+                }
+                else {
+                    onPageLoad();
+                    execProp();
+                    loadUrl();
+                    socket.emit('getVaccineData');
+                    socket.emit('getUsData');
+                }
             }
             else {
                 socket.emit('getFetchFromServer');
@@ -139,11 +150,50 @@ function onDOMLoaded() {
         fetchAPI();
     }, 300000);
 }
-/* function usaSocketListeners(socket) {
-    socket.on('renderUsa', () => {
-        onMenuBtn();
-    });
-} */
+function switchUrl(url) {
+    let newUrl = '';
+    switch (url) {
+        case '/reunion':
+            newUrl = 'réunion';
+            break;
+        case '/curacao':
+            newUrl = 'curaçao';
+            break;
+        case '/timor-leste':
+            newUrl = 'timor-leste';
+            break;
+        case '/guinea-bissau':
+            newUrl = 'guinea-bissau';
+            break;
+        case '/s-korea':
+            newUrl = 's. korea';
+            break;
+        case '/st-vincent-grenadines':
+            newUrl = 'st. vincent grenadines';
+    }
+    return newUrl;
+}
+function loadUrl() {
+    var url = window.location.pathname;
+    const sliceNum = (url.includes('/usa/')) ? 5 : 1;
+    url = (url === '/reunion' || url === '/curacao' || url === '/timor-leste' || url === '/guinea-bissau' || url === '/s-korea' || url === '/st-vincent-grenadines') ? switchUrl(url) : url.replace(/-/g, ' ').slice(sliceNum);
+    url = url.replace('/', '');
+    if (url.length > 1) {
+        if (url != 'about') { loadCountry(url, true); }
+        else { onMenuBtn('about'); }
+    }
+}
+window.onpopstate = function (e) {
+    window.location.replace('/');
+};
+function loadCountry(country, prevMat) {
+    onUsURL = false;
+    clearPage();
+    clearHighlights();
+    const svgList = (!usOn) ? dataSVG : usSVG;
+    const path = svgList.find(path => path.path.getAttribute('data-name').toLowerCase() === country.toLowerCase());
+    zoomToCountryNoAnim(path.path, prevMat);
+}
 function socketListeners(socket) {
     socket.on('getFetchFromServer', data => {
         dataAPI = data.regionData;
@@ -204,9 +254,11 @@ function socketListeners(socket) {
             usData = await calcUsData(data);
             usData = await calcData(usData);
             execProp();
+            if (onUsURL) { loadUrl(); }
         }
     });
     socket.on('getCountryData', data => {
+        //console.log(data);
         if (data) {
             if (closePopup.getAttribute('data-alpha2').toLowerCase() === data.country.toLowerCase()) {//in case they left page before socket response
                 onSocketChart(data);
@@ -287,16 +339,18 @@ function reassignProp() {
     searchInput.setAttribute('placeholder', placeholder);
 }
 function parseSVG() {
-    pathCountries = zoomEl.querySelectorAll('path');
-    const dataPaths = [];
-    for (let i = 0; i < pathCountries.length; i++) {
-        if (pathCountries[i].getAttribute('data-id')) {
-            let id = pathCountries[i].getAttribute('id').toLowerCase();
-            let countryName = pathCountries[i].getAttribute('data-name');
-            dataPaths.push({ path: pathCountries[i], id: id, country: countryName });
+    return new Promise(resolve => {
+        pathCountries = zoomEl.querySelectorAll('path');
+        const dataPaths = [];
+        for (let i = 0; i < pathCountries.length; i++) {
+            if (pathCountries[i].getAttribute('data-id')) {
+                let id = pathCountries[i].getAttribute('id').toLowerCase();
+                let countryName = pathCountries[i].getAttribute('data-name');
+                dataPaths.push({ path: pathCountries[i], id: id, country: countryName });
+            }
         }
-    }
-    return dataPaths;
+        resolve(dataPaths);
+    });
 }
 function fetchAPI() {
     fetch('https://api.apify.com/v2/key-value-stores/SmuuI0oebnTWjRTUh/records/LATEST?disableRedirect=true')
@@ -692,7 +746,7 @@ function showSortedList(data) {
     const svgList = (!usOn) ? dataSVG : usSVG;
     sortList(data).forEach(item => {
         const flagId = svgList.find(row => row.country === item.country).id;
-        const flagUrl = (flagId === 'ic') ? `images/ic.png` : (flagId === 'us-dc') ? `images/us-dc.png` : `https://flagcdn.com/60x45/${flagId}.png`;
+        const flagUrl = (flagId === 'ic') ? `/images/ic.png` : (flagId === 'us-dc') ? `/images/us-dc.png` : `https://flagcdn.com/60x45/${flagId}.png`;
         html += `
             <div class='stats-flex' data-country='${item.country}'>
                 <p class='inline-count'>${item.rank}</p>
@@ -713,11 +767,7 @@ worldList.addEventListener('mouseup', function (e) {
     e = e || window.event;
     if (e.target.parentNode.className === 'stats-flex') {
         let country = e.target.parentNode.dataset.country;
-        clearPage();
-        clearHighlights();
-        const svgList = (!usOn) ? dataSVG : usSVG;
-        const path = svgList.find(path => path.path.getAttribute('data-name') === country);
-        zoomToCountryNoAnim(path.path);
+        loadCountry(country, false);
     }
 });
 //POPUP
@@ -848,7 +898,7 @@ function getPopupInfo(country) {
     let rawTotalText = "";
     const svgList = (!usOn) ? dataSVG : usSVG;
     const flagId = svgList.find(path => path.country === country).id;
-    const flagUrl = (flagId === 'ic') ? `images/ic.png` : (flagId === 'us-dc') ? `images/us-dc.png` : `https://flagcdn.com/h40/${flagId}.png`;
+    const flagUrl = (flagId === 'ic') ? `/images/ic.png` : (flagId === 'us-dc') ? `/images/us-dc.png` : `https://flagcdn.com/h40/${flagId}.png`;
     const data = (!usOn) ? countriesList : usData;
     const record = sortList(data).find(data => data.country === country);
     if (record) {
@@ -936,9 +986,28 @@ function resultsTransform() {
     resultsWrapper.style.OTransform = `translateX(${getOffsets(searchWrapper).left}px)`;
     resultsWrapper.style.transform = `translateX(${getOffsets(searchWrapper).left}px)`;
 }
+function cleanUrl(url) {
+    if (url != 'Réunion' && url != 'Curaçao') {
+        url = url.replace(/\s/g, '-').toLowerCase();//replace all white space with dash
+        url = url.replace(/[^a-zA-Z/-]/g, "").toLowerCase();//remove all non-letter characters except '-' for timor-leste
+        return url;
+    }
+    else {
+        if (url === 'Réunion') { return 'reunion'; }
+        else if (url === 'Curaçao') { return 'curacao'; }
+    }
+}
+function replaceURL(country) {
+    const pageTitle = `${country} | COVID-19 WORLD-MAP`;
+    const url = cleanUrl(country);
+    const newUrl = (!usOn) ? `/${url}` : `/usa/${url}`;
+    window.history.pushState(newUrl, pageTitle, newUrl);
+    document.title = pageTitle;
+}
 async function showCountryPopup(country, alpha2) {
+    replaceURL(country);
     onMaps = false;
-    let usBtn = (alpha2.toLowerCase() === 'us') ? '<button class="us-btn" onMouseUp="onMenuBtn();">50 STATE MAP</button>' : '';
+    let usBtn = (alpha2.toLowerCase() === 'us') ? `<button class="us-btn" onMouseUp="onMenuBtn('us');">50 STATE MAP</button>` : '';
     countryPopup.scrollTo(0, 0);
     countryPopup.classList.remove('transform');
     closePopup.style.visibility = 'visible';
@@ -952,7 +1021,7 @@ async function showCountryPopup(country, alpha2) {
     const propTitles = (!usOn) ? ["Daily New Cases", "Daily New Deaths", "Case Fatality Rate", "Recovered", "Active", "Critical", "Tests", "Partially Vaccinated", "Fully Vaccinated", "Vaccinations"] : ["Daily New Cases", "Daily New Deaths", "Case Fatality Rate", "Recovered", "Active", "Tests", "Partially Vaccinated", "Fully Vaccinated", "Vaccinations"];
     const svgList = (!usOn) ? dataSVG : usSVG;
     const flagId = svgList.find(path => path.country === country).id;
-    const flagUrl = (flagId === 'ic') ? `images/ic.png` : (flagId === 'us-dc') ? `images/us-dc.png` : `https://flagcdn.com/h240/${flagId}.png`;
+    const flagUrl = (flagId === 'ic') ? `/images/ic.png` : (flagId === 'us-dc') ? `/images/us-dc.png` : `https://flagcdn.com/h240/${flagId}.png`;
     const wrapperProplist = ['casesPerMil', 'deathsPerMil', 'population'];
     let record, rank = [];
     const dataset = (!usOn) ? countriesList : usData;
@@ -1173,12 +1242,12 @@ function onClosePopup(e) {
     clearHighlights();
 }
 //US STATES COUNTRY POPUP
-function declareUsZoomElems() {
+async function declareUsZoomElems() {
     svgEl = _('usMap');
     zoomEl = _('gUsMap');
     VBWidth = 1362;
     VBHeight = 817;//767 + 50
-    usSVG = parseSVG();
+    usSVG = await parseSVG();
     fadeIn(svgEl);
     onResize();
     prevP = svgEl.createSVGPoint();
@@ -1187,12 +1256,12 @@ function declareUsZoomElems() {
     fadeTrail.x = fadeTrail.y = touchTrail.x = touchTrail.y = prevP.x = prevP.y = 0;
     if (is_touch_device) { touchEvents(true); }
 }
-function declareWorldZoomElems() {
+async function declareWorldZoomElems() {
     svgEl = _('worldMap');
     zoomEl = _('gOuter');
     VBWidth = 2000;
     VBHeight = 1051;//1001 + 50
-    dataSVG = parseSVG();
+    dataSVG = await parseSVG();
     onResize();
     prevP = svgEl.createSVGPoint();
     touchTrail = svgEl.createSVGPoint();
@@ -1201,13 +1270,13 @@ function declareWorldZoomElems() {
     if (is_touch_device) { touchEvents(true); }
 }
 async function showUsMap() {
-    const xhr = await appendMap('us.svg');
+    const xhr = await appendMap('/us.svg');
     usOn = (xhr) ? true : false;
     showGlInstructions();
     return xhr;
 }
 async function showWorldMap() {
-    const xhr = await appendMap('world.svg');
+    const xhr = await appendMap('/world.svg');
     return xhr;
 }
 function appendMap(file) {
@@ -1224,7 +1293,7 @@ function appendMap(file) {
                     else { alert("Network Error: Check your internet connection"); }
                 }
                 mapDiv.appendChild(this.responseXML.documentElement);
-                if (file === 'us.svg') { declareUsZoomElems(); }
+                if (file === '/us.svg') { declareUsZoomElems(); }
                 else { declareWorldZoomElems(); }
                 resolve(true);
             }
@@ -1429,10 +1498,21 @@ function getOffsets(e) {
     const offsets = { width: e.offsetWidth, left: e.offsetLeft };
     return offsets;
 }
+String.prototype.replaceArray = function (find, replace) {
+    var replaceString = this;
+    var regex;
+    for (var i = 0; i < find.length; i++) {
+        regex = new RegExp(find[i], "g");
+        replaceString = replaceString.replace(regex, replace[i]);
+    }
+    return replaceString;
+};
 function getSearchResults(search) {
     let result = [];
     const dataSet = (!usOn) ? countriesList : usData;
-    const filtered = (!usOn) ? countryCodes.filter(row => row.name.toLowerCase().includes(search) || row.country.toLowerCase().includes(search) || row.alpha2.toLowerCase().includes(search) || row.alpha3.toLowerCase().includes(search)) : usSVG.filter(row => row.country.toLowerCase().includes(search));
+    const find = ['é', 'ç'];
+    const replace = ['e', 'c'];
+    const filtered = (!usOn) ? countryCodes.filter(row => row.name.toLowerCase().replaceArray(find, replace).includes(search) || row.country.toLowerCase().replaceArray(find, replace).includes(search) || row.alpha2.toLowerCase().includes(search) || row.alpha3.toLowerCase().includes(search)) : usSVG.filter(row => row.country.toLowerCase().includes(search));
     filtered.forEach(row => {
         const record = dataSet.find(country => country.country.toLowerCase() === row.country.toLowerCase());
         if (record) {
@@ -1479,15 +1559,11 @@ function onArrowsEnterSearch(onUp, onEnter) {
     rows[newIndex].classList.add('results-flex-focus');
 }
 function onResultClick(e) {
-    e = (e.pageX) ? this : e;
+    e = (e.clientY) ? this : e;
     removeResultFocus();
     e.classList.add('results-flex-focus');
     let country = e.dataset.country;
-    clearPage();
-    clearHighlights();
-    const svgList = (!usOn) ? dataSVG : usSVG;
-    const path = svgList.find(path => path.path.getAttribute('data-name') === country);
-    zoomToCountryNoAnim(path.path, true);
+    loadCountry(country, true);
     onCloseSearch();
 }
 searchInput.addEventListener('keyup', function (e) {
@@ -1498,7 +1574,7 @@ searchInput.addEventListener('keyup', function (e) {
         const dataset = (!usOn) ? countriesList : usData;
         if (dataset.length != 0) {
             let search = this.value.toLowerCase().trim();
-            search = search.replace(/[^a-zA-Z ]/g, "");//remove all non-letter characters
+            //search = search.replace(/[^a-zA-Z ]/g, "");//remove all non-letter characters
             if (search != "") {
                 const result = getSearchResults(search);
                 closeSearch.style.visibility = "visible";
@@ -1509,7 +1585,7 @@ searchInput.addEventListener('keyup', function (e) {
                     result.forEach(record => {
                         const svgList = (!usOn) ? dataSVG : usSVG;
                         const flagId = svgList.find(path => path.country === record.country).id;
-                        const flagUrl = (flagId === 'ic') ? `images/ic.png` : (flagId === 'us-dc') ? `images/us-dc.png` : `https://flagcdn.com/h40/${flagId}.png`;
+                        const flagUrl = (flagId === 'ic') ? `/images/ic.png` : (flagId === 'us-dc') ? `/images/us-dc.png` : `https://flagcdn.com/h40/${flagId}.png`;
                         html += `
                             <div class='results-flex' data-country='${record.country}'>
                                 <div class='bckg-img inline-flag' style='background-image:url(${flagUrl});'></div>
@@ -2120,20 +2196,14 @@ function onToggleDark(e) {
 toggleDark.addEventListener('mouseup', onToggleDark, false);
 //LEGEND BOX
 function toggleLegend() {
-    if (keys.style.visibility === 'visible' || keys.style.maxHeight === "550px") {
-        closeLegend();
-    }
-    else {
-        openLegend();
-    }
+    if (keys.style.display === 'block' || keys.style.opacity === 0) { closeLegend(); }
+    else { openLegend(); }
 }
 function openLegend() {
-    keys.style.visibility = "visible";
-    keys.style.maxHeight = "550px";
+    fadeIn(keys);
 }
 function closeLegend() {
-    keys.style.maxHeight = "0px";
-    keys.style.visibility = "hidden";
+    fadeOut(keys);
 }
 keyBtn.addEventListener('click', toggleLegend, false);
 closeKeys.addEventListener('click', closeLegend, false);
@@ -2227,6 +2297,9 @@ function clearPopup() {
         closePopup.style.visibility = 'hidden';
         resultsTransform();
     }, 500);
+    const pageTitle = 'COVID-19 WORLD-MAP';
+    window.history.pushState('noParam', pageTitle, '/');
+    document.title = pageTitle;
 }
 function setPrevMapState() {
     const transform = `matrix(${prevMatrix.scale}, 0, 0, ${prevMatrix.scale}, ${prevMatrix.x}, ${prevMatrix.y})`;
@@ -2238,70 +2311,98 @@ function onResetPage() {
     if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); chartOn = false; }
     removeZoomTapListeners();
     removePopupListeners();
-    clearPopup();
+    if (!onUsURL) { clearPopup(); }
     addZoomTapListeners();
     addPopupListeners();
     showPage();
     reassignProp();
 }
 async function onWorldPage() {
-    const resolve = await showWorldMap();
-    if (resolve) {
-        if (usOn) { usOn = false; }
-        showGlInstructions();
-        onResetPage();
-    }
-    else { alert("Network Error: Check your internet connection"); }
+    return new Promise(async resolve => {
+        const res = await showWorldMap();
+        if (res) {
+            if (usOn) { usOn = false; }
+            resolve(res);
+        }
+    });
 }
 async function onUsPage() {
-    const resolve = await showUsMap();
-    if (resolve) { onResetPage(); }
-    else { alert("Network Error: Check your internet connection"); }
+    return new Promise(async resolve => {
+        const res = await showUsMap();
+        resolve(res);
+    });
 }
 document.querySelectorAll('.menu-btns').forEach(btn => {
     btn.addEventListener('mouseup', onMenuBtn, false);
 });
-function onMenuBtn(e) {
-    e = (e) ? this : (window.innerWidth <= 768) ? _('usBtnMobile') : _('usBtn');
-    mobileNav.classList.add('transform-y-260');
-    hamburger.classList.remove('change');
-    let attr = e.dataset.link;
-    const thisColor = (mode === 'dark') ? '#54cbf2' : '#9c9c9c';
-    const otherColor = (mode === 'dark') ? '#faebd7' : '#000';
-    document.querySelectorAll('.menu-btns').forEach(item => {
-        item.style.color = otherColor;
+function menuSwitchBtns(menu) {
+    let btn, btnMobile;
+    switch (menu) {
+        case 'us':
+            btn = _('usBtn');
+            btnMobile = _('usBtnMobile');
+            break;
+        case 'about':
+            btn = _('aboutBtn');
+            btnMobile = _('aboutBtnMobile');
+    }
+    return { btn: btn, btnMobile: btnMobile };
+}
+async function onMenuBtn(e) {
+    return new Promise(async resolve => {
+        e = (e.clientY) ? this : (window.innerWidth <= 768) ? menuSwitchBtns(e).btnMobile : menuSwitchBtns(e).btn;
+        mobileNav.classList.add('transform-y-260');
+        hamburger.classList.remove('change');
+        let attr = e.dataset.link;
+        const thisColor = (mode === 'dark') ? '#54cbf2' : '#9c9c9c';
+        const otherColor = (mode === 'dark') ? '#faebd7' : '#000';
+        document.querySelectorAll('.menu-btns').forEach(item => {
+            item.style.color = otherColor;
+        });
+        e.style.color = thisColor;
+        if (attr === "about") {
+            onMaps = false;
+            onUsURL = false;
+            if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); chartOn = false; }
+            removeZoomTapListeners();
+            removePopupListeners();
+            clearPopup();
+            onResize();
+            clearPage();
+            about.style.display = "block";
+            const pageTitle = 'About | COVID-19 WORLD-MAP';
+            window.history.pushState('about', pageTitle, '/about');
+            document.title = pageTitle;
+        }
+        else if (attr === 'us') {
+            onMaps = true;
+            const res = await onUsPage();
+            if (res) { onResetPage(); about.style.display = "none"; resolve(true); }
+            else { alert("Network Error: Check your internet connection"); resolve(false); }
+        }
+        else {
+            onMaps = true;
+            onUsURL = false;
+            const res = await onWorldPage();
+            if (res) {
+                showGlInstructions();
+                onResetPage();
+                about.style.display = "none";
+                resolve(true);
+            }
+            else { alert("Network Error: Check your internet connection"); resolve(false); }
+        }
+        clearHighlights();
+        onCloseSearch();
+        popup.style.display = "none";
     });
-    e.style.color = thisColor;
-    if (attr === "about") {
-        onMaps = false;
-        if (chartOn) { removeChartListeners(); removeGlobalChartListeners(); chartOn = false; }
-        removeZoomTapListeners();
-        removePopupListeners();
-        clearPopup();
-        onResize();
-        clearPage();
-        about.style.display = "block";
-    }
-    else if (attr === 'us') {
-        onMaps = true;
-        onUsPage();
-        about.style.display = "none";
-    }
-    else {
-        onMaps = true;
-        onWorldPage();
-        about.style.display = "none";
-    }
-    clearHighlights();
-    onCloseSearch();
-    popup.style.display = "none";
 }
 //LOADER
 function dynLoader(id) {
     return new Promise(resolve => {
         var loader;
         const xhr = new XMLHttpRequest();
-        xhr.open("GET", "loader.svg");
+        xhr.open("GET", "/loader.svg");
         xhr.overrideMimeType("image/svg+xml");
         xhr.onload = function (e) {
             if (this.status === 200 && this.responseXML.documentElement) {
