@@ -638,10 +638,12 @@ app.get('/:country', (req, res) => {
     url = (url === 'reunion' || url === 'curacao' || url === 'timor-leste' || url === 'guinea-bissau' || url === 's-korea' || url === 'st-vincent-grenadines') ? switchUrl(url) : url.replace(/-/g, ' ');
     const countryIndex = countryCodes.findIndex(row => row.country.toLowerCase() === url);
     if (countryIndex != -1) {
-        res.sendFile(path.join(__dirname, '/public/index.html'));
+        //res.sendFile(path.join(__dirname, '/public/index.html'));//localhost
+        res.sendFile(path.join(__dirname, '/../../public_html/index.html'));//vps
     }
     else {
-        res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));
+        //res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));//localhost
+        res.status(404).sendFile(path.join(__dirname, '/../../public_html/custom_404x.html'));//vps
     }
 });
 //USA STATES
@@ -650,13 +652,16 @@ app.get('/usa/:country', (req, res) => {
     url = url.replace(/-/g, ' ');
     const usaIndex = usCodes.findIndex(row => row.state.toLowerCase() === url);
     if (usaIndex != -1) {
-        res.sendFile(path.join(__dirname, `/public/index.html`));
+        //res.sendFile(path.join(__dirname, `/public/index.html`));//localhost
+        res.sendFile(path.join(__dirname, '/../../public_html/index.html'));//vps
     }
     else {
-        res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));
+        //res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));//localhost
+        res.status(404).sendFile(path.join(__dirname, '/../../public_html/custom_404x.html'));//vps
     }
 });
 //404 PAGE
 app.use(function (req,res,next){
-	res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));
+	//res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));//localhost
+    res.status(404).sendFile(path.join(__dirname, '/../../public_html/custom_404x.html'));//vps
 });
