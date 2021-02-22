@@ -630,7 +630,8 @@ function switchUrl(url) {
 }
 //ABOUT PAGE
 app.get('/about', (req, res) => {
-    res.sendFile(path.join(__dirname, `/public/index.html`));
+    //res.sendFile(path.join(__dirname, `/public/index.html`));//localhost
+    res.sendFile(path.join(__dirname, `/../../public_html/worldmapcovid19/index.html`));//vps
 });
 //WORLD COUNTRIES
 app.get('/:country', (req, res) => {
@@ -639,11 +640,11 @@ app.get('/:country', (req, res) => {
     const countryIndex = countryCodes.findIndex(row => row.country.toLowerCase() === url);
     if (countryIndex != -1) {
         //res.sendFile(path.join(__dirname, '/public/index.html'));//localhost
-        res.sendFile(path.join(__dirname, '/../../public_html/index.html'));//vps
+        res.sendFile(path.join(__dirname, '/../../public_html/worldmapcovid19/index.html'));//vps
     }
     else {
         //res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));//localhost
-        res.status(404).sendFile(path.join(__dirname, '/../../public_html/custom_404x.html'));//vps
+        res.status(404).sendFile(path.join(__dirname, '/../../public_html/worldmapcovid19/custom_404x.html'));//vps
     }
 });
 //USA STATES
@@ -653,15 +654,15 @@ app.get('/usa/:country', (req, res) => {
     const usaIndex = usCodes.findIndex(row => row.state.toLowerCase() === url);
     if (usaIndex != -1) {
         //res.sendFile(path.join(__dirname, `/public/index.html`));//localhost
-        res.sendFile(path.join(__dirname, '/../../public_html/index.html'));//vps
+        res.sendFile(path.join(__dirname, '/../../public_html/worldmapcovid19/index.html'));//vps
     }
     else {
         //res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));//localhost
-        res.status(404).sendFile(path.join(__dirname, '/../../public_html/custom_404x.html'));//vps
+        res.status(404).sendFile(path.join(__dirname, '/../../public_html/worldmapcovid19/custom_404x.html'));//vps
     }
 });
 //404 PAGE
 app.use(function (req,res,next){
 	//res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));//localhost
-    res.status(404).sendFile(path.join(__dirname, '/../../public_html/custom_404x.html'));//vps
+    res.status(404).sendFile(path.join(__dirname, '/../../public_html/worldmapcovid19/custom_404x.html'));//vps
 });
