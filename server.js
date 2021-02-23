@@ -29,20 +29,20 @@ const https = require('https');
 //SERVER START
 const server = http.createServer(app);
 //LOCALHOST
-server.listen(4000, '0.0.0.0', () => {
+/* server.listen(4000, '0.0.0.0', () => {
     console.log('Listening on port 4000...');
-});
+}); */
 //BLUEHOST VPS
-/* const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 server.listen(port, '162.214.173.250', () => {
     console.log(`Listening on port ${port}...`);
-}); */
+});
 
 //EXPRESS ROUTING
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'public')));//localhost
-//app.use(express.static(path.join(__dirname, '/../../public_html/worldmapcovid19')));//bluehost vps
+//app.use(express.static(path.join(__dirname, 'public')));//localhost
+app.use(express.static(path.join(__dirname, '/../../public_html/worldmapcovid19')));//bluehost vps
 
 //OTHER PACKAGES
 const io = require('socket.io')(server);
@@ -232,7 +232,7 @@ const worldometersJob = new CronJob('33 21 * * *', function () {// 9:33 PM
         }
     });
 }, null, true, 'America/New_York');
-const vaccJob = new CronJob('0 */12 * * *', function () {// TWICE A DAY
+const vaccJob = new CronJob('1 */6 * * *', function () {// 4 TIMES A DAY:1 MIN
     const url = 'https://covid.ourworldindata.org/data/vaccinations/vaccinations.csv';
     downloadFile(url, (file) => {
         if (file) {
@@ -253,7 +253,7 @@ const vaccJob = new CronJob('0 */12 * * *', function () {// TWICE A DAY
         }
     });
 }, null, true, 'America/New_York');
-const vaccUsJob = new CronJob('2 */12 * * *', function () {// TWICE A DAY:2 min
+const vaccUsJob = new CronJob('3 */6 * * *', function () {// 4 TIMES A DAY:3 MIN
     const url = 'https://covid.ourworldindata.org/data/vaccinations/us_state_vaccinations.csv';
     downloadFile(url, (file) => {
         if (file) {
@@ -661,8 +661,8 @@ function switchUrl(url) {
 }
 //ABOUT PAGE
 app.get('/about', (req, res) => {
-    res.sendFile(path.join(__dirname, `/public/index.html`));//localhost
-    //res.sendFile(path.join(__dirname, `/../../public_html/worldmapcovid19/index.html`));//vps
+    //res.sendFile(path.join(__dirname, `/public/index.html`));//localhost
+    res.sendFile(path.join(__dirname, `/../../public_html/worldmapcovid19/index.html`));//vps
 });
 //WORLD COUNTRIES
 app.get('/:country', (req, res) => {
@@ -670,12 +670,12 @@ app.get('/:country', (req, res) => {
     url = (url === 'reunion' || url === 'curacao' || url === 'timor-leste' || url === 'guinea-bissau' || url === 's-korea' || url === 'st-vincent-grenadines') ? switchUrl(url) : url.replace(/-/g, ' ');
     const countryIndex = countryCodes.findIndex(row => row.country.toLowerCase() === url);
     if (countryIndex != -1) {
-        res.sendFile(path.join(__dirname, '/public/index.html'));//localhost
-        //res.sendFile(path.join(__dirname, '/../../public_html/worldmapcovid19/index.html'));//vps
+        //res.sendFile(path.join(__dirname, '/public/index.html'));//localhost
+        res.sendFile(path.join(__dirname, '/../../public_html/worldmapcovid19/index.html'));//vps
     }
     else {
-        res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));//localhost
-        //res.status(404).sendFile(path.join(__dirname, '/../../public_html/worldmapcovid19/custom_404x.html'));//vps
+        //res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));//localhost
+        res.status(404).sendFile(path.join(__dirname, '/../../public_html/worldmapcovid19/custom_404x.html'));//vps
     }
 });
 //USA STATES
@@ -684,16 +684,16 @@ app.get('/usa/:country', (req, res) => {
     url = url.replace(/-/g, ' ');
     const usaIndex = usCodes.findIndex(row => row.state.toLowerCase() === url);
     if (usaIndex != -1) {
-        res.sendFile(path.join(__dirname, `/public/index.html`));//localhost
-        //res.sendFile(path.join(__dirname, '/../../public_html/worldmapcovid19/index.html'));//vps
+        //res.sendFile(path.join(__dirname, `/public/index.html`));//localhost
+        res.sendFile(path.join(__dirname, '/../../public_html/worldmapcovid19/index.html'));//vps
     }
     else {
-        res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));//localhost
-        //res.status(404).sendFile(path.join(__dirname, '/../../public_html/worldmapcovid19/custom_404x.html'));//vps
+        //res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));//localhost
+        res.status(404).sendFile(path.join(__dirname, '/../../public_html/worldmapcovid19/custom_404x.html'));//vps
     }
 });
 //404 PAGE
 app.use(function (req, res, next) {
-    res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));//localhost
-    //res.status(404).sendFile(path.join(__dirname, '/../../public_html/worldmapcovid19/custom_404x.html'));//vps
+    //res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));//localhost
+    res.status(404).sendFile(path.join(__dirname, '/../../public_html/worldmapcovid19/custom_404x.html'));//vps
 });
