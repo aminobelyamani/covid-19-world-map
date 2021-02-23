@@ -10,21 +10,20 @@ Thumbs.db
 # IGNORE DIRECTORIES #
 _work/
 node_modules/
+data/
 public/images/
 public/css/fonts/
 public/css/backup/
 public/js/backup/
 # ASSET FILES #
-*.json
-!package.json
-!package-lock.json
 *.png
 *.ico
 *.jpg
 *.jpeg
 *.gif
 *.webmanifest
+*.svg
 *.xml
-*.csv
-us-scrape.html
-world-scrape.html
+*.html
+!public/index.html
+*.yml
