@@ -1,3 +1,24 @@
+/* MIT License
+
+Copyright (c) 2021 Amino Belyamani
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE. */
 const express = require('express');
 const app = express();
 const path = require('path');
@@ -211,7 +232,7 @@ const worldometersJob = new CronJob('33 21 * * *', function () {// 9:33 PM
         }
     });
 }, null, true, 'America/New_York');
-const vaccJob = new CronJob('0 */1 * * *', function () {// EVERY HOUR
+const vaccJob = new CronJob('0 */12 * * *', function () {// TWICE A DAY
     const url = 'https://covid.ourworldindata.org/data/vaccinations/vaccinations.csv';
     downloadFile(url, (file) => {
         if (file) {
@@ -232,7 +253,7 @@ const vaccJob = new CronJob('0 */1 * * *', function () {// EVERY HOUR
         }
     });
 }, null, true, 'America/New_York');
-const vaccUsJob = new CronJob('2 */1 * * *', function () {// EVERY HOUR:2 min
+const vaccUsJob = new CronJob('2 */12 * * *', function () {// TWICE A DAY:2 min
     const url = 'https://covid.ourworldindata.org/data/vaccinations/us_state_vaccinations.csv';
     downloadFile(url, (file) => {
         if (file) {
@@ -288,10 +309,10 @@ const runINITIAL = async () => {
     //Yest
     yestData = await parseYesterdayScrape();
     yestUsData = await parseYesterdayScrape(true);
-    const parsedUsData = await parseUsDataHist();
-    const addedUsData = await addNewDataToHist(yestUsData, parsedUsData);
-    console.log('Added LATEST DATA to us-data-hist.json...');
-    compileUsDataHist(addedUsData);
+    usDataHist = await parseUsDataHist();
+    //const parsedUsData = await parseUsDataHist();
+    //const addedUsData = await addNewDataToHist(yestUsData, parsedUsData);
+    //compileUsDataHist(addedUsData);
     //CRON JOBS
     owidJob.start();
     worldometersJob.start();
@@ -316,7 +337,6 @@ const runYest = async () => {
     yestUsData = await parseYesterdayScrape(true);
     const parsedUsData = await parseUsDataHist();
     const addedUsData = await addNewDataToHist(yestUsData, parsedUsData);
-    console.log('Added LATEST DATA to us-data-hist.json...');
     compileUsDataHist(addedUsData);
 };
 const runUsVaccHist = async () => {
@@ -330,23 +350,30 @@ runCSV();
 
 //SERVER FUNCTIONS
 function compileUsDataHist(data) {
+    var count = 0;//tracking changes
     usCodes.forEach(state => {
         const parsedStateList = parsedUsCsv.filter(row => row.location.toLowerCase() === state.state.toLowerCase());
         const histIndex = data.findIndex(row => row.country.toLowerCase() === state.state.toLowerCase());
         const histList = (histIndex != -1) ? data[histIndex].data : false;
         if (histList) {
-            parsedStateList.forEach(row => {
-                const finalIndex = histList.findIndex(record => record.date.toString() === row.date.toString());
-                if (finalIndex != -1) {
-                    const dailyVacc = row.daily_vaccinations || 0;
+            const finalIndex = histList.length - 1;
+            if (histList[finalIndex].hasOwnProperty('new_vaccinations_smoothed') === false) {
+                const vaccIndex = parsedStateList.findIndex(row => row.date.toString() === histList[finalIndex].date.toString());
+                if (vaccIndex != -1) {
+                    const dailyVacc = parsedStateList[vaccIndex].daily_vaccinations || 0;
                     data[histIndex].data[finalIndex].new_vaccinations_smoothed = dailyVacc;
+                    count++;//change has been made
                 }
-            })
+            }
         }
     });
-    fs.writeFile(path.join(__dirname, 'data/nyt/us-data-hist.json'), JSON.stringify(data), async (err) => {
-        if (!err) { console.log('Added VACCINE DATA to us-data-hist.json...'); usDataHist = await parseUsDataHist(); }
-    });
+    if (count > 0) {
+        fs.writeFile(path.join(__dirname, 'data/nyt/us-data-hist.json'), JSON.stringify(data), async (err) => {
+            if (err) { console.log('Error writing to file: us-data-hist.json'); console.log(err); }
+            else { console.log('Added VACCINE DATA to us-data-hist.json...'); usDataHist = await parseUsDataHist(); }
+        });
+    }
+    else { console.log('NO vaccine changes made to us-data-hist.json'); }
 }
 function getYestDate() {
     const today = new Date().toUTCString();//get GMT timezone
@@ -358,6 +385,7 @@ function getYestDate() {
 function addNewDataToHist(data, parsedData) {
     return new Promise(resolve => {
         const date = getYestDate();
+        var count = 0;
         data.forEach(row => {
             const record = parsedData.find(record => record.country === row.country);
             const index = parsedData.findIndex(record => record.country === row.country);
@@ -376,8 +404,11 @@ function addNewDataToHist(data, parsedData) {
                     new_deaths_smoothed: deathAvg
                 }
                 parsedData[index].data.push(payload);
+                count++;//change has been made
             }
         });
+        if (count > 0) { console.log('Added LATEST DATA to us-data-hist.json...'); }
+        else { console.log('NO LATEST DATA changes made to us-data-hist.json'); }
         resolve(parsedData);
     });
 }
@@ -662,7 +693,7 @@ app.get('/usa/:country', (req, res) => {
     }
 });
 //404 PAGE
-app.use(function (req,res,next){
-	res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));//localhost
+app.use(function (req, res, next) {
+    res.status(404).sendFile(path.join(__dirname, '/public/custom_404x.html'));//localhost
     //res.status(404).sendFile(path.join(__dirname, '/../../public_html/worldmapcovid19/custom_404x.html'));//vps
 });
