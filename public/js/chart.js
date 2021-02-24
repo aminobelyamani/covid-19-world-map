@@ -506,7 +506,6 @@ function resetChart() {
     else {
         onNoChartData();
     }
-    chartWrapper.scrollTop = 0;
     countryPopup.scrollTop = chartWrapper.offsetTop - 5;
 }
 //LISTENERS

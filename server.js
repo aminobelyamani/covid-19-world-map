@@ -29,20 +29,20 @@ const https = require('https');
 //SERVER START
 const server = http.createServer(app);
 //LOCALHOST
-/* server.listen(4000, '0.0.0.0', () => {
+server.listen(4000, '0.0.0.0', () => {
     console.log('Listening on port 4000...');
-}); */
+});
 //BLUEHOST VPS
-const port = process.env.PORT || 3000;
+/* const port = process.env.PORT || 3000;
 server.listen(port, '162.214.173.250', () => {
     console.log(`Listening on port ${port}...`);
 });
-
+ */
 //EXPRESS ROUTING
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
-//app.use(express.static(path.join(__dirname, 'public')));//localhost
-app.use(express.static(path.join(__dirname, '/../../public_html/worldmapcovid19')));//bluehost vps
+app.use(express.static(path.join(__dirname, 'public')));//localhost
+//app.use(express.static(path.join(__dirname, '/../../public_html/worldmapcovid19')));//bluehost vps
 
 //OTHER PACKAGES
 const io = require('socket.io')(server);
@@ -368,7 +368,7 @@ function compileUsDataHist(data) {
         }
     });
     if (count > 0) {
-        fs.writeFile(path.join(__dirname, 'data/nyt/us-data-hist.json'), JSON.stringify(data), async (err) => {
+        fs.writeFile(path.join(__dirname, 'data/us-data/us-data-hist.json'), JSON.stringify(data), async (err) => {
             if (err) { console.log('Error writing to file: us-data-hist.json'); console.log(err); }
             else { console.log('Added VACCINE DATA to us-data-hist.json...'); usDataHist = await parseUsDataHist(); }
         });
@@ -465,7 +465,7 @@ async function parseFetchData() {
 }
 async function parseUsDataHist() {
     try {
-        const rawData = fs.readFileSync(path.join(__dirname, 'data/nyt/us-data-hist.json'));
+        const rawData = fs.readFileSync(path.join(__dirname, 'data/us-data/us-data-hist.json'));
         var parsed;
         parsed = JSON.parse(rawData);
         console.log("parsed us-data-hist.json...")

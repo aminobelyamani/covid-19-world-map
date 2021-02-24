@@ -10,7 +10,7 @@ Thumbs.db
 # IGNORE DIRECTORIES #
 _work/
 node_modules/
-data/
+# data/ #
 public/images/
 public/css/fonts/
 public/css/backup/
