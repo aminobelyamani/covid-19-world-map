@@ -19,6 +19,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
+
 function _(x) {
     return document.getElementById(x);
 }
@@ -103,6 +104,7 @@ function onPageLoad() {
     fadeOut(_('overlayMsg'));
     is_touch_device = 'ontouchstart' in document.documentElement;
     if (is_touch_device) {
+        header.style.pointerEvents = 'none';
         switchToggle.addEventListener('touchend', onSwitchTap, false);
         touchEvents();
         if (!onUsURL) { addZoomTapListeners(); }
@@ -157,7 +159,6 @@ async function onDOMLoaded() {
                 else {
                     onPageLoad();
                     execProp();
-                    loadUrl();
                     socket.emit('getVaccineData');
                     socket.emit('getUsData');
                 }
@@ -263,6 +264,7 @@ function socketListeners(socket) {
             countriesList = await getData(dataAPI);
             countriesList = await calcData(countriesList);
             timeStamp.innerText = `Updated at ${formatTime()} EST`;
+            if (!onUsURL) { loadUrl(); }
             execProp();
         }
     });
