@@ -1,24 +1,3 @@
-/* MIT License
-
-Copyright (c) 2021 Amino Belyamani
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE. */
 const express = require('express');
 const app = express();
 const path = require('path');
@@ -310,9 +289,6 @@ const runINITIAL = async () => {
     yestData = await parseYesterdayScrape();
     yestUsData = await parseYesterdayScrape(true);
     usDataHist = await parseUsDataHist();
-    //const parsedUsData = await parseUsDataHist();
-    //const addedUsData = await addNewDataToHist(yestUsData, parsedUsData);
-    //compileUsDataHist(addedUsData);
     //CRON JOBS
     owidJob.start();
     worldometersJob.start();
@@ -407,9 +383,13 @@ function addNewDataToHist(data, parsedData) {
                 count++;//change has been made
             }
         });
-        if (count > 0) { console.log('Added LATEST DATA to us-data-hist.json...'); }
-        else { console.log('NO LATEST DATA changes made to us-data-hist.json'); }
-        resolve(parsedData);
+        if (count > 0) {
+            fs.writeFile(path.join(__dirname, 'data/us-data/us-data-hist.json'), JSON.stringify(parsedData), async (err) => {
+                if (err) { console.log('Error writing to file: us-data-hist.json'); console.log(err); resolve(parsedData); }
+                else { console.log('Added LATEST DATA to us-data-hist.json...'); usDataHist = await parseUsDataHist(); resolve(parsedData); }
+            });
+        }
+        else { console.log('NO LATEST DATA changes made to us-data-hist.json'); resolve(parsedData); }
     });
 }
 function roundVal(value, precision) {
