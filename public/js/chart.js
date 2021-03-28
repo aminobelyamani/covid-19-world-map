@@ -498,7 +498,7 @@ function popupHtml(record) {
     let count = 0;
     for (i = 0; i < propArr.length; i++) {
         if (record[varArr[i]] != null) {
-            record[varArr[i]] = (record[varArr[i]] > 999) ? Math.round(record[varArr[i]]) : record[varArr[i]];
+            record[varArr[i]] = roundVal(record[varArr[i]], 2);
             let propPrefix = (propTitle[i] === 'Vaccinations') ? 'Daily' : '';
             tooltip +=
                 `<div class='chart-popup-wrapper'>   
@@ -509,7 +509,7 @@ function popupHtml(record) {
                         <p class='chart-popup-text'>${propPrefix} ${propTitle[i]}</p>
                     </div>
                     <div class='chart-popup-flex'>
-                        <p class='chart-popup-text'>${record[varArr[i]].commaSplit()}</p>
+                        <p class='chart-popup-num'>${record[varArr[i]].commaSplit()}</p>
                     </div>
                 </div>`;
         }

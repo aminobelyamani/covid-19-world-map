@@ -348,7 +348,7 @@ function calcUsData(data) {
     return new Promise(resolve => {
         const rows = [];
         data.forEach(row => {
-            row.partiallyVaccinated = Math.abs((row.peopleVaccinated || 0) - (row.peopleFullyVaccinated || 0));
+            row.partiallyVaccinated = Math.round(Math.abs((row.peopleVaccinated || 0) - (row.peopleFullyVaccinated || 0)));
             rows.push(row);
         });
         resolve(rows);
@@ -403,10 +403,10 @@ function getData(data, us) {
             if (index != -1) {
                 data[index].alpha2 = item.id;
                 const vaccIndex = dataVacc.findIndex(row => row.country === item.id);
-                data[index].totalVaccinations = (vaccIndex != -1) ? dataVacc[vaccIndex].totalVaccinations : 0;
-                data[index].peopleVaccinated = (vaccIndex != -1) ? dataVacc[vaccIndex].peopleVaccinated : 0;
-                data[index].peopleFullyVaccinated = (vaccIndex != -1) ? dataVacc[vaccIndex].peopleFullyVaccinated : 0;
-                data[index].partiallyVaccinated = (vaccIndex != -1) ? Math.abs(((dataVacc[vaccIndex].peopleVaccinated || 0) - (dataVacc[vaccIndex].peopleFullyVaccinated || 0))) : 0;
+                data[index].totalVaccinations = (vaccIndex != -1) ? Math.round(dataVacc[vaccIndex].totalVaccinations) : 0;
+                data[index].peopleVaccinated = (vaccIndex != -1) ? Math.round(dataVacc[vaccIndex].peopleVaccinated) : 0;
+                data[index].peopleFullyVaccinated = (vaccIndex != -1) ? Math.round(dataVacc[vaccIndex].peopleFullyVaccinated) : 0;
+                data[index].partiallyVaccinated = (vaccIndex != -1) ? Math.round(Math.abs(((dataVacc[vaccIndex].peopleVaccinated || 0) - (dataVacc[vaccIndex].peopleFullyVaccinated || 0)))) : 0;
                 data[index].vaccines = (vaccIndex != -1) ? dataVacc[vaccIndex].vaccines : 'Not Reported';
                 results.push(data[index]);
             }
@@ -521,17 +521,17 @@ function worldData(data) {
             <h2 class='global-vacc-title'>${title} Stats</h2>
             <div class='worldStats-flex'>
                 <div>
-                    <p class='stats white'>${world.totalPartialVacc.commaSplit()}</p>
-                    <p class='stats-titles gray'>People Partially Vaccinated</p>
-                </div>
-                ${getPiePerc(percPartialVacc, 'percVacc', true)}
-            </div>
-            <div class='worldStats-flex'>
-                <div>
                     <p class='stats white'>${world.totalPplFlVacc.commaSplit()}</p>
                     <p class='stats-titles gray'>People Fully Vaccinated</p>
                 </div>
                 ${getPiePerc(percPplFlVacc, 'percFullyVacc', true)}
+            </div>
+            <div class='worldStats-flex'>
+                <div>
+                    <p class='stats white'>${world.totalPartialVacc.commaSplit()}</p>
+                    <p class='stats-titles gray'>People Partially Vaccinated</p>
+                </div>
+                ${getPiePerc(percPartialVacc, 'percVacc', true)}
             </div>
             <p class='stats white'>${world.totalVacc.commaSplit()}</p>
             <p class='stats-titles gray'>Total Vaccinations</p>`;
@@ -1021,7 +1021,7 @@ function cleanUrl(url) {
     }
 }
 function replaceURL(country) {
-    const pageTitle = `${country} | COVID-19 WORLD-MAP`;
+    const pageTitle = `${country} | COVID-19 World Map`;
     const url = cleanUrl(country);
     const newUrl = (!usOn) ? `/${url}` : `/usa/${url}`;
     window.history.pushState(newUrl, pageTitle, newUrl);
@@ -1040,8 +1040,8 @@ async function showCountryPopup(country, alpha2) {
     setTimeout(() => {
         resultsTransform();
     }, 300);
-    const propList = (!usOn) ? ["newCasesPerMil", "newDeathsPerMil", "percDeaths", "percRecovered", "percActive", "percCritical", "testsPerMil", "percVacc", "percFullyVacc", "totalVaccinations"] : ["newCasesPerMil", "newDeathsPerMil", "percDeaths", "percRecovered", "percActive", "testsPerMil", "percVacc", "percFullyVacc", "totalVaccinations"];
-    const propTitles = (!usOn) ? ["Daily New Cases", "Daily New Deaths", "Case Fatality Rate", "Recovered", "Active", "Critical", "Tests", "Partially Vaccinated", "Fully Vaccinated", "Vaccinations"] : ["Daily New Cases", "Daily New Deaths", "Case Fatality Rate", "Recovered", "Active", "Tests", "Partially Vaccinated", "Fully Vaccinated", "Vaccinations"];
+    const propList = (!usOn) ? ["newCasesPerMil", "newDeathsPerMil", "percDeaths", "percRecovered", "percActive", "percCritical", "testsPerMil", "percFullyVacc", "percVacc", "totalVaccinations"] : ["newCasesPerMil", "newDeathsPerMil", "percDeaths", "percRecovered", "percActive", "testsPerMil", "percFullyVacc", "percVacc", "totalVaccinations"];
+    const propTitles = (!usOn) ? ["Daily New Cases", "Daily New Deaths", "Case Fatality Rate", "Recovered", "Active", "Critical", "Tests", "Fully Vaccinated", "Partially Vaccinated", "Vaccinations"] : ["Daily New Cases", "Daily New Deaths", "Case Fatality Rate", "Recovered", "Active", "Tests", "Fully Vaccinated", "Partially Vaccinated", "Vaccinations"];
     const svgList = (!usOn) ? dataSVG : usSVG;
     const flagId = svgList.find(path => path.country === country).id;
     const flagUrl = (flagId === 'ic') ? `/images/ic.png` : (flagId === 'us-dc') ? `/images/us-dc.png` : `https://flagcdn.com/h240/${flagId}.png`;
@@ -1909,8 +1909,8 @@ function toggleSwitchCases(cat) {
             cy = 54;
             color = '#4cf6af';
             menu = vaccMenu;
-            property = 'percVacc';
-            title = 'Partially Vaccinated';
+            property = 'percFullyVacc';
+            title = 'Fully Vaccinated';
             height = '160px';
             btns = '.vacc-btns';
             colors = ['#e2fdf1', '#bafbdf', '#89f9ca', '#4cf6af', '#33a976', '#1f6949', '#0e2f20'];
@@ -2056,7 +2056,7 @@ function dropDownSwitch(property) {
             p = `The Case Fatality rate (CFR) represents the proportion of cases who eventually die from the disease. This statistic for each country is imperfect, since it is based on both the total number of reported cases and deaths, both of which depend on the respective countries' reporting criteria. Globally, the WHO has estimated the coronavirus' CFR at <strong>2%</strong>. For comparison, the CFR for SARS was <strong>10%</strong>, and for MERS <strong>34%</strong>.`;
             break;
         case 'percVacc':
-            p = 'This is the percent of population that received at least one vaccine dose, but has <strong>NOT</strong> received all doses presribed by the vaccination protocol. This metric is not being made available by all reporting countries, so a 0 result does <strong>NOT</strong> necessarily mean there are no people vaccinated in the respective country.';
+            p = 'This is the percent of population that received at least one vaccine dose, but has <strong>NOT</strong> received all doses presribed by the vaccination protocol. This metric is not being made available by all reporting countries, so a 0 result does <strong>NOT</strong> necessarily mean there are no people vaccinated in the respective country.<br><br>This metric can <strong>DECREASE</strong> as people receive all doses.';
             break;
         case 'percFullyVacc':
             p = 'This is the percent of population that received <strong>ALL</strong> doses prescribed by the vaccination protocol. This metric is not being made available by all reporting countries, so a 0 result does <strong>NOT</strong> necessarily mean there are no people vaccinated in the respective country.';
@@ -2320,7 +2320,7 @@ function clearPopup() {
         closePopup.style.visibility = 'hidden';
         resultsTransform();
     }, 500);
-    const pageTitle = 'COVID-19 WORLD-MAP';
+    const pageTitle = 'COVID-19 World Map';
     window.history.pushState('noParam', pageTitle, '/');
     document.title = pageTitle;
 }
@@ -2393,7 +2393,7 @@ async function onMenuBtn(e) {
             onResize();
             clearPage();
             about.style.display = "block";
-            const pageTitle = 'About | COVID-19 WORLD-MAP';
+            const pageTitle = 'About | COVID-19 World Map';
             window.history.pushState('about', pageTitle, '/about');
             document.title = pageTitle;
         }
