@@ -879,7 +879,7 @@ body{
     color:#faebd7;
     text-align: left;
 }
-.light #chartInfo p, .light .chart-popup-date, .light .chart-popup-text{
+.light #chartInfo p, .light .chart-popup-date, .light .chart-popup-text, .light .chart-popup-num{
     color:#000;
 }
 #svgChart{
@@ -950,6 +950,7 @@ body{
 .chart-popup-wrapper{
     display: -webkit-box; display: -ms-flexbox; display: flex;
     -webkit-box-pack: justify; -ms-flex-pack: justify; justify-content: space-between;
+    -webkit-box-align:center;-ms-flex-align:center;align-items:center;
 }
 .chart-popup-flex{
     margin:2px 0;
@@ -963,12 +964,17 @@ body{
     font-weight: 600;
     color:#faebd7;
 }
-.chart-popup-text{
+.chart-popup-text, .chart-popup-num{
     display: inline-block;
     margin:0 2px;
-    font-size: 0.9em;
     font-weight: 100;
     color:#faebd7;
+}
+.chart-popup-text{
+    font-size: 0.9em;
+}
+.chart-popup-num{
+    font-size: 1.5em;
 }
 /* end country chart */
 /* end country popup */
