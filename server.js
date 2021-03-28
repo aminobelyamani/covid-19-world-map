@@ -199,7 +199,7 @@ const owidJob = new CronJob('52 2 * * *', function () {// 2:52 AM
         }
     });
 }, null, true, 'America/New_York');
-const worldometersJob = new CronJob('33 21 * * *', function () {// 9:33 PM
+const worldometersJob = new CronJob('3 23 * * *', function () {// 11:03 PM
     const url = 'https://api.apify.com/v2/key-value-stores/SmuuI0oebnTWjRTUh/records/LATEST?disableRedirect=true';
     downloadFile(url, async (file) => {
         if (file) {
@@ -256,18 +256,27 @@ const usJob = new CronJob('*/5 * * * *', function () {// EVERY 5 MINUTES
         }
     });
 }, null, true, 'America/New_York');
-const yesterdayJob = new CronJob('3 21 * * *', function () {// 9:03 PM
+const yesterdayJob = new CronJob('33 22 * * *', function () {// 10:33 PM
+    downloadYest();
+}, null, true, 'America/New_York');
+const retryJob = new CronJob('*/5 * * * *', function () {// RETRY EVERY 5 MINUTES
+    downloadYest();
+}, null, true, 'America/New_York');
+function downloadYest(){
     const url = 'https://www.worldometers.info/coronavirus/';
     downloadFile(url, file => {
         if (file) {
             console.log(`${file} FINISHED DOWNLOADING AT ${new Date()}`);
+            retryJob.stop();
             runYest();
         }
         else {
             console.log(`COULD NOT SCRAPE FILE: ${url}`);
+            retryJob.start();
         }
     });
-}, null, true, 'America/New_York');
+}
+retryJob.stop();
 //LOAD FILES ON SERVER START
 const worldFile = fs.readFileSync(path.join(__dirname, 'data/ref/world.json'));
 const countryCodes = JSON.parse(worldFile);
@@ -312,8 +321,11 @@ const runYest = async () => {
     yestData = await parseYesterdayScrape();
     yestUsData = await parseYesterdayScrape(true);
     const parsedUsData = await parseUsDataHist();
-    const addedUsData = await addNewDataToHist(yestUsData, parsedUsData);
-    compileUsDataHist(addedUsData);
+    const parsedUsRawData = await parseUsDataHistRaw();
+    if (parsedUsRawData) {
+        const addedUsData = await addNewDataToHist(yestUsData, parsedUsData, parsedUsRawData);
+        compileUsDataHist(addedUsData);
+    }
 };
 const runUsVaccHist = async () => {
     parsedUsCsv = await readCsv('data/owid/us_state_vaccinations.csv');
@@ -337,7 +349,7 @@ function compileUsDataHist(data) {
                 const vaccIndex = parsedStateList.findIndex(row => row.date.toString() === histList[finalIndex].date.toString());
                 if (vaccIndex != -1) {
                     const dailyVacc = parsedStateList[vaccIndex].daily_vaccinations || 0;
-                    data[histIndex].data[finalIndex].new_vaccinations_smoothed = dailyVacc;
+                    data[histIndex].data[finalIndex].new_vaccinations_smoothed = Number(dailyVacc);
                     count++;//change has been made
                 }
             }
@@ -358,19 +370,26 @@ function getYestDate() {
     yesterday = yesterday.toISOString().slice(0, 10);
     return yesterday;
 }
-function addNewDataToHist(data, parsedData) {
+function addNewDataToHist(data, parsedData, parsedRawData) {
     return new Promise(resolve => {
         const date = getYestDate();
         var count = 0;
         data.forEach(row => {
-            const record = parsedData.find(record => record.country === row.country);
+            const record = parsedRawData.find(record => record.country === row.country);
+            const rawIndex = parsedRawData.findIndex(record => record.country === row.country);
             const index = parsedData.findIndex(record => record.country === row.country);
             const i = record.data.length - 1;
             if (record && record.data[i].date != date) {
+                const rawPayload = {
+                    date: date,
+                    new_cases: Number(row.newCases),
+                    new_deaths: Number(row.newDeaths)
+                };
+                parsedRawData[rawIndex].data.push(rawPayload);
                 let caseSum = row.newCases, deathSum = row.newDeaths;
-                for (k = 1; k <= 6; k++) {
-                    caseSum += record.data[i - k].new_cases_smoothed;
-                    deathSum += record.data[i - k].new_deaths_smoothed;
+                for (k = 0; k < 6; k++) {
+                    caseSum += record.data[i - k].new_cases;
+                    deathSum += record.data[i - k].new_deaths;
                 }
                 const caseAvg = roundVal((caseSum / 7), 2);
                 const deathAvg = roundVal((deathSum / 7), 2);
@@ -378,7 +397,7 @@ function addNewDataToHist(data, parsedData) {
                     date: date,
                     new_cases_smoothed: caseAvg,
                     new_deaths_smoothed: deathAvg
-                }
+                };
                 parsedData[index].data.push(payload);
                 count++;//change has been made
             }
@@ -387,6 +406,10 @@ function addNewDataToHist(data, parsedData) {
             fs.writeFile(path.join(__dirname, 'data/us-data/us-data-hist.json'), JSON.stringify(parsedData), async (err) => {
                 if (err) { console.log('Error writing to file: us-data-hist.json'); console.log(err); resolve(parsedData); }
                 else { console.log('Added LATEST DATA to us-data-hist.json...'); usDataHist = await parseUsDataHist(); resolve(parsedData); }
+            });
+            fs.writeFile(path.join(__dirname, 'data/us-data/us-data-hist-raw.json'), JSON.stringify(parsedRawData), (err) => {
+                if (err) { console.log('Error writing to file: us-data-hist-raw.json'); console.log(err); }
+                else { console.log('Added LATEST DATA to us-data-hist-raw.json...'); }
             });
         }
         else { console.log('NO LATEST DATA changes made to us-data-hist.json'); resolve(parsedData); }
@@ -455,6 +478,21 @@ async function parseUsDataHist() {
         if (err) {
             console.log(err);
             return usDataHist;
+        }
+    }
+}
+async function parseUsDataHistRaw() {
+    try {
+        const rawData = fs.readFileSync(path.join(__dirname, 'data/us-data/us-data-hist-raw.json'));
+        var parsed;
+        parsed = JSON.parse(rawData);
+        console.log("parsed us-data-hist-raw.json...")
+        return await parsed;
+    }
+    catch (err) {
+        if (err) {
+            console.log(err);
+            return false;
         }
     }
 }
@@ -549,7 +587,7 @@ function loadCountryData(country) {
                 const data = {};
                 data.country = country;
                 data.data = [];
-                const propList = ['new_cases', 'new_deaths', 'new_cases_smoothed', 'new_deaths_smoothed', 'new_tests_smoothed', 'new_vaccinations_smoothed', 'stringency_index'];
+                const propList = ['new_cases', 'new_deaths', 'new_cases_smoothed', 'new_deaths_smoothed', 'new_tests_smoothed', 'new_vaccinations_smoothed', 'stringency_index', 'icu_patients', 'hosp_patients'];
                 raw.forEach(row => {
                     const payload = {};
                     payload.date = row.date;

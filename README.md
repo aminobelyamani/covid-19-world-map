@@ -15,14 +15,21 @@ All client-side code was developed from scratch. **No** external libraries, **no
 ## Data
 All the data can be found in the [/data](https://github.com/aminobelyamani/covid-19-world-map/tree/master/data) folder in the root directory.
 #### Sources
-* **Worldometers:** Most of the data scraping is from [here](https://www.worldometers.info/coronavirus/). The compiled world data is made available in this file [/data/scrape/LATEST.json](https://github.com/aminobelyamani/covid-19-world-map/tree/master/data/scrape/LATEST.json).
+* **Worldometer:** Most of the data scraping is from [here](https://www.worldometers.info/coronavirus/). The compiled world data is made available in this file [/data/scrape/LATEST.json](https://github.com/aminobelyamani/covid-19-world-map/tree/master/data/scrape/LATEST.json).
 * **OWID(*Our World In Data*):** All chart data for countries and vaccine data for both World and USA is fetched [here](https://github.com/owid/covid-19-data/tree/master/public/data). The main data files used can be found in this folder [/data/owid](https://github.com/aminobelyamani/covid-19-world-map/tree/master/data/owid). *OWID* data by Cameron Appel, Diana Beltekian, Daniel Gavrilov, Charlie Giattino, Joe Hasell, Bobbie Macdonald, Edouard Mathieu, Esteban Ortiz-Ospina, Hannah Ritchie, Max Roser.
 
 #### USA 50 States - Chart Data
-Scraping from Worldometers is compiled daily, then a 7-day rolling average is calculated for daily cases, deaths, and vaccinations. All of that daily processed data is then compiled and added to this file (*us-data-hist.json*), which you can find in this folder [/data/us-data](https://github.com/aminobelyamani/covid-19-world-map/tree/master/data/us-data).
-##### *us-data-hist.json* structure:
+Scraping from Worldometer is compiled daily and added to this file (*us-data-hist-raw.json*). A 7-day rolling average is then calculated for daily cases, deaths, and vaccinations. All of that daily processed data is then compiled and added to this file (*us-data-hist.json*). Both json files can be found in this folder [/data/us-data](https://github.com/aminobelyamani/covid-19-world-map/tree/master/data/us-data).
+##### *us-data-hist-raw.json* structure:
 * `country`: US state
 * `data`: array of daily cases, deaths, and vaccinations for each date of recorded data
+    * `date`: date in the format yyyy-mm-dd
+    * `new_cases`: new daily confirmed cases
+    * `new_deaths`: new daily confirmed deaths
+    
+##### *us-data-hist.json* structure:
+* `country`: US state
+* `data`: array of smoothed out daily cases, deaths, and vaccinations for each date of recorded data
     * `date`: date in the format yyyy-mm-dd
     * `new_cases_smoothed`: new daily confirmed cases (7-day rolling average)
     * `new_deaths_smoothed`: new daily confirmed deaths (7-day rolling average)
@@ -43,6 +50,6 @@ USA 50 states location data is made available in this file [/data/ref/us-states.
 ## Feedback
 Please feel free to reach out with any feedback or questions on my twitter account.
 ## License
-This repository is under the MIT [license](https://github.com/aminobelyamani/covid-19-world-map/blob/master/LICENSE). You have the permission to use the code and data, provided the source and authors are credited. Third-party data (*Our World In Data* and *Worldometers*) is subject to the license terms from the respective third-party authors.
+This repository is under the MIT [license](https://github.com/aminobelyamani/covid-19-world-map/blob/master/LICENSE). You have the permission to use the code and data, provided the source and authors are credited. Third-party data (*Our World In Data* and *Worldometer*) is subject to the license terms from the respective third-party authors.
 ## Author
 This PWA (*Progressive Web Application*) was created and developed by [Amino Belyamani](https://aminobelyamani.com). USA chart data was collected, compiled, and processed by Amino Belyamani.
