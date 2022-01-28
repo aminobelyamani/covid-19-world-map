@@ -22,13 +22,13 @@ var countryCodes, usCodes, parsedFull, fetchData, parsedCsv, parsedLocationsCsv,
 
 //MODULE EXPORTS
 const { parseScrape, parseYesterdayScrape } = require('./exports/scrape');
-const { getVaccineData, getUsVaccineData, compileUsData, loadCountryData, compileUsDataHist, addNewDataToHist } = require('./exports/data');
+const { getVaccineData, getUsVaccineData, compileUsData, loadCountryData, getStateData, compileUsDataHist, addNewDataToHist } = require('./exports/data');
 const { downloadFile } = require('./exports/download');
 
 //SERVER START
 const server = http.createServer(app);
 const port = process.env.PORT || 3000;
-const ipAddr = (process.env.NODE_ENV === 'production') ? '162.214.173.250' : '0.0.0.0';
+const ipAddr = (process.env.NODE_ENV === 'production') ? process.env.IP : '0.0.0.0';
 const runINITIAL = () => {
     return new Promise(async (resolve, reject) => {
         //COUNTRY & US CODES
@@ -262,13 +262,6 @@ function writeUsHistRawFile(data) {
     });
 }
 
-//GET US CHART DATA
-function getStateData(country) {
-    const record = usDataHist.find(record => record.country.toLowerCase() === country.toLowerCase());
-    const data = (record) ? record : false;
-    return data;
-}
-
 //APP ROUTES
 //GET ROUTES
 function switchUrl(url) {
@@ -325,7 +318,7 @@ app.post('/chart-data', (req, res) => {
     if (!body) { return res.send(false); }
     if (!parsedFull || parsedFull.length === 0 || !usDataHist || usDataHist.length === 0) { return res.send(false); }
     if (body.usOn) {
-        const chartData = getStateData(body.alpha2);
+        const chartData = getStateData(body.alpha2, usDataHist);
         return res.send(chartData);
     }
     const chartData = loadCountryData(body.alpha2, parsedFull, countryCodes);

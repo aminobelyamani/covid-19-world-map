@@ -77,6 +77,7 @@ function compileUsData(data, vaccData) {
 }
 
 //CHART FUNCTIONS
+//COUNTRY CHART
 function loadCountryData(country, parsedData, countryCodes) {
     if (parsedData.length === 0) { return false; }
     const alpha3 = countryCodes.find(record => record.alpha2.toLowerCase() === country.toLowerCase()).alpha3.toUpperCase();
@@ -97,6 +98,12 @@ function loadCountryData(country, parsedData, countryCodes) {
         });
         data.data.push(payload);
     });
+    return data;
+}
+//GET US CHART DATA
+function getStateData(country, hist) {
+    const record = hist.find(record => record.country.toLowerCase() === country.toLowerCase());
+    const data = (record) ? record : false;
     return data;
 }
 
@@ -170,4 +177,4 @@ function roundVal(value, precision) {
     return Math.ceil(value * multiplier) / multiplier;
 }
 
-module.exports = { getVaccineData, getUsVaccineData, compileUsData, loadCountryData, compileUsDataHist, addNewDataToHist };
+module.exports = { getVaccineData, getUsVaccineData, compileUsData, loadCountryData, getStateData, compileUsDataHist, addNewDataToHist };
